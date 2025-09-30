@@ -156,10 +156,10 @@ fi
 
 # Build and start services
 print_status "Building and starting services..."
-docker-compose -f docker-compose.production.yml build
+docker compose build
 
 print_status "Starting services..."
-docker-compose -f docker-compose.production.yml up -d
+docker compose up -d
 
 # Wait for services to be ready
 print_status "Waiting for services to start..."
@@ -168,7 +168,7 @@ sleep 10
 # Authenticate with Google
 print_status "Setting up Google OAuth authentication..."
 print_warning "This will open a browser window for OAuth authentication"
-docker-compose -f docker-compose.production.yml exec calendar-mcp-prod npm run auth
+docker compose exec calendar-mcp npm run auth
 
 # Test the setup
 print_status "Testing the deployment..."

@@ -1,5 +1,13 @@
-# Google Calendar MCP Server - Docker Compose Configuration
-# Simple, production-ready setup following Docker best practices
+# Google Calendar MCP Server with NGINX Proxy - Production Configuration
+# Secure deployment with SSL termination, bearer token authentication, and internal networking
+
+networks:
+  mcp-internal:
+    driver: bridge
+    internal: false  # Allow external access for OAuth callbacks
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 services:
   calendar-mcp:
@@ -7,29 +15,33 @@ services:
     container_name: calendar-mcp
     restart: unless-stopped
     
-    # Environment configuration via .env file
-    env_file: .env
+    # Internal network only - no port exposure to host except OAuth
+    networks:
+      - mcp-internal
     
-    # Keep container running for exec commands (stdio mode)
-    command: ["tail", "-f", "/dev/null"]
-    
-    # OAuth credentials and token storage
-    volumes:
-      - ./gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
-      - calendar-tokens:/home/nodejs/.config/google-calendar-mcp
-    
-    # Expose ports for HTTP mode and OAuth authentication
+    # Expose OAuth ports for authentication (3500-3505)
     ports:
-      - "3000:3000"  # HTTP mode MCP server
-      - "3500:3500"  # OAuth authentication
+      - "3500:3500"
       - "3501:3501"
       - "3502:3502"
       - "3503:3503"
       - "3504:3504"
       - "3505:3505"
     
+    # Environment configuration
+    environment:
+      - TRANSPORT=http
+      - HOST=0.0.0.0
+      - PORT=3000
+      - NODE_ENV=production
+      - GOOGLE_OAUTH_CREDENTIALS=/app/gcp-oauth.keys.json
     
-    # Resource limits for production stability
+    # OAuth credentials and token storage
+    volumes:
+      - ./gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
+      - calendar-tokens:/home/nodejs/.config/google-calendar-mcp
+    
+    # Resource limits
     deploy:
       resources:
         limits:
@@ -42,16 +54,102 @@ services:
     # Security options
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=100m
     
-    # Health check for HTTP mode (safe for stdio mode too)
+    # Health check
     healthcheck:
-      test: ["CMD-SHELL", "if [ \"$TRANSPORT\" = \"http\" ]; then curl -f http://localhost:${PORT:-3000}/health || exit 1; else exit 0; fi"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://0.0.0.0:3000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
-# Persistent volume for OAuth tokens
+  # DuckDNS IP updater service
+  duckdns-updater:
+    build:
+      context: .
+      dockerfile: Dockerfile.duckdns
+    container_name: duckdns-updater
+    restart: unless-stopped
+    
+    environment:
+      - DUCKDNS_DOMAIN=matrosmcp
+      - DUCKDNS_TOKEN=6fb5210e-71c6-4327-bbf9-af8283a08b37
+      - TZ=Europe/Amsterdam  # Set your timezone
+    
+    networks:
+      - mcp-internal
+    
+    volumes:
+      - duckdns-logs:/var/log
+    
+    # Resource limits (very lightweight)
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+          cpus: "0.1"
+        reservations:
+          memory: 16M
+          cpus: "0.05"
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=10m
+      - /var/spool/cron:rw,noexec,nosuid,size=1m
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep crond > /dev/null || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: unless-stopped
+    
+    networks:
+      - mcp-internal
+    
+    # Expose only HTTPS to the world
+    ports:
+      - "80:80"   # For Let's Encrypt challenges
+      - "443:443" # HTTPS
+    
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/auth:/etc/nginx/auth:ro
+      - nginx-logs:/var/log/nginx
+    
+    depends_on:
+      - calendar-mcp
+    
+    # Health check for NGINX
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Security
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   calendar-tokens:
+    driver: local
+  nginx-logs:
+    driver: local
+  duckdns-logs:
     driver: local

@@ -69,10 +69,10 @@ cp .env.production .env
 sed -i 's/your-domain.com/actual-domain.com/' nginx/conf.d/mcp-proxy.conf
 
 # 5. Start services
-docker-compose -f docker-compose.production.yml up -d
+docker compose up -d
 
 # 6. Authenticate with Google
-docker-compose -f docker-compose.production.yml exec calendar-mcp-prod npm run auth
+docker compose exec calendar-mcp npm run auth
 ```
 
 ## SSL Certificate Setup
@@ -202,28 +202,28 @@ NODE_ENV=production
 
 ```bash
 # All services
-docker-compose -f docker-compose.production.yml logs -f
+docker compose logs -f
 
 # Specific service
-docker-compose -f docker-compose.production.yml logs -f nginx-proxy
-docker-compose -f docker-compose.production.yml logs -f calendar-mcp-prod
+docker compose logs -f nginx-proxy
+docker compose logs -f calendar-mcp
 ```
 
 ### NGINX Access Logs
 
 ```bash
 # Real-time access logs
-docker-compose -f docker-compose.production.yml exec nginx-proxy tail -f /var/log/nginx/access.log
+docker compose exec nginx-proxy tail -f /var/log/nginx/access.log
 
 # Error logs
-docker-compose -f docker-compose.production.yml exec nginx-proxy tail -f /var/log/nginx/error.log
+docker compose exec nginx-proxy tail -f /var/log/nginx/error.log
 ```
 
 ### Health Monitoring
 
 ```bash
 # Check service health
-docker-compose -f docker-compose.production.yml ps
+docker compose ps
 
 # Test endpoints
 curl -k https://localhost/health
@@ -235,10 +235,10 @@ curl -k https://localhost/health
 
 ```bash
 # Pull latest images
-docker-compose -f docker-compose.production.yml pull
+docker compose pull
 
 # Rebuild and restart
-docker-compose -f docker-compose.production.yml up -d --build
+docker compose up -d --build
 ```
 
 ### Backup Configuration
@@ -256,10 +256,10 @@ tar -czf mcp-backup-$(date +%Y%m%d).tar.gz \
 
 ```bash
 # Restart all services
-docker-compose -f docker-compose.production.yml restart
+docker compose restart
 
 # Restart specific service
-docker-compose -f docker-compose.production.yml restart nginx-proxy
+docker compose restart nginx-proxy
 ```
 
 ## Troubleshooting
@@ -278,16 +278,16 @@ docker-compose -f docker-compose.production.yml restart nginx-proxy
 2. **Authentication Failures**
    ```bash
    # Check OAuth credentials
-   docker-compose -f docker-compose.production.yml exec calendar-mcp-prod cat /app/gcp-oauth.keys.json
+   docker compose exec calendar-mcp cat /app/gcp-oauth.keys.json
    
    # Re-authenticate
-   docker-compose -f docker-compose.production.yml exec calendar-mcp-prod npm run auth
+   docker compose exec calendar-mcp npm run auth
    ```
 
 3. **Network Issues**
    ```bash
    # Check internal connectivity
-   docker-compose -f docker-compose.production.yml exec nginx-proxy curl http://calendar-mcp-prod:3000/health
+   docker compose exec nginx-proxy curl http://calendar-mcp:3000/health
    
    # Check external access
    curl -k https://localhost/health
@@ -306,10 +306,10 @@ docker-compose -f docker-compose.production.yml restart nginx-proxy
 
 ```bash
 # NGINX authentication logs
-docker-compose -f docker-compose.production.yml logs nginx-proxy | grep "auth_result"
+docker compose logs nginx-proxy | grep "auth_result"
 
 # MCP service errors
-docker-compose -f docker-compose.production.yml logs calendar-mcp-prod | grep -i error
+docker compose logs calendar-mcp | grep -i error
 
 # System resource usage
 docker stats

@@ -1,50 +1,52 @@
 # Docker Deployment Guide
 
-Simple, production-ready Docker setup for the Google Calendar MCP Server. Follow the quick start guide if you already have the project downloaded.
+Production-ready Docker setup for the Google Calendar MCP Server with NGINX proxy, SSL termination, and bearer token authentication.
 
-## Quick Start 
+## Quick Start (Production Deployment)
 
 ```bash
 # 1. Place OAuth credentials in project root 
-# * optional if you have already place the file in the root of this project folder
 cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
 
-# 2. Copy example .env file to configure environment variables (optional)
-cp .env.example .env
+# 2. Generate SSL certificates (self-signed for testing)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem \
+  -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
 
-# 3. Build and start the server
+# 3. Build and start the secure deployment
 docker compose up -d
 
 # 4. Authenticate (one-time setup)
-# This will show the authentication URL that needs to be 
-# visited to give authorization to the applicaiton. 
-# Visit the URL and complete the OAuth process.
 docker compose exec calendar-mcp npm run auth
-# Note: This step only needs to be done once unless the app is in testing mode
-# in which case the tokens expire after 7 days 
 
-# 5. Add to Claude Desktop config (see stdio Mode section below)
+# 5. Test the deployment
+curl -k https://localhost/health
 ```
 
-## Two Modes
+## Development Mode (Claude Desktop Integration)
 
-### stdio Mode (Recommended for Claude Desktop)
+For Claude Desktop integration using stdio mode, use the development compose file:
+
+### stdio Mode (For Claude Desktop)
 **Direct process integration for Claude Desktop:**
 
 #### Step 1: Initial Setup
 ```bash
 # Clone and setup
-git clone https://github.com/nspady/google-calendar-mcp.git
+git clone https://github.com/your-repo/google-calendar-mcp.git
 cd google-calendar-mcp
 
 # Place your OAuth credentials in the project root
 cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
 
-# Build and start the container
-docker compose up -d
+# Create development environment file
+cp .env.example .env
+
+# Build and start the container in development mode
+docker compose -f docker-compose.dev.yml up -d
 
 # Authenticate (one-time setup)
-docker compose exec calendar-mcp npm run auth
+docker compose -f docker-compose.dev.yml exec calendar-mcp npm run auth
 ```
 
 #### Step 2: Claude Desktop Configuration

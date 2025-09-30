@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Calendar MCP API Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 10px 0; }
+        button { background: #007cba; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #005a8b; }
+        .response { background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 4px; margin: 10px 0; white-space: pre-wrap; font-family: monospace; max-height: 400px; overflow-y: auto; }
+        input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .error { background: #ffebee; border-color: #f44336; color: #c62828; }
+        .success { background: #e8f5e8; border-color: #4caf50; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <h1>🗓️ Google Calendar MCP API Tester</h1>
+    
+    <div class="container">
+        <h3>Configuration</h3>
+        <label>Server URL:</label>
+        <input type="text" id="serverUrl" value="https://localhost" placeholder="https://your-server-ip">
+        
+        <label>Bearer Token:</label>
+        <input type="text" id="bearerToken" value="e3707c16425c14fa417e2384a12748c0c7c51dfdfd1714c58992215983f33257" placeholder="Your bearer token">
+    </div>
+
+    <div class="container">
+        <h3>Quick Tests</h3>
+        <button onclick="testHealth()">🔍 Health Check</button>
+        <button onclick="testToolsList()">🛠️ List Tools</button>
+        <button onclick="testListCalendars()">📅 List Calendars</button>
+        <button onclick="testListEvents()">📋 List Events</button>
+    </div>
+
+    <div class="container">
+        <h3>Custom Request</h3>
+        <label>Method:</label>
+        <input type="text" id="customMethod" value="tools/list" placeholder="tools/list">
+        
+        <label>Parameters (JSON):</label>
+        <textarea id="customParams" rows="4" style="width: 100%; padding: 8px; font-family: monospace;">{}</textarea>
+        
+        <button onclick="testCustom()">🚀 Send Custom Request</button>
+    </div>
+
+    <div class="container">
+        <h3>Response</h3>
+        <div id="response" class="response">Ready to test...</div>
+    </div>
+
+    <script>
+        function getConfig() {
+            return {
+                serverUrl: document.getElementById('serverUrl').value,
+                bearerToken: document.getElementById('bearerToken').value
+            };
+        }
+
+        function displayResponse(data, isError = false) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = JSON.stringify(data, null, 2);
+            responseDiv.className = 'response ' + (isError ? 'error' : 'success');
+        }
+
+        async function makeRequest(endpoint, data = null, useAuth = true) {
+            const config = getConfig();
+            const url = config.serverUrl + endpoint;
+            
+            const options = {
+                method: data ? 'POST' : 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            if (useAuth && config.bearerToken) {
+                options.headers['Authorization'] = 'Bearer ' + config.bearerToken;
+            }
+
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            try {
+                const response = await fetch(url, options);
+                const result = await response.json();
+                displayResponse(result, !response.ok);
+                return result;
+            } catch (error) {
+                displayResponse({error: error.message}, true);
+            }
+        }
+
+        function testHealth() {
+            makeRequest('/health', null, false);
+        }
+
+        function testToolsList() {
+            makeRequest('/', {
+                "jsonrpc": "2.0",
+                "method": "tools/list",
+                "id": 1
+            });
+        }
+
+        function testListCalendars() {
+            makeRequest('/', {
+                "jsonrpc": "2.0",
+                "method": "tools/call",
+                "params": {
+                    "name": "list_calendars"
+                },
+                "id": 1
+            });
+        }
+
+        function testListEvents() {
+            const now = new Date();
+            const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+            
+            makeRequest('/', {
+                "jsonrpc": "2.0",
+                "method": "tools/call",
+                "params": {
+                    "name": "list_events",
+                    "arguments": {
+                        "timeMin": now.toISOString(),
+                        "timeMax": nextWeek.toISOString(),
+                        "maxResults": 10
+                    }
+                },
+                "id": 1
+            });
+        }
+
+        function testCustom() {
+            const method = document.getElementById('customMethod').value;
+            const paramsText = document.getElementById('customParams').value;
+            
+            let params = {};
+            try {
+                params = JSON.parse(paramsText);
+            } catch (e) {
+                displayResponse({error: "Invalid JSON in parameters: " + e.message}, true);
+                return;
+            }
+
+            const request = {
+                "jsonrpc": "2.0",
+                "method": method,
+                "id": 1
+            };
+
+            if (Object.keys(params).length > 0) {
+                request.params = params;
+            }
+
+            makeRequest('/', request);
+        }
+
+        // Test connection on page load
+        window.onload = function() {
+            testHealth();
+        };
+    </script>
+</body>
+</html>

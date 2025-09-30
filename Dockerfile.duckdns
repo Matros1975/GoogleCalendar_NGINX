@@ -1,0 +1,39 @@
+FROM alpine:latest
+
+# Install required packages
+RUN apk add --no-cache \
+    curl \
+    bind-tools \
+    dcron \
+    bash \
+    tzdata
+
+# Create directory for logs
+RUN mkdir -p /var/log && \
+    mkdir -p /scripts
+
+# Copy the update script
+COPY scripts/duckdns-update.sh /scripts/duckdns-update.sh
+RUN chmod +x /scripts/duckdns-update.sh
+
+# Create crontab file
+RUN echo "*/5 * * * * /scripts/duckdns-update.sh" > /var/spool/cron/crontabs/root
+
+# Create startup script
+RUN echo '#!/bin/bash' > /start.sh && \
+    echo 'echo "Starting DuckDNS updater..."' >> /start.sh && \
+    echo 'echo "Domain: ${DUCKDNS_DOMAIN}.duckdns.org"' >> /start.sh && \
+    echo 'echo "Update interval: every 5 minutes"' >> /start.sh && \
+    echo '# Run once immediately' >> /start.sh && \
+    echo '/scripts/duckdns-update.sh' >> /start.sh && \
+    echo '# Start cron daemon' >> /start.sh && \
+    echo 'crond -f -d 8' >> /start.sh && \
+    chmod +x /start.sh
+
+# Set timezone
+ENV TZ=UTC
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD pgrep crond > /dev/null || exit 1
+
+CMD ["/start.sh"]

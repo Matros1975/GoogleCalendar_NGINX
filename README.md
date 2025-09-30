@@ -44,10 +44,24 @@ Internet → NGINX Proxy (SSL/TLS) → Internal Docker Network → MCP Container
 
 ```bash
 # Clone the repository
-git clone <your-repo-url> mcp-ginx
-cd mcp-ginx
+git clone <your-repo-url> mcp-nginx
+cd mcp-nginx
 
 # Copy your Google OAuth credentials
+cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
+
+# Run the automated setup (recommended)
+./setup-oracle-vm.sh
+
+# OR manual setup:
+# Generate SSL certificates (self-signed for testing)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem \
+  -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
+
+# Deploy the containers
+docker compose up -d
+```
 cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
 
 # Run automated setup
@@ -72,18 +86,19 @@ sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/cert.pem
 sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/key.pem
 
 # 5. Start services
-docker-compose -f docker-compose.production.yml up -d
+docker compose up -d
 
 # 6. Authenticate with Google
-docker-compose -f docker-compose.production.yml exec calendar-mcp-prod npm run auth
+docker compose exec calendar-mcp npm run auth
 ```
 
 ## Configuration Files
 
 ### Core Configuration
-- `docker-compose.production.yml` - Production container orchestration
+- `docker-compose.yml` - Production container orchestration with NGINX proxy
+- `docker-compose.dev.yml` - Development/Claude Desktop integration
 - `nginx/conf.d/mcp-proxy.conf` - NGINX reverse proxy with authentication
-- `.env.production` - Environment variables and security settings
+- `.env.production` - Production environment variables and security settings
 
 ### Security & Management
 - `setup-oracle-vm.sh` - Automated deployment script
