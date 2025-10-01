@@ -1,44 +1,49 @@
-# Secure Google Calendar MCP Deployment on Oracle VM
+# Secure Multi-MCP Server Deployment on Oracle VM
 
-This guide provides a complete setup for deploying the Google Calendar MCP server on Oracle Cloud Infrastructure with NGINX proxy, SSL termination, and bearer token authentication.
+This guide provides complete setup for deploying MCP servers (including Google Calendar MCP) on Oracle Cloud Infrastructure with NGINX proxy, SSL termination, and bearer token authentication.
 
 ## Architecture Overview
 
 ```
-Internet → NGINX Proxy (SSL/TLS) → Internal Docker Network → MCP Container
-           ↓
-        OAuth + Bearer Token
-        Authentication
+Internet
+   ↓
+NGINX Proxy (SSL/TLS + Bearer Token Auth)
+   ↓
+Internal Docker Network
+   ↓
+├─→ Google Calendar MCP
+└─→ [Additional MCP Servers]
 ```
 
 ## Security Features
 
 - ✅ **NGINX Reverse Proxy**: SSL termination and security headers
-- ✅ **Bearer Token Authentication**: API access control
-- ✅ **Internal Docker Network**: MCP container not exposed to internet
+- ✅ **Bearer Token Authentication**: API access control for all MCP servers
+- ✅ **Internal Docker Network**: MCP containers not exposed to internet
 - ✅ **SSL/TLS Encryption**: HTTPS only with modern ciphers
 - ✅ **Rate Limiting**: Prevent abuse and DoS attacks
 - ✅ **Security Headers**: XSS, CSRF, and clickjacking protection
 - ✅ **OAuth Flow Protection**: Separate endpoint handling
 - ✅ **Request Size Limiting**: Prevent payload attacks
+- ✅ **Multi-MCP Support**: Deploy multiple MCP services simultaneously
 
 ## Prerequisites
 
-1. Oracle Cloud VM instance (Ubuntu/Oracle Linux)
+1. Oracle Cloud VM instance (Ubuntu/Oracle Linux) or any Linux server
 2. Docker and Docker Compose installed
 3. Domain name pointing to your VM (for SSL certificates)
-4. Google OAuth credentials (JSON file)
+4. Google OAuth credentials (JSON file) for Calendar MCP
 
 ## Quick Start
 
 ### 1. Clone and Setup
 
 ```bash
-git clone https://github.com/nspady/google-calendar-mcp.git
-cd google-calendar-mcp
+git clone https://github.com/Matros1975/GoogleCalendar_NGINX.git
+cd GoogleCalendar_NGINX
 
-# Copy your Google OAuth credentials
-cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
+# Copy your Google OAuth credentials to the Calendar MCP directory
+cp /path/to/your/gcp-oauth.keys.json ./Servers/GoogleCalendarMCP/gcp-oauth.keys.json
 
 # Run the automated setup
 ./setup-oracle-vm.sh
@@ -57,7 +62,7 @@ If you prefer manual setup:
 
 ```bash
 # 1. Create production environment
-cp .env.production .env
+cp Servers/GoogleCalendarMCP/.env.production Servers/GoogleCalendarMCP/.env
 
 # 2. Generate bearer tokens
 ./manage-tokens.sh generate
@@ -66,7 +71,7 @@ cp .env.production .env
 # 3. Setup SSL certificates (see SSL section below)
 
 # 4. Update domain in NGINX config
-sed -i 's/your-domain.com/actual-domain.com/' nginx/conf.d/mcp-proxy.conf
+sed -i 's/your-domain.com/actual-domain.com/' Servers/NGINX/conf.d/mcp-proxy.conf
 
 # 5. Start services
 docker compose up -d
@@ -88,10 +93,10 @@ sudo apt install certbot -y  # Ubuntu
 # Get certificates
 sudo certbot certonly --standalone -d your-domain.com
 
-# Copy certificates
-sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/cert.pem
-sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/key.pem
-sudo chown $USER:$USER nginx/ssl/*.pem
+# Copy certificates (Oracle Cloud - in VM's /etc/ssl/)
+sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem /etc/ssl/certs/your-domain.crt
+sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem /etc/ssl/private/your-domain.key
+sudo chown $USER:$USER /etc/ssl/certs/your-domain.crt /etc/ssl/private/your-domain.key
 
 # Setup auto-renewal
 echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
@@ -100,11 +105,14 @@ echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
 ### Option 2: Self-Signed (Development)
 
 ```bash
+mkdir -p Servers/NGINX/ssl
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout nginx/ssl/key.pem \
-    -out nginx/ssl/cert.pem \
+    -keyout Servers/NGINX/ssl/key.pem \
+    -out Servers/NGINX/ssl/cert.pem \
     -subj "/C=US/ST=State/L=City/O=MCP/OU=Calendar/CN=your-domain.com"
 ```
+
+**Note:** The docker-compose.yml mounts `/etc/ssl/certs` and `/etc/ssl/private` from the host for production SSL certificates. For development, you can use the local `Servers/NGINX/ssl/` directory by updating the volume mounts in docker-compose.yml.
 
 ## Bearer Token Management
 
@@ -328,6 +336,53 @@ docker stats
 - [ ] Rate limiting tested
 - [ ] Security headers verified
 
+## Deploying Multiple MCP Servers
+
+This deployment supports running multiple MCP servers simultaneously behind the NGINX proxy. To add additional MCP servers:
+
+### Quick Steps
+
+1. **Create new server directory:**
+   ```bash
+   mkdir -p Servers/YourNewMCP
+   # Add your MCP server files here
+   ```
+
+2. **Add service to docker-compose.yml:**
+   ```yaml
+   your-new-mcp:
+     build: ./Servers/YourNewMCP
+     container_name: your-new-mcp
+     networks:
+       - mcp-internal
+     # ... see docker-compose.multi-mcp.yml for template
+   ```
+
+3. **Configure NGINX routing:**
+   - Path-based: Add location block to `Servers/NGINX/conf.d/mcp-proxy.conf`
+   - Subdomain: Create new config file in `Servers/NGINX/conf.d/`
+
+4. **Deploy:**
+   ```bash
+   docker compose up -d --build
+   ```
+
+### Documentation
+
+For detailed instructions, examples, and troubleshooting:
+- **[Multi-MCP Setup Guide](docs/multi-mcp-setup.md)** - Complete guide for adding MCP servers
+- **[Refactoring Guide](REFACTORING_GUIDE.md)** - Architecture details and migration
+- `docker-compose.multi-mcp.yml` - Multi-server template
+- `Servers/NGINX/conf.d/multi-mcp-routing.conf.example` - NGINX routing examples
+
+### Benefits
+
+- Deploy multiple MCP services with shared security infrastructure
+- Each MCP server runs in isolation with its own resources
+- Unified authentication and SSL termination via NGINX
+- Easy to add, remove, or update individual MCP servers
+- Consistent deployment patterns across all servers
+
 ## Support
 
 For issues and questions:
@@ -335,4 +390,5 @@ For issues and questions:
 2. Review logs for error messages
 3. Verify network connectivity and firewall rules
 4. Test individual components (OAuth, SSL, tokens)
+5. Consult [Multi-MCP Setup Guide](docs/multi-mcp-setup.md) for multi-server issues
 5. Consult the original project documentation

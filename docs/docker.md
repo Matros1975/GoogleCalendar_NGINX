@@ -1,16 +1,30 @@
 # Docker Deployment Guide
 
-Production-ready Docker setup for the Google Calendar MCP Server with NGINX proxy, SSL termination, and bearer token authentication.
+Production-ready Docker setup for MCP Servers (including Google Calendar MCP) with NGINX proxy, SSL termination, and bearer token authentication.
+
+## Project Structure
+
+```
+/
+├── Servers/
+│   ├── GoogleCalendarMCP/    # Google Calendar MCP server
+│   ├── NGINX/                 # NGINX proxy configuration
+│   └── [YourMCPServer]/       # Add more MCP servers here
+├── docker-compose.yml         # Production deployment
+├── docker-compose.dev.yml     # Development/Claude Desktop
+└── docker-compose.multi-mcp.yml  # Multi-server template
+```
 
 ## Quick Start (Production Deployment)
 
 ```bash
-# 1. Place OAuth credentials in project root 
-cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
+# 1. Place OAuth credentials in the Calendar MCP directory
+cp /path/to/your/gcp-oauth.keys.json ./Servers/GoogleCalendarMCP/gcp-oauth.keys.json
 
 # 2. Generate SSL certificates (self-signed for testing)
+mkdir -p Servers/NGINX/ssl
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem \
+  -keyout Servers/NGINX/ssl/key.pem -out Servers/NGINX/ssl/cert.pem \
   -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
 
 # 3. Build and start the secure deployment
@@ -33,14 +47,14 @@ For Claude Desktop integration using stdio mode, use the development compose fil
 #### Step 1: Initial Setup
 ```bash
 # Clone and setup
-git clone https://github.com/your-repo/google-calendar-mcp.git
-cd google-calendar-mcp
+git clone https://github.com/Matros1975/GoogleCalendar_NGINX.git
+cd GoogleCalendar_NGINX
 
-# Place your OAuth credentials in the project root
-cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
+# Place your OAuth credentials in the Calendar MCP directory
+cp /path/to/your/gcp-oauth.keys.json ./Servers/GoogleCalendarMCP/gcp-oauth.keys.json
 
 # Create development environment file
-cp .env.example .env
+cp Servers/GoogleCalendarMCP/.env.example Servers/GoogleCalendarMCP/.env
 
 # Build and start the container in development mode
 docker compose -f docker-compose.dev.yml up -d
