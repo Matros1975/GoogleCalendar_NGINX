@@ -2,7 +2,8 @@
 # Master Test Runner for Infrastructure Tests
 # Runs all infrastructure tests in sequence and reports results
 
-set -e
+# Note: We don't use 'set -e' here because we want to continue running
+# all tests even if some fail, and collect pass/fail statistics
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
