@@ -113,6 +113,61 @@ services:
       retries: 3
       start_period: 10s
 
+  # SSL Certificate Renewal Service
+  ssl-renewer:
+    build: ./Servers/NGINX/ssl-renewer
+    container_name: ssl-renewer
+    restart: unless-stopped
+    
+    environment:
+      - DOMAIN=matrosmcp.duckdns.org
+      - TZ=Europe/Amsterdam
+      - COMPOSE_PROJECT_PATH=/compose
+      - NGINX_CONTAINER=nginx-proxy
+      - CERT_EXPIRY_DAYS=30
+    
+    networks:
+      - mcp-internal
+    
+    volumes:
+      # Let's Encrypt certificates (read-write for renewal)
+      - /etc/letsencrypt:/etc/letsencrypt:rw
+      # Docker socket for container restart capability
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Docker compose file for service management
+      - ./docker-compose.yml:/compose/docker-compose.yml:ro
+      # Log storage
+      - ssl-renewal-logs:/var/log/ssl-renewal
+    
+    # Resource limits (lightweight)
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.5"
+        reservations:
+          memory: 64M
+          cpus: "0.1"
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    # Note: Cannot use read_only due to certbot needing write access
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=50m
+      - /var/spool/cron:rw,noexec,nosuid,size=1m
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "/scripts/health-check.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    depends_on:
+      - nginx-proxy
+
   # NGINX Reverse Proxy
   # Routes requests to all MCP servers
   nginx-proxy:
@@ -157,4 +212,6 @@ volumes:
   nginx-logs:
     driver: local
   duckdns-logs:
+    driver: local
+  ssl-renewal-logs:
     driver: local
