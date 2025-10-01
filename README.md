@@ -274,6 +274,8 @@ Along with the normal capabilities you would expect for a calendar integration y
 - [Architecture](docs/architecture.md) - Technical architecture overview
 - [Development](docs/development.md) - Contributing and testing
 - [Testing](docs/testing.md) - Unit and integration testing guide
+- **[Let's Encrypt SSL Setup](docs/letsencrypt-setup-guide.md)** - Complete SSL certificate procedure
+- **[SSL Quick Reference](docs/letsencrypt-quick-reference.md)** - Emergency SSL commands
 
 ## Configuration
 
