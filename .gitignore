@@ -15,3 +15,7 @@ tests/*-results.txt
 tests/**/*-results.txt
 baseline-results.txt
 post-refactor-results.txt
+
+# Backup files
+*.backup
+docker-compose.yml.backup
