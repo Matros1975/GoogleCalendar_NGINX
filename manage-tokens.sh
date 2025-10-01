@@ -4,6 +4,16 @@
 
 set -e
 
+# Configuration
+ENV_FILE=""
+
+# Try to find .env.production in multiple locations
+if [[ -f "Servers/GoogleCalendarMCP/.env.production" ]]; then
+    ENV_FILE="Servers/GoogleCalendarMCP/.env.production"
+elif [[ -f ".env.production" ]]; then
+    ENV_FILE=".env.production"
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -35,8 +45,8 @@ generate_token() {
 # Function to display current tokens
 show_tokens() {
     print_header "Current Bearer Tokens"
-    if [[ -f ".env.production" ]]; then
-        tokens=$(grep "BEARER_TOKENS=" .env.production | cut -d'=' -f2)
+    if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
+        tokens=$(grep "BEARER_TOKENS=" "$ENV_FILE" | cut -d'=' -f2)
         if [[ -n "$tokens" ]]; then
             IFS=',' read -ra TOKEN_ARRAY <<< "$tokens"
             for i in "${!TOKEN_ARRAY[@]}"; do
@@ -47,6 +57,9 @@ show_tokens() {
         fi
     else
         print_error ".env.production file not found"
+        print_status "Expected locations:"
+        print_status "  - Servers/GoogleCalendarMCP/.env.production"
+        print_status "  - .env.production"
     fi
 }
 
@@ -60,8 +73,8 @@ add_token() {
         print_status "Generated new token: $new_token"
     fi
     
-    if [[ -f ".env.production" ]]; then
-        current_tokens=$(grep "BEARER_TOKENS=" .env.production | cut -d'=' -f2)
+    if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
+        current_tokens=$(grep "BEARER_TOKENS=" "$ENV_FILE" | cut -d'=' -f2)
         if [[ -n "$current_tokens" ]]; then
             updated_tokens="$current_tokens,$new_token"
         else
@@ -69,12 +82,12 @@ add_token() {
         fi
         
         # Update the file
-        sed -i.bak "s/BEARER_TOKENS=.*/BEARER_TOKENS=$updated_tokens/" .env.production
-        rm .env.production.bak
+        sed -i.bak "s/BEARER_TOKENS=.*/BEARER_TOKENS=$updated_tokens/" "$ENV_FILE"
+        rm "$ENV_FILE.bak"
         
         print_status "Token added successfully"
         print_warning "Restart the service to apply changes:"
-        echo "docker-compose -f docker-compose.production.yml restart"
+        echo "docker compose restart"
     else
         print_error ".env.production file not found"
         exit 1
@@ -90,19 +103,19 @@ remove_token() {
         exit 1
     fi
     
-    if [[ -f ".env.production" ]]; then
-        current_tokens=$(grep "BEARER_TOKENS=" .env.production | cut -d'=' -f2)
+    if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
+        current_tokens=$(grep "BEARER_TOKENS=" "$ENV_FILE" | cut -d'=' -f2)
         
         # Remove the token from the comma-separated list
         updated_tokens=$(echo "$current_tokens" | sed "s/$token_to_remove,\?//g" | sed 's/,$//g' | sed 's/^,//g')
         
         # Update the file
-        sed -i.bak "s/BEARER_TOKENS=.*/BEARER_TOKENS=$updated_tokens/" .env.production
-        rm .env.production.bak
+        sed -i.bak "s/BEARER_TOKENS=.*/BEARER_TOKENS=$updated_tokens/" "$ENV_FILE"
+        rm "$ENV_FILE.bak"
         
         print_status "Token removed successfully"
         print_warning "Restart the service to apply changes:"
-        echo "docker-compose -f docker-compose.production.yml restart"
+        echo "docker compose restart"
     else
         print_error ".env.production file not found"
         exit 1
@@ -154,15 +167,20 @@ rotate_tokens() {
         new_tokens="$new_token1,$new_token2"
         
         # Update the file
-        sed -i.bak "s/BEARER_TOKENS=.*/BEARER_TOKENS=$new_tokens/" .env.production
-        rm .env.production.bak
-        
-        print_status "Tokens rotated successfully"
-        echo -e "${YELLOW}New Token 1:${NC} $new_token1"
-        echo -e "${YELLOW}New Token 2:${NC} $new_token2"
-        print_warning "Save these tokens securely!"
-        print_warning "Restart the service to apply changes:"
-        echo "docker-compose -f docker-compose.production.yml restart"
+        if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
+            sed -i.bak "s/BEARER_TOKENS=.*/BEARER_TOKENS=$new_tokens/" "$ENV_FILE"
+            rm "$ENV_FILE.bak"
+            
+            print_status "Tokens rotated successfully"
+            echo -e "${YELLOW}New Token 1:${NC} $new_token1"
+            echo -e "${YELLOW}New Token 2:${NC} $new_token2"
+            print_warning "Save these tokens securely!"
+            print_warning "Restart the service to apply changes:"
+            echo "docker compose restart"
+        else
+            print_error ".env.production file not found"
+            exit 1
+        fi
     else
         print_status "Token rotation cancelled"
     fi

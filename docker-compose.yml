@@ -11,7 +11,7 @@ networks:
 
 services:
   calendar-mcp:
-    build: .
+    build: ./Servers/GoogleCalendarMCP
     container_name: calendar-mcp
     restart: unless-stopped
     
@@ -38,7 +38,7 @@ services:
     
     # OAuth credentials and token storage
     volumes:
-      - ./gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
+      - ./Servers/GoogleCalendarMCP/gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
       - calendar-tokens:/home/nodejs/.config/google-calendar-mcp
     
     # Resource limits
@@ -125,11 +125,11 @@ services:
       - "443:443" # HTTPS
     
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./Servers/NGINX/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./Servers/NGINX/conf.d:/etc/nginx/conf.d:ro
       - /etc/ssl/certs:/etc/ssl/certs:ro  # SSL certificates
       - /etc/ssl/private:/etc/ssl/private:ro  # SSL private keys
-      - ./nginx/auth:/etc/nginx/auth:ro
+      - ./Servers/NGINX/auth:/etc/nginx/auth:ro
       - nginx-logs:/var/log/nginx
     
     depends_on:

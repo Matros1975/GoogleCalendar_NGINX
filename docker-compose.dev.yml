@@ -3,7 +3,7 @@
 
 services:
   calendar-mcp:
-    build: .
+    build: ./Servers/GoogleCalendarMCP
     container_name: calendar-mcp
     restart: unless-stopped
     
@@ -15,7 +15,7 @@ services:
     
     # OAuth credentials and token storage
     volumes:
-      - ./gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
+      - ./Servers/GoogleCalendarMCP/gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
       - calendar-tokens:/home/nodejs/.config/google-calendar-mcp
     
     # Expose ports for HTTP mode and OAuth authentication

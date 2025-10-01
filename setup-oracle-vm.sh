@@ -58,30 +58,33 @@ print_status "Prerequisites check passed ✓"
 
 # Create necessary directories
 print_status "Creating directory structure..."
-mkdir -p nginx/ssl nginx/auth logs
+mkdir -p Servers/NGINX/ssl Servers/NGINX/auth logs
 
 # Check if OAuth credentials exist
-if [[ ! -f "gcp-oauth.keys.json" ]]; then
+if [[ ! -f "Servers/GoogleCalendarMCP/gcp-oauth.keys.json" ]]; then
     print_error "Google OAuth credentials file 'gcp-oauth.keys.json' not found!"
-    print_status "Please copy your Google OAuth credentials to this directory:"
-    print_status "cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json"
+    print_status "Please copy your Google OAuth credentials to the MCP server directory:"
+    print_status "cp /path/to/your/gcp-oauth.keys.json ./Servers/GoogleCalendarMCP/gcp-oauth.keys.json"
     exit 1
 fi
 
 print_status "Google OAuth credentials found ✓"
 
 # Generate bearer tokens if not configured
-if [[ ! -f ".env.production" ]]; then
+if [[ ! -f "Servers/GoogleCalendarMCP/.env.production" ]]; then
     print_status "Creating production environment configuration..."
-    cp .env.production.example .env.production
+    cp Servers/GoogleCalendarMCP/.env.production Servers/GoogleCalendarMCP/.env.production 2>/dev/null || cp .env.production Servers/GoogleCalendarMCP/.env.production 2>/dev/null || true
     
     # Generate secure bearer tokens
     TOKEN1=$(openssl rand -hex 32)
     TOKEN2=$(openssl rand -hex 32)
     
-    sed -i.bak "s/your-secure-token-1/$TOKEN1/" .env.production
-    sed -i.bak "s/your-secure-token-2/$TOKEN2/" .env.production
-    rm .env.production.bak
+    # Update .env.production with tokens if it exists
+    if [[ -f "Servers/GoogleCalendarMCP/.env.production" ]]; then
+        sed -i.bak "s/your-secure-token-1/$TOKEN1/" Servers/GoogleCalendarMCP/.env.production
+        sed -i.bak "s/your-secure-token-2/$TOKEN2/" Servers/GoogleCalendarMCP/.env.production
+        rm Servers/GoogleCalendarMCP/.env.production.bak 2>/dev/null || true
+    fi
     
     print_status "Generated secure bearer tokens and saved to .env.production"
     print_warning "IMPORTANT: Save these bearer tokens securely for API access:"
@@ -93,7 +96,7 @@ fi
 
 # Setup SSL certificates
 print_status "Setting up SSL certificates..."
-if [[ ! -f "nginx/ssl/cert.pem" || ! -f "nginx/ssl/key.pem" ]]; then
+if [[ ! -f "Servers/NGINX/ssl/cert.pem" || ! -f "Servers/NGINX/ssl/key.pem" ]]; then
     print_warning "SSL certificates not found. You have several options:"
     echo "1. Use Let's Encrypt (recommended for production)"
     echo "2. Generate self-signed certificates (development/testing)"
@@ -107,15 +110,15 @@ if [[ ! -f "nginx/ssl/cert.pem" || ! -f "nginx/ssl/key.pem" ]]; then
             read -p "Enter your domain name: " domain_name
             
             # Update nginx config with domain
-            sed -i.bak "s/your-domain.com/$domain_name/" nginx/conf.d/mcp-proxy.conf
-            rm nginx/conf.d/mcp-proxy.conf.bak
+            sed -i.bak "s/your-domain.com/$domain_name/" Servers/NGINX/conf.d/mcp-proxy.conf
+            rm Servers/NGINX/conf.d/mcp-proxy.conf.bak
             
             print_status "Please run these commands to get Let's Encrypt certificates:"
             echo "sudo yum install certbot -y"
             echo "sudo certbot certonly --standalone -d $domain_name"
-            echo "sudo cp /etc/letsencrypt/live/$domain_name/fullchain.pem nginx/ssl/cert.pem"
-            echo "sudo cp /etc/letsencrypt/live/$domain_name/privkey.pem nginx/ssl/key.pem"
-            echo "sudo chown \$USER:\$USER nginx/ssl/*.pem"
+            echo "sudo cp /etc/letsencrypt/live/$domain_name/fullchain.pem Servers/NGINX/ssl/cert.pem"
+            echo "sudo cp /etc/letsencrypt/live/$domain_name/privkey.pem Servers/NGINX/ssl/key.pem"
+            echo "sudo chown \$USER:\$USER Servers/NGINX/ssl/*.pem"
             echo ""
             print_warning "Run the above commands, then re-run this script"
             exit 0
@@ -125,23 +128,23 @@ if [[ ! -f "nginx/ssl/cert.pem" || ! -f "nginx/ssl/key.pem" ]]; then
             read -p "Enter domain name (or localhost): " domain_name
             
             openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                -keyout nginx/ssl/key.pem \
-                -out nginx/ssl/cert.pem \
+                -keyout Servers/NGINX/ssl/key.pem \
+                -out Servers/NGINX/ssl/cert.pem \
                 -subj "/C=US/ST=State/L=City/O=MCP/OU=Calendar/CN=$domain_name"
             
-            chmod 644 nginx/ssl/cert.pem
-            chmod 600 nginx/ssl/key.pem
+            chmod 644 Servers/NGINX/ssl/cert.pem
+            chmod 600 Servers/NGINX/ssl/key.pem
             
             # Update nginx config with domain
-            sed -i.bak "s/your-domain.com/$domain_name/" nginx/conf.d/mcp-proxy.conf
-            rm nginx/conf.d/mcp-proxy.conf.bak
+            sed -i.bak "s/your-domain.com/$domain_name/" Servers/NGINX/conf.d/mcp-proxy.conf
+            rm Servers/NGINX/conf.d/mcp-proxy.conf.bak
             
             print_status "Self-signed certificates generated ✓"
             ;;
         3)
             print_status "Please copy your SSL certificates to:"
-            print_status "  - nginx/ssl/cert.pem (certificate)"
-            print_status "  - nginx/ssl/key.pem (private key)"
+            print_status "  - Servers/NGINX/ssl/cert.pem (certificate)"
+            print_status "  - Servers/NGINX/ssl/key.pem (private key)"
             print_status "Then re-run this script"
             exit 0
             ;;
