@@ -1,0 +1,105 @@
+# Multi-MCP Server Configuration Example
+# This file demonstrates how to add additional MCP servers to the deployment
+# Copy services from this file to your main docker-compose.yml as needed
+
+# To use this configuration:
+# 1. Copy the service definition for the new MCP server
+# 2. Create a new directory under Servers/ for your MCP server
+# 3. Update NGINX configuration to route to the new server
+# 4. Add necessary environment variables and volumes
+
+networks:
+  mcp-internal:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+services:
+  # Example: Additional MCP Server
+  # Uncomment and customize for your needs
+  
+  # another-mcp:
+  #   build: ./Servers/AnotherMCP
+  #   container_name: another-mcp
+  #   restart: unless-stopped
+  #   
+  #   # Internal network only
+  #   networks:
+  #     - mcp-internal
+  #   
+  #   # Expose OAuth ports if needed
+  #   # ports:
+  #   #   - "3510:3510"
+  #   #   - "3511:3511"
+  #   
+  #   # Environment configuration
+  #   environment:
+  #     - TRANSPORT=http
+  #     - HOST=0.0.0.0
+  #     - PORT=3000
+  #     - NODE_ENV=production
+  #     # Add service-specific environment variables
+  #   
+  #   # Volumes for configuration and data
+  #   volumes:
+  #     - ./Servers/AnotherMCP/config:/app/config:ro
+  #     - another-mcp-data:/app/data
+  #   
+  #   # Resource limits
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #         cpus: "1.0"
+  #       reservations:
+  #         memory: 256M
+  #         cpus: "0.5"
+  #   
+  #   # Security options
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   read_only: true
+  #   tmpfs:
+  #     - /tmp:rw,noexec,nosuid,size=100m
+  #   
+  #   # Health check
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://0.0.0.0:3000/health || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+
+  # Generic MCP Server Template
+  # template-mcp:
+  #   build: ./Servers/TemplateMCP
+  #   container_name: template-mcp
+  #   restart: unless-stopped
+  #   networks:
+  #     - mcp-internal
+  #   environment:
+  #     - TRANSPORT=http
+  #     - HOST=0.0.0.0
+  #     - PORT=3000
+  #     - NODE_ENV=production
+  #   volumes:
+  #     - ./Servers/TemplateMCP/data:/app/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://0.0.0.0:3000/health || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+# volumes:
+#   another-mcp-data:
+#     driver: local
+
+# Notes:
+# - All MCP servers communicate through the mcp-internal network
+# - Only NGINX should be exposed to the internet
+# - Each MCP server should have its own data volume
+# - Configure NGINX to route requests to new MCP servers
+# - Use consistent health check patterns
+# - Ensure resource limits are appropriate for your deployment

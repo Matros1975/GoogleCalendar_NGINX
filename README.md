@@ -1,44 +1,78 @@
-# MCP_GINX - Secure Google Calendar MCP with NGINX Proxy
+# MCP_NGINX - Secure Multi-MCP Server Deployment with NGINX Proxy
 
-A secure deployment configuration for Google Calendar MCP (Model Context Protocol) server with NGINX reverse proxy, SSL termination, and bearer token authentication designed for Oracle Cloud Infrastructure.
+A production-ready deployment configuration for running multiple MCP (Model Context Protocol) servers behind a secure NGINX reverse proxy, with SSL termination and bearer token authentication, designed for Oracle Cloud Infrastructure.
 
 ## Overview
 
-This repository contains a production-ready deployment of the Google Calendar MCP server with enterprise-grade security features:
+This repository provides a flexible multi-server architecture for deploying MCP services:
 
+- **Multi-MCP Support**: Deploy multiple MCP servers simultaneously
 - **NGINX Reverse Proxy**: SSL termination, security headers, rate limiting
-- **Bearer Token Authentication**: API access control
-- **Internal Docker Network**: MCP container isolated from internet
+- **Bearer Token Authentication**: API access control for all MCP servers
+- **Internal Docker Network**: MCP containers isolated from internet
 - **SSL/TLS Encryption**: HTTPS only with modern ciphers
 - **Oracle Cloud Optimized**: Specifically configured for Oracle VM deployment
+
+### Included MCP Server
+
+- **Google Calendar MCP**: Full-featured calendar management (included by default)
+
+### Easy to Add More
+
+The architecture supports adding additional MCP servers with minimal configuration. See [Multi-MCP Setup Guide](docs/multi-mcp-setup.md).
 
 ## Architecture
 
 ```
-Internet → NGINX Proxy (SSL/TLS) → Internal Docker Network → MCP Container
-           ↓
-        OAuth + Bearer Token
-        Authentication
+Internet
+   ↓
+NGINX Proxy (SSL/TLS + Bearer Token Auth)
+   ↓
+Internal Docker Network
+   ↓
+├─→ Google Calendar MCP
+├─→ [Your Additional MCP Servers]
+└─→ [Future MCP Services]
+```
+
+## Project Structure
+
+```
+/
+├── Servers/
+│   ├── GoogleCalendarMCP/    # Google Calendar MCP server
+│   │   ├── src/               # Source code
+│   │   ├── Dockerfile         # Container build
+│   │   └── ...
+│   ├── NGINX/                 # NGINX proxy configuration
+│   │   ├── conf.d/            # Server configs
+│   │   ├── ssl/               # SSL certificates
+│   │   └── nginx.conf
+│   └── [YourMCPServer]/       # Add more MCP servers here
+├── docker-compose.yml         # Main orchestration
+├── scripts/                   # Helper scripts
+└── docs/                      # Documentation
 ```
 
 ## Key Security Features
 
 - ✅ **SSL Termination**: NGINX handles HTTPS with strong ciphers
 - ✅ **Bearer Token Auth**: API access control (NGINX validates tokens)
-- ✅ **Internal Networking**: MCP container not exposed to internet
+- ✅ **Internal Networking**: MCP containers not exposed to internet
 - ✅ **Rate Limiting**: Protection against abuse and DoS attacks
 - ✅ **Security Headers**: XSS, CSRF, clickjacking protection
-- ✅ **OAuth Protection**: Separate endpoint handling for Google OAuth
+- ✅ **OAuth Protection**: Separate endpoint handling for OAuth flows
 - ✅ **Request Size Limiting**: Prevention of payload attacks
+- ✅ **IP Allowlisting**: Restrict access to trusted networks
 
 ## Quick Start
 
 ### Prerequisites
 
-1. Oracle Cloud VM instance (Ubuntu/Oracle Linux)
+1. Oracle Cloud VM instance (Ubuntu/Oracle Linux) or any Linux server
 2. Docker and Docker Compose installed
-3. Domain name pointing to your VM
-4. Google OAuth credentials (JSON file)
+3. Domain name pointing to your VM (for production SSL)
+4. Google OAuth credentials (JSON file) for Calendar MCP
 
 ### Installation
 
@@ -47,22 +81,22 @@ Internet → NGINX Proxy (SSL/TLS) → Internal Docker Network → MCP Container
 git clone <your-repo-url> mcp-nginx
 cd mcp-nginx
 
-# Copy your Google OAuth credentials
-cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
+# Copy your Google OAuth credentials to the Calendar MCP directory
+cp /path/to/your/gcp-oauth.keys.json ./Servers/GoogleCalendarMCP/gcp-oauth.keys.json
 
 # Run the automated setup (recommended)
 ./setup-oracle-vm.sh
 
 # OR manual setup:
 # Generate SSL certificates (self-signed for testing)
+mkdir -p Servers/NGINX/ssl
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem \
+  -keyout Servers/NGINX/ssl/key.pem -out Servers/NGINX/ssl/cert.pem \
   -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
 
 # Deploy the containers
 docker compose up -d
 ```
-cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
 
 # Run automated setup
 ./setup-oracle-vm.sh
@@ -72,18 +106,18 @@ cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
 
 ```bash
 # 1. Configure environment
-cp .env.production .env
+cp Servers/GoogleCalendarMCP/.env.production Servers/GoogleCalendarMCP/.env
 
 # 2. Generate bearer tokens
 ./manage-tokens.sh add
 
 # 3. Update domain in NGINX config
-sed -i 's/your-domain.com/your-actual-domain.com/' nginx/conf.d/mcp-proxy.conf
+sed -i 's/your-domain.com/your-actual-domain.com/' Servers/NGINX/conf.d/mcp-proxy.conf
 
 # 4. Setup SSL certificates (Let's Encrypt recommended)
 sudo certbot certonly --standalone -d your-domain.com
-sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/cert.pem
-sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/key.pem
+sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem /etc/ssl/certs/your-domain.crt
+sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem /etc/ssl/private/your-domain.key
 
 # 5. Start services
 docker compose up -d
@@ -92,22 +126,34 @@ docker compose up -d
 docker compose exec calendar-mcp npm run auth
 ```
 
+## Adding More MCP Servers
+
+This architecture makes it easy to deploy multiple MCP servers. See the [Multi-MCP Setup Guide](docs/multi-mcp-setup.md) for:
+
+- Step-by-step instructions for adding new MCP servers
+- Path-based routing (e.g., `/calendar/`, `/othermcp/`)
+- Subdomain routing (e.g., `calendar.domain.com`, `othermcp.domain.com`)
+- Security configuration per server
+- Examples and templates
+
 ## Configuration Files
 
 ### Core Configuration
 - `docker-compose.yml` - Production container orchestration with NGINX proxy
 - `docker-compose.dev.yml` - Development/Claude Desktop integration
-- `nginx/conf.d/mcp-proxy.conf` - NGINX reverse proxy with authentication
-- `.env.production` - Production environment variables and security settings
+- `docker-compose.multi-mcp.yml` - Multi-MCP example configuration
+- `Servers/NGINX/conf.d/mcp-proxy.conf` - NGINX reverse proxy with authentication
+- `Servers/GoogleCalendarMCP/.env.production` - Production environment variables
 
 ### Security & Management
 - `setup-oracle-vm.sh` - Automated deployment script
-- `manage-tokens.sh` - Bearer token management
+- `manage-tokens.sh` - Bearer token management (supports new structure)
+- `Servers/GoogleCalendarMCP/scripts/test-deployment.sh` - Comprehensive deployment testing
 - `docs/oracle-cloud-firewall.md` - Firewall configuration guide
 
 ### SSL/TLS
-- `nginx/ssl/` - SSL certificate directory
-- `nginx/nginx.conf` - Main NGINX configuration
+- `Servers/NGINX/ssl/` - SSL certificate directory
+- `Servers/NGINX/nginx.conf` - Main NGINX configuration
 
 ## API Usage
 
