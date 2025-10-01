@@ -9,3 +9,9 @@ coverage/
 settings.local.json
 CLAUDE.md
 .env
+
+# Test results
+tests/*-results.txt
+tests/**/*-results.txt
+baseline-results.txt
+post-refactor-results.txt
