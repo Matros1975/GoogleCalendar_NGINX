@@ -1,44 +1,74 @@
-# MCP_GINX - Secure Google Calendar MCP with NGINX Proxy
+# MCP_NGINX - Multi-MCP Deployment with NGINX Proxy
 
-A secure deployment configuration for Google Calendar MCP (Model Context Protocol) server with NGINX reverse proxy, SSL termination, and bearer token authentication designed for Oracle Cloud Infrastructure.
+A secure, scalable deployment configuration supporting multiple MCP (Model Context Protocol) servers behind a shared NGINX reverse proxy with SSL termination and bearer token authentication.
 
 ## Overview
 
-This repository contains a production-ready deployment of the Google Calendar MCP server with enterprise-grade security features:
+This repository provides a production-ready infrastructure for deploying multiple MCP servers with:
 
-- **NGINX Reverse Proxy**: SSL termination, security headers, rate limiting
-- **Bearer Token Authentication**: API access control
-- **Internal Docker Network**: MCP container isolated from internet
-- **SSL/TLS Encryption**: HTTPS only with modern ciphers
-- **Oracle Cloud Optimized**: Specifically configured for Oracle VM deployment
+- **Multi-MCP Architecture**: Support for multiple MCP servers in isolated containers
+- **NGINX Reverse Proxy**: Centralized SSL termination, security headers, rate limiting
+- **Bearer Token Authentication**: API access control for all services
+- **Internal Docker Network**: MCP containers isolated from direct internet access
+- **SSL/TLS Encryption**: HTTPS-only with modern ciphers and Let's Encrypt support
+- **Easy Extensibility**: Add new MCP servers without structural changes
 
 ## Architecture
 
 ```
-Internet → NGINX Proxy (SSL/TLS) → Internal Docker Network → MCP Container
-           ↓
-        OAuth + Bearer Token
-        Authentication
+Internet → NGINX Proxy (SSL/TLS) → Internal Docker Network → Multiple MCP Containers
+           ↓                                                   ├── GoogleCalendarMCP:3000
+        OAuth + Bearer Token                                   ├── YourMCP:3001
+        Authentication                                         └── AnotherMCP:3002
 ```
 
-## Key Security Features
+### Directory Structure
 
-- ✅ **SSL Termination**: NGINX handles HTTPS with strong ciphers
-- ✅ **Bearer Token Auth**: API access control (NGINX validates tokens)
-- ✅ **Internal Networking**: MCP container not exposed to internet
+```
+.
+├── Servers/                    # All server components
+│   ├── GoogleCalendarMCP/      # Google Calendar MCP server
+│   ├── NGINX/                  # NGINX proxy configuration
+│   └── TEMPLATE_MCP_SERVER/    # Template for new servers
+├── tests/                      # Infrastructure test suite
+├── docker-compose.yml          # Orchestrates all services
+└── ...
+```
+
+## Key Features
+
+### Security
+- ✅ **SSL/TLS Termination**: NGINX handles HTTPS with strong ciphers
+- ✅ **Bearer Token Auth**: API access control validated by NGINX
+- ✅ **IP Allowlisting**: Restrict access to trusted networks
+- ✅ **Internal Networking**: MCP containers not exposed to internet
 - ✅ **Rate Limiting**: Protection against abuse and DoS attacks
 - ✅ **Security Headers**: XSS, CSRF, clickjacking protection
-- ✅ **OAuth Protection**: Separate endpoint handling for Google OAuth
+- ✅ **OAuth Protection**: Separate endpoint handling
 - ✅ **Request Size Limiting**: Prevention of payload attacks
+
+### Multi-MCP Support
+- ✅ **Isolated Containers**: Each MCP server runs independently
+- ✅ **Resource Limits**: Per-service CPU and memory limits
+- ✅ **Independent Configuration**: Service-specific environment variables
+- ✅ **Easy Addition**: Template-based server addition
+- ✅ **Centralized Routing**: NGINX handles all external requests
+- ✅ **Health Monitoring**: Per-service health checks
+
+### Testing & Validation
+- ✅ **Infrastructure Tests**: Automated validation of entire stack
+- ✅ **Security Testing**: Bearer token and TLS validation
+- ✅ **Configuration Validation**: YAML and Docker Compose checks
+- ✅ **Health Checks**: Service readiness monitoring
 
 ## Quick Start
 
 ### Prerequisites
 
-1. Oracle Cloud VM instance (Ubuntu/Oracle Linux)
-2. Docker and Docker Compose installed
-3. Domain name pointing to your VM
-4. Google OAuth credentials (JSON file)
+1. Docker and Docker Compose installed
+2. Domain name pointing to your server (for production SSL)
+3. Google OAuth credentials (JSON file) for Calendar MCP
+4. Linux server (tested on Oracle Cloud, works on any Docker host)
 
 ### Installation
 
@@ -78,12 +108,12 @@ cp .env.production .env
 ./manage-tokens.sh add
 
 # 3. Update domain in NGINX config
-sed -i 's/your-domain.com/your-actual-domain.com/' nginx/conf.d/mcp-proxy.conf
+sed -i 's/your-domain.com/your-actual-domain.com/' Servers/NGINX/conf.d/mcp-proxy.conf
 
 # 4. Setup SSL certificates (Let's Encrypt recommended)
 sudo certbot certonly --standalone -d your-domain.com
-sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/cert.pem
-sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/key.pem
+sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem Servers/NGINX/ssl/cert.pem
+sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem Servers/NGINX/ssl/key.pem
 
 # 5. Start services
 docker compose up -d
@@ -92,22 +122,110 @@ docker compose up -d
 docker compose exec calendar-mcp npm run auth
 ```
 
+## Adding New MCP Servers
+
+The architecture supports multiple MCP servers. To add a new server:
+
+### 1. Create Server Directory
+
+```bash
+# Copy template
+cp -r Servers/TEMPLATE_MCP_SERVER Servers/YourMCPServer
+
+# Add your server code, Dockerfile, and configuration
+```
+
+### 2. Update docker-compose.yml
+
+Add your service definition:
+
+```yaml
+services:
+  your-mcp-server:
+    build: ./Servers/YourMCPServer
+    container_name: your-mcp-server
+    restart: unless-stopped
+    networks:
+      - mcp-internal
+    environment:
+      - TRANSPORT=http
+      - HOST=0.0.0.0
+      - PORT=3001  # Use different port
+    # ... (see Servers/README.md for complete template)
+```
+
+### 3. Update NGINX Configuration
+
+Add routing in `Servers/NGINX/conf.d/mcp-proxy.conf`:
+
+```nginx
+upstream your_mcp_backend {
+    server your-mcp-server:3001;
+    keepalive 32;
+}
+
+location /your-service/ {
+    # Authentication and proxy configuration
+    # ... (see Servers/README.md for complete template)
+}
+```
+
+### 4. Deploy
+
+```bash
+docker compose up -d your-mcp-server
+docker compose exec nginx-proxy nginx -s reload
+```
+
+See `Servers/README.md` for detailed instructions and best practices.
+
 ## Configuration Files
 
 ### Core Configuration
-- `docker-compose.yml` - Production container orchestration with NGINX proxy
+- `docker-compose.yml` - Multi-MCP orchestration with NGINX proxy
 - `docker-compose.dev.yml` - Development/Claude Desktop integration
-- `nginx/conf.d/mcp-proxy.conf` - NGINX reverse proxy with authentication
-- `.env.production` - Production environment variables and security settings
+- `Servers/NGINX/conf.d/mcp-proxy.conf` - NGINX routing and authentication
+- `.env.production` - Production environment variables
+
+### Service Directories
+- `Servers/GoogleCalendarMCP/` - Google Calendar MCP server
+- `Servers/NGINX/` - NGINX proxy configuration
+- `Servers/TEMPLATE_MCP_SERVER/` - Template for new servers
 
 ### Security & Management
 - `setup-oracle-vm.sh` - Automated deployment script
 - `manage-tokens.sh` - Bearer token management
-- `docs/oracle-cloud-firewall.md` - Firewall configuration guide
+- `docs/oracle-cloud-firewall.md` - Firewall configuration
 
-### SSL/TLS
-- `nginx/ssl/` - SSL certificate directory
-- `nginx/nginx.conf` - Main NGINX configuration
+### Testing
+- `tests/infrastructure/` - Automated infrastructure tests
+- `tests/README.md` - Test suite documentation
+
+## Testing
+
+### Run Infrastructure Tests
+
+```bash
+# Run all tests
+./tests/infrastructure/run-all-tests.sh
+
+# Run quick tests (no container startup)
+./tests/infrastructure/run-all-tests.sh --quick
+
+# Run security tests only
+./tests/infrastructure/run-all-tests.sh --security
+
+# Save results for comparison
+./tests/infrastructure/run-all-tests.sh --save-results results.txt
+```
+
+Tests validate:
+- Container startup and health
+- Endpoint reachability
+- Bearer token security
+- TLS/SSL certificates
+- YAML configuration
+- Network connectivity
 
 ## API Usage
 

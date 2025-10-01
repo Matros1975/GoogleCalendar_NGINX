@@ -1,5 +1,6 @@
-# Google Calendar MCP Server with NGINX Proxy - Production Configuration
-# Secure deployment with SSL termination, bearer token authentication, and internal networking
+# Multi-MCP Deployment with NGINX Proxy - Production Configuration
+# Refactored structure supporting multiple MCP servers behind NGINX
+# Each MCP server is in its own subdirectory under Servers/
 
 networks:
   mcp-internal:
@@ -10,8 +11,9 @@ networks:
         - subnet: 172.20.0.0/16
 
 services:
+  # Google Calendar MCP Server
   calendar-mcp:
-    build: .
+    build: ./Servers/GoogleCalendarMCP
     container_name: calendar-mcp
     restart: unless-stopped
     
@@ -111,6 +113,8 @@ services:
       retries: 3
       start_period: 10s
 
+  # NGINX Reverse Proxy
+  # Routes requests to all MCP servers
   nginx-proxy:
     image: nginx:alpine
     container_name: nginx-proxy
@@ -125,8 +129,8 @@ services:
       - "443:443" # HTTPS
     
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./Servers/NGINX/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./Servers/NGINX/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro  # Let's Encrypt certificates
       - /var/www/certbot:/var/www/certbot:ro  # Let's Encrypt webroot
       - ./nginx/auth:/etc/nginx/auth:ro
