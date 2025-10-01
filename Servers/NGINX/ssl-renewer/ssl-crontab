@@ -1,0 +1,7 @@
+# SSL Certificate Renewal Crontab
+# Runs twice daily at 3:30 AM and 3:30 PM
+# Logs to /var/log/ssl-renewal/renewal.log
+
+# Minute Hour Day Month DayOfWeek Command
+30 3 * * * /scripts/ssl-renewal.sh
+30 15 * * * /scripts/ssl-renewal.sh
