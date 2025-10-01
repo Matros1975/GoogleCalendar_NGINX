@@ -3,12 +3,17 @@
 
 services:
   calendar-mcp:
-    build: .
+    build: ./Servers/GoogleCalendarMCP
     container_name: calendar-mcp
     restart: unless-stopped
     
-    # Environment configuration via .env file
-    env_file: .env
+    # Environment configuration (use .env if it exists, else defaults)
+    environment:
+      - TRANSPORT=${TRANSPORT:-stdio}
+      - HOST=${HOST:-0.0.0.0}
+      - PORT=${PORT:-3000}
+      - NODE_ENV=${NODE_ENV:-development}
+      - GOOGLE_OAUTH_CREDENTIALS=/app/gcp-oauth.keys.json
     
     # Keep container running for exec commands (stdio mode)
     command: ["tail", "-f", "/dev/null"]

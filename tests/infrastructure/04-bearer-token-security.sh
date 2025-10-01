@@ -59,10 +59,10 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" "$MCP_ENDPOINT" 2>/dev/null
 
 if [[ "$RESPONSE" == "401" ]] || [[ "$RESPONSE" == "403" ]]; then
     log_success "Request without token correctly rejected (HTTP $RESPONSE)"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Request without token not rejected (HTTP $RESPONSE - expected 401/403)"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 2: Request with invalid bearer token should fail
@@ -73,10 +73,10 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
 
 if [[ "$RESPONSE" == "401" ]] || [[ "$RESPONSE" == "403" ]]; then
     log_success "Request with invalid token correctly rejected (HTTP $RESPONSE)"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Request with invalid token not rejected (HTTP $RESPONSE - expected 401/403)"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 3: Request with valid bearer token should succeed (or at least not fail auth)
@@ -90,14 +90,14 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
 # Valid auth should return 200 (success) or other non-auth error
 if [[ "$RESPONSE" == "200" ]] || [[ "$RESPONSE" == "500" ]] || [[ "$RESPONSE" == "400" ]]; then
     log_success "Request with valid token passed auth (HTTP $RESPONSE)"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 elif [[ "$RESPONSE" == "401" ]] || [[ "$RESPONSE" == "403" ]]; then
     log_warn "Request with valid token rejected (HTTP $RESPONSE - token may not be configured)"
     # Don't fail, as token might not be set up yet
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Unexpected response with valid token (HTTP $RESPONSE)"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 4: Test case-sensitivity of bearer token
@@ -110,10 +110,10 @@ if [[ "$UPPER_TOKEN" != "$VALID_TOKEN" ]]; then
     
     if [[ "$RESPONSE" == "401" ]] || [[ "$RESPONSE" == "403" ]]; then
         log_success "Bearer token is case-sensitive (correct behavior)"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     else
         log_warn "Bearer token may not be case-sensitive (HTTP $RESPONSE)"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     fi
 else
     log_info "Token is all numeric/symbols, skipping case sensitivity test"
@@ -129,10 +129,10 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
 
 if [[ "$RESPONSE" != "401" ]] && [[ "$RESPONSE" != "403" ]] || [[ "$RESPONSE" == "000" ]]; then
     log_success "Authorization header accepts lowercase 'bearer'"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_warn "Authorization header may require specific case"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 fi
 
 # Test 6: Health endpoint should not require bearer token
@@ -142,10 +142,10 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
 
 if [[ "$RESPONSE" == "200" ]]; then
     log_success "Health endpoint accessible without authentication"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Health endpoint requires authentication (HTTP $RESPONSE - should be 200)"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 7: OAuth endpoints should not require bearer token
@@ -156,10 +156,10 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
 # OAuth endpoints should return something other than 401/403 (even if 404 or 400)
 if [[ "$RESPONSE" != "401" ]] && [[ "$RESPONSE" != "403" ]]; then
     log_success "OAuth endpoint accessible without bearer token (HTTP $RESPONSE)"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "OAuth endpoint requires bearer token (HTTP $RESPONSE)"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 8: Test token in wrong header format
@@ -170,10 +170,10 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
 
 if [[ "$RESPONSE" == "401" ]] || [[ "$RESPONSE" == "403" ]]; then
     log_success "Token without 'Bearer' prefix correctly rejected"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_warn "Token without 'Bearer' prefix accepted (HTTP $RESPONSE)"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 fi
 
 # Test 9: Test empty bearer token
@@ -184,10 +184,10 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
 
 if [[ "$RESPONSE" == "401" ]] || [[ "$RESPONSE" == "403" ]]; then
     log_success "Empty bearer token correctly rejected"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Empty bearer token not rejected (HTTP $RESPONSE)"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 10: Test multiple authorization headers
@@ -200,10 +200,10 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
 # Should use one of them (typically last one)
 if [[ "$RESPONSE" != "000" ]]; then
     log_success "Multiple authorization headers handled (HTTP $RESPONSE)"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Failed to handle multiple authorization headers"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 11: Test rate limiting on auth failures
@@ -224,11 +224,11 @@ done
 
 if [[ "$RATE_LIMIT_TRIGGERED" == true ]]; then
     log_success "Rate limiting active on auth failures (HTTP 429)"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_info "Rate limiting not triggered in test (may require more requests)"
     # Don't fail, just note
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 fi
 
 # Summary

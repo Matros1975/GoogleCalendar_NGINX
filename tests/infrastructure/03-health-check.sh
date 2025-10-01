@@ -35,7 +35,7 @@ MCP_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' calendar-mcp 2>/
 case "$MCP_HEALTH" in
     "healthy")
         log_success "MCP container is healthy"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
         ;;
     "starting")
         log_warn "MCP container is still starting, waiting..."
@@ -43,16 +43,16 @@ case "$MCP_HEALTH" in
         MCP_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' calendar-mcp 2>/dev/null || echo "unknown")
         if [[ "$MCP_HEALTH" == "healthy" ]]; then
             log_success "MCP container is now healthy"
-            ((PASSED++))
+            ((PASSED=PASSED+1))
         else
             log_error "MCP container health: $MCP_HEALTH"
-            ((FAILED++))
+            ((FAILED=FAILED+1))
         fi
         ;;
     *)
         log_warn "MCP container health: $MCP_HEALTH (health check may not be configured)"
         # Don't fail if health check not configured
-        ((PASSED++))
+        ((PASSED=PASSED+1))
         ;;
 esac
 
@@ -63,7 +63,7 @@ NGINX_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' nginx-proxy 2>
 case "$NGINX_HEALTH" in
     "healthy")
         log_success "NGINX container is healthy"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
         ;;
     "starting")
         log_warn "NGINX container is still starting, waiting..."
@@ -71,15 +71,15 @@ case "$NGINX_HEALTH" in
         NGINX_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' nginx-proxy 2>/dev/null || echo "unknown")
         if [[ "$NGINX_HEALTH" == "healthy" ]]; then
             log_success "NGINX container is now healthy"
-            ((PASSED++))
+            ((PASSED=PASSED+1))
         else
             log_error "NGINX container health: $NGINX_HEALTH"
-            ((FAILED++))
+            ((FAILED=FAILED+1))
         fi
         ;;
     *)
         log_warn "NGINX container health: $NGINX_HEALTH (health check may not be configured)"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
         ;;
 esac
 
@@ -90,10 +90,10 @@ HEALTH_RESPONSE=$(curl -s http://localhost/health 2>/dev/null || echo "")
 if echo "$HEALTH_RESPONSE" | grep -q "healthy"; then
     log_success "MCP health endpoint returns healthy status"
     echo "     Response: $HEALTH_RESPONSE"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "MCP health endpoint response unexpected: $HEALTH_RESPONSE"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 4: MCP /health endpoint response time
@@ -102,10 +102,10 @@ RESPONSE_TIME=$(curl -s -o /dev/null -w "%{time_total}" http://localhost/health 
 
 if (( $(echo "$RESPONSE_TIME < 2.0" | bc -l 2>/dev/null || echo "1") )); then
     log_success "Health endpoint response time: ${RESPONSE_TIME}s (< 2s)"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Health endpoint response time: ${RESPONSE_TIME}s (too slow)"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 5: Check health endpoint is available via HTTPS
@@ -114,11 +114,11 @@ HTTPS_HEALTH=$(curl -k -s https://localhost/health 2>/dev/null || echo "")
 
 if [[ -n "$HTTPS_HEALTH" ]]; then
     log_success "Health endpoint accessible via HTTPS"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_warn "Health endpoint not accessible via HTTPS (SSL may not be configured)"
     # Don't fail if SSL not configured
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 fi
 
 # Test 6: Docker healthcheck history
@@ -131,10 +131,10 @@ if [[ -n "$MCP_HEALTH_LOG" ]]; then
     
     if [[ "$FAILED_CHECKS" -eq 0 ]]; then
         log_success "All $TOTAL_CHECKS health checks passed"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     else
         log_warn "$FAILED_CHECKS of $TOTAL_CHECKS health checks failed"
-        ((PASSED++))  # Don't fail on past health check issues if currently healthy
+        ((PASSED=PASSED+1))  # Don't fail on past health check issues if currently healthy
     fi
 else
     log_info "No health check history available"
@@ -147,18 +147,18 @@ NGINX_RESTARTS=$(docker inspect --format='{{.RestartCount}}' nginx-proxy 2>/dev/
 
 if [[ "$MCP_RESTARTS" -eq 0 ]]; then
     log_success "MCP container has not restarted"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_warn "MCP container has restarted $MCP_RESTARTS times"
-    ((PASSED++))  # Don't fail on restarts if currently healthy
+    ((PASSED=PASSED+1))  # Don't fail on restarts if currently healthy
 fi
 
 if [[ "$NGINX_RESTARTS" -eq 0 ]]; then
     log_success "NGINX container has not restarted"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_warn "NGINX container has restarted $NGINX_RESTARTS times"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 fi
 
 # Test 8: Service uptime
@@ -168,18 +168,18 @@ NGINX_UPTIME=$(docker inspect --format='{{.State.StartedAt}}' nginx-proxy 2>/dev
 
 if [[ "$MCP_UPTIME" != "unknown" ]]; then
     log_success "MCP container started at: $MCP_UPTIME"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Cannot determine MCP container uptime"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 if [[ "$NGINX_UPTIME" != "unknown" ]]; then
     log_success "NGINX container started at: $NGINX_UPTIME"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Cannot determine NGINX container uptime"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 9: Process check inside containers
@@ -188,19 +188,19 @@ log_info "Test 9: Checking processes inside containers..."
 # Check Node.js process in MCP container
 if docker exec calendar-mcp pgrep -f "node.*build/index.js" > /dev/null 2>&1; then
     log_success "Node.js process running in MCP container"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Node.js process not found in MCP container"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Check NGINX process
 if docker exec nginx-proxy pgrep nginx > /dev/null 2>&1; then
     log_success "NGINX process running in NGINX container"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "NGINX process not found in NGINX container"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 10: Memory usage check
@@ -213,7 +213,7 @@ echo "     NGINX memory usage: ${NGINX_MEM}%"
 
 # Don't fail on memory usage, just report
 log_success "Memory usage reported"
-((PASSED++))
+((PASSED=PASSED+1))
 
 # Summary
 echo ""

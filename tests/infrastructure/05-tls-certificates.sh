@@ -40,20 +40,20 @@ log_info "Test 1: Checking if certificate files exist..."
 if [[ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]]; then
     log_success "Let's Encrypt certificate found for $DOMAIN"
     CERT_PATH="/etc/letsencrypt/live/$DOMAIN"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 # Check mounted certificate in Docker
 elif docker exec nginx-proxy test -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" 2>/dev/null; then
     log_success "Certificate found in NGINX container"
     CERT_PATH="/etc/letsencrypt/live/$DOMAIN"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 # Check self-signed certificate
 elif docker exec nginx-proxy test -f "/etc/nginx/ssl/cert.pem" 2>/dev/null; then
     log_warn "Using self-signed certificate"
     CERT_PATH="/etc/nginx/ssl"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "No certificate files found"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
     CERT_PATH=""
 fi
 
@@ -61,10 +61,10 @@ fi
 log_info "Test 2: Testing TLS handshake..."
 if echo | openssl s_client -connect localhost:443 -servername "$DOMAIN" 2>/dev/null | grep -q "Verify return code"; then
     log_success "TLS handshake successful"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "TLS handshake failed"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 3: Check supported TLS versions
@@ -73,7 +73,7 @@ log_info "Test 3: Checking supported TLS versions..."
 # Test TLS 1.2
 if echo | timeout 5 openssl s_client -connect localhost:443 -tls1_2 2>/dev/null | grep -q "Protocol.*TLSv1.2"; then
     log_success "TLS 1.2 supported"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_warn "TLS 1.2 may not be supported"
 fi
@@ -81,7 +81,7 @@ fi
 # Test TLS 1.3
 if echo | timeout 5 openssl s_client -connect localhost:443 -tls1_3 2>/dev/null | grep -q "Protocol.*TLSv1.3"; then
     log_success "TLS 1.3 supported"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_info "TLS 1.3 not supported (optional)"
 fi
@@ -91,7 +91,7 @@ if echo | timeout 5 openssl s_client -connect localhost:443 -tls1 2>/dev/null | 
     log_warn "TLS 1.0 supported (should be disabled for security)"
 else
     log_success "TLS 1.0 correctly disabled"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 fi
 
 # Test 4: Certificate expiration check
@@ -109,13 +109,13 @@ if [[ -n "$CERT_INFO" ]]; then
     
     if [[ $DAYS_UNTIL_EXPIRY -gt 30 ]]; then
         log_success "Certificate is valid for $DAYS_UNTIL_EXPIRY days"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     elif [[ $DAYS_UNTIL_EXPIRY -gt 0 ]]; then
         log_warn "Certificate expires in $DAYS_UNTIL_EXPIRY days (renewal recommended)"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     else
         log_error "Certificate is expired!"
-        ((FAILED++))
+        ((FAILED=FAILED+1))
     fi
 else
     log_warn "Could not retrieve certificate expiration info"
@@ -132,18 +132,18 @@ if [[ -n "$CERT_SUBJECT" ]]; then
     # Check if it's Let's Encrypt
     if echo "$CERT_ISSUER" | grep -iq "Let's Encrypt"; then
         log_success "Certificate issued by Let's Encrypt (valid CA)"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     elif echo "$CERT_ISSUER" | grep -q "subject"; then
         log_warn "Self-signed certificate (not from trusted CA)"
-        ((PASSED++))  # Don't fail for self-signed in test environment
+        ((PASSED=PASSED+1))  # Don't fail for self-signed in test environment
     else
         echo "     Issuer: $CERT_ISSUER"
         log_success "Certificate has issuer information"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     fi
 else
     log_error "Could not retrieve certificate subject/issuer"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 6: Check certificate chain
@@ -152,10 +152,10 @@ CHAIN_INFO=$(echo | openssl s_client -connect localhost:443 -servername "$DOMAIN
 
 if [[ $CHAIN_INFO -gt 0 ]]; then
     log_success "Certificate chain contains $CHAIN_INFO certificate(s)"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Certificate chain incomplete"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 7: Test cipher suites
@@ -168,14 +168,14 @@ if [[ -n "$CIPHER_INFO" ]]; then
     # Check for strong ciphers
     if echo "$CIPHER_INFO" | grep -qE "ECDHE|GCM|AES256"; then
         log_success "Strong cipher suite in use"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     else
         log_warn "Cipher suite may not be optimal"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     fi
 else
     log_error "Could not determine cipher suite"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 8: Test HTTPS redirect
@@ -184,10 +184,10 @@ HTTP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -L http://localhost/healt
 
 if [[ "$HTTP_RESPONSE" == "200" ]]; then
     log_success "HTTP redirects to HTTPS (or HTTP works)"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_warn "HTTP redirect status: $HTTP_RESPONSE"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 fi
 
 # Test 9: Test HSTS header
@@ -197,10 +197,10 @@ HSTS_HEADER=$(curl -k -s -I https://localhost/health 2>/dev/null | grep -i "Stri
 if [[ -n "$HSTS_HEADER" ]]; then
     echo "     $HSTS_HEADER"
     log_success "HSTS header present"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_warn "HSTS header not found (recommended for production)"
-    ((PASSED++))  # Don't fail, just warn
+    ((PASSED=PASSED+1))  # Don't fail, just warn
 fi
 
 # Test 10: Test certificate for correct domain
@@ -210,11 +210,11 @@ if [[ "$DOMAIN" != "localhost" ]]; then
     
     if echo "$CERT_CN" | grep -q "$DOMAIN"; then
         log_success "Certificate CN matches domain $DOMAIN"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     else
         log_warn "Certificate CN may not match domain"
         echo "     $CERT_CN"
-        ((PASSED++))  # Don't fail in test environment
+        ((PASSED=PASSED+1))  # Don't fail in test environment
     fi
 else
     log_info "Using localhost, skipping domain validation"
@@ -229,7 +229,7 @@ if [[ -n "$CERT_PATH" ]]; then
     if [[ -n "$CERT_PERMS" ]]; then
         echo "     Certificate permissions: $CERT_PERMS"
         log_success "Certificate file accessible"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     else
         log_warn "Could not check certificate permissions"
     fi
@@ -241,7 +241,7 @@ SESSION_OUTPUT=$(echo | openssl s_client -connect localhost:443 -reconnect 2>/de
 
 if [[ $SESSION_OUTPUT -gt 0 ]]; then
     log_success "SSL session resumption working"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_info "SSL session resumption not detected (optional optimization)"
 fi

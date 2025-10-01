@@ -32,20 +32,20 @@ echo ""
 log_info "Test 1: Checking docker-compose.yml exists..."
 if [[ -f "$PROJECT_ROOT/docker-compose.yml" ]]; then
     log_success "docker-compose.yml found"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "docker-compose.yml not found"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 2: Validate docker-compose.yml syntax
 log_info "Test 2: Validating docker-compose.yml syntax..."
 if docker compose -f "$PROJECT_ROOT/docker-compose.yml" config > /dev/null 2>&1; then
     log_success "docker-compose.yml syntax is valid"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "docker-compose.yml has syntax errors"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Test 3: Start containers
@@ -53,10 +53,10 @@ log_info "Test 3: Starting containers..."
 cd "$PROJECT_ROOT"
 if docker compose up -d > /dev/null 2>&1; then
     log_success "Containers started successfully"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Failed to start containers"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
     docker compose logs
 fi
 
@@ -71,10 +71,10 @@ ALL_RUNNING=true
 for container in "${EXPECTED_CONTAINERS[@]}"; do
     if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
         log_success "Container '$container' is running"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     else
         log_error "Container '$container' is not running"
-        ((FAILED++))
+        ((FAILED=FAILED+1))
         ALL_RUNNING=false
     fi
 done
@@ -88,7 +88,7 @@ for container in "calendar-mcp" "nginx-proxy"; do
     
     if [[ "$HEALTH_STATUS" == "healthy" ]]; then
         log_success "Container '$container' is healthy"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     elif [[ "$HEALTH_STATUS" == "starting" ]]; then
         log_warn "Container '$container' is still starting (health check pending)"
         # Wait a bit more and recheck
@@ -96,14 +96,14 @@ for container in "calendar-mcp" "nginx-proxy"; do
         HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null || echo "unknown")
         if [[ "$HEALTH_STATUS" == "healthy" ]]; then
             log_success "Container '$container' is now healthy"
-            ((PASSED++))
+            ((PASSED=PASSED+1))
         else
             log_error "Container '$container' health status: $HEALTH_STATUS"
-            ((FAILED++))
+            ((FAILED=FAILED+1))
         fi
     else
         log_warn "Container '$container' health status: $HEALTH_STATUS (no health check defined)"
-        ((PASSED++))  # Not a failure if health check isn't defined
+        ((PASSED=PASSED+1))  # Not a failure if health check isn't defined
     fi
 done
 
@@ -117,7 +117,7 @@ for container in "${EXPECTED_CONTAINERS[@]}"; do
         # Don't fail the test, just warn
     else
         log_success "Container '$container' logs look clean"
-        ((PASSED++))
+        ((PASSED=PASSED+1))
     fi
 done
 
@@ -126,10 +126,10 @@ log_info "Test 7: Checking container resource usage..."
 if docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" > /dev/null 2>&1; then
     log_success "Container resource monitoring working"
     docker stats --no-stream --format "  {{.Container}}: CPU={{.CPUPerc}} MEM={{.MemUsage}}"
-    ((PASSED++))
+    ((PASSED=PASSED+1))
 else
     log_error "Failed to get container stats"
-    ((FAILED++))
+    ((FAILED=FAILED+1))
 fi
 
 # Summary
