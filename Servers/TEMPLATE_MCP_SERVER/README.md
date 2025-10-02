@@ -16,7 +16,7 @@ This is a template directory for adding new MCP servers to the deployment.
 
 3. **Update docker-compose.yml** in the project root
 
-4. **Update NGINX configuration** in `Servers/NGINX/conf.d/`
+4. **Update NGINX configuration** in `nginx/conf.d/`
 
 5. **Test your setup**
 

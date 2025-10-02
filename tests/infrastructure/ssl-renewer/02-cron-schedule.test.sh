@@ -28,7 +28,7 @@ echo "  $TEST_NAME"
 echo "=========================================="
 echo ""
 
-CRONTAB_FILE="$PROJECT_ROOT/Servers/NGINX/ssl-renewer/ssl-crontab"
+CRONTAB_FILE="$PROJECT_ROOT/nginx/ssl-renewer/ssl-crontab"
 
 # Test 1: Verify crontab file exists
 log_info "Test 1: Checking if ssl-crontab file exists..."

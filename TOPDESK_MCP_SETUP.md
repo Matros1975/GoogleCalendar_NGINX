@@ -117,7 +117,7 @@ https://yourdomain.com/topdesk/  -> topdesk-mcp:3030/mcp
 
 The TopDesk endpoint uses the same security measures as the Calendar MCP:
 
-1. **IP Allowlist**: Configure allowed IPs in `Servers/NGINX/conf.d/mcp-proxy.conf`
+1. **IP Allowlist**: Configure allowed IPs in `nginx/conf.d/mcp-proxy.conf`
 2. **Bearer Token Authentication**: Required for all API calls
 3. **TLS/SSL**: HTTPS enforced via Let's Encrypt certificates
 

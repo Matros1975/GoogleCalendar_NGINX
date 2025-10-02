@@ -51,7 +51,7 @@ fi
 
 # Test 3: Verify log directory creation in Dockerfile
 log_info "Test 3: Checking if Dockerfile creates log directory..."
-DOCKERFILE="$PROJECT_ROOT/Servers/NGINX/ssl-renewer/Dockerfile"
+DOCKERFILE="$PROJECT_ROOT/nginx/ssl-renewer/Dockerfile"
 if grep -q "mkdir.*ssl-renewal" "$DOCKERFILE" || grep -q "/var/log/ssl-renewal" "$DOCKERFILE"; then
     log_success "Dockerfile creates log directory"
     ((PASSED=PASSED+1))
@@ -62,7 +62,7 @@ fi
 
 # Test 4: Verify ssl-renewal.sh script uses logging
 log_info "Test 4: Checking if ssl-renewal.sh implements logging..."
-SCRIPT_FILE="$PROJECT_ROOT/Servers/NGINX/ssl-renewer/ssl-renewal.sh"
+SCRIPT_FILE="$PROJECT_ROOT/nginx/ssl-renewer/ssl-renewal.sh"
 if grep -q "LOGFILE" "$SCRIPT_FILE" && grep -q "log()" "$SCRIPT_FILE"; then
     log_success "ssl-renewal.sh implements logging functions"
     ((PASSED=PASSED+1))
@@ -93,7 +93,7 @@ fi
 
 # Test 7: Verify log directory is writable (checked in health-check)
 log_info "Test 7: Checking if health-check validates log directory..."
-HEALTH_CHECK="$PROJECT_ROOT/Servers/NGINX/ssl-renewer/health-check.sh"
+HEALTH_CHECK="$PROJECT_ROOT/nginx/ssl-renewer/health-check.sh"
 if [[ -f "$HEALTH_CHECK" ]] && grep -q "log" "$HEALTH_CHECK"; then
     log_success "Health check validates log directory"
     ((PASSED=PASSED+1))
