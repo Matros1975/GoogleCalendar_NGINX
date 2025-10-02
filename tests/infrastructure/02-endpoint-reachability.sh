@@ -77,6 +77,17 @@ else
     ((FAILED=FAILED+1))
 fi
 
+# Test 4b: Direct TopDesk MCP container health check (internal)
+log_info "Test 4b: Testing direct TopDesk MCP container health..."
+TOPDESK_RESPONSE=$(docker exec topdesk-mcp wget -q -O- http://localhost:3030/health 2>/dev/null || echo "")
+if [[ -n "$TOPDESK_RESPONSE" ]]; then
+    log_success "TopDesk MCP container health endpoint working"
+    ((PASSED=PASSED+1))
+else
+    log_error "TopDesk MCP container health endpoint not responding"
+    ((FAILED=FAILED+1))
+fi
+
 # Test 5: NGINX upstream connectivity
 log_info "Test 5: Testing NGINX to MCP upstream connectivity..."
 NGINX_LOG=$(docker exec nginx-proxy cat /var/log/nginx/error.log 2>/dev/null | tail -10 || echo "")

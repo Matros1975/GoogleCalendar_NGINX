@@ -37,6 +37,7 @@ TESTS=(
     ["04-bearer-token-security.sh"]="Bearer Token Security"
     ["05-tls-certificates.sh"]="TLS Certificates"
     ["06-yaml-validation.sh"]="YAML Configuration"
+    ["07-topdesk-mcp-test.sh"]="TopDesk MCP Container"
 )
 
 # Parse command line arguments

@@ -28,29 +28,57 @@ echo "  $TEST_NAME"
 echo "=========================================="
 echo ""
 
-# Test 1: MCP container health check
-log_info "Test 1: Checking MCP container health status..."
+# Test 1: Calendar MCP container health check
+log_info "Test 1: Checking Calendar MCP container health status..."
 MCP_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' calendar-mcp 2>/dev/null || echo "unknown")
 
 case "$MCP_HEALTH" in
     "healthy")
-        log_success "MCP container is healthy"
+        log_success "Calendar MCP container is healthy"
         ((PASSED=PASSED+1))
         ;;
     "starting")
-        log_warn "MCP container is still starting, waiting..."
+        log_warn "Calendar MCP container is still starting, waiting..."
         sleep 30
         MCP_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' calendar-mcp 2>/dev/null || echo "unknown")
         if [[ "$MCP_HEALTH" == "healthy" ]]; then
-            log_success "MCP container is now healthy"
+            log_success "Calendar MCP container is now healthy"
             ((PASSED=PASSED+1))
         else
-            log_error "MCP container health: $MCP_HEALTH"
+            log_error "Calendar MCP container health: $MCP_HEALTH"
             ((FAILED=FAILED+1))
         fi
         ;;
     *)
-        log_warn "MCP container health: $MCP_HEALTH (health check may not be configured)"
+        log_warn "Calendar MCP container health: $MCP_HEALTH (health check may not be configured)"
+        # Don't fail if health check not configured
+        ((PASSED=PASSED+1))
+        ;;
+esac
+
+# Test 1b: TopDesk MCP container health check
+log_info "Test 1b: Checking TopDesk MCP container health status..."
+TOPDESK_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' topdesk-mcp 2>/dev/null || echo "unknown")
+
+case "$TOPDESK_HEALTH" in
+    "healthy")
+        log_success "TopDesk MCP container is healthy"
+        ((PASSED=PASSED+1))
+        ;;
+    "starting")
+        log_warn "TopDesk MCP container is still starting, waiting..."
+        sleep 30
+        TOPDESK_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' topdesk-mcp 2>/dev/null || echo "unknown")
+        if [[ "$TOPDESK_HEALTH" == "healthy" ]]; then
+            log_success "TopDesk MCP container is now healthy"
+            ((PASSED=PASSED+1))
+        else
+            log_error "TopDesk MCP container health: $TOPDESK_HEALTH"
+            ((FAILED=FAILED+1))
+        fi
+        ;;
+    *)
+        log_warn "TopDesk MCP container health: $TOPDESK_HEALTH (health check may not be configured)"
         # Don't fail if health check not configured
         ((PASSED=PASSED+1))
         ;;
