@@ -1,15 +1,17 @@
 # Repository Guidelines
 
 ## Project Structure & Modules
-- Source: `src/` (entry `index.ts`), builds to `build/` via esbuild.
+- **MCP Server**: Located in `Servers/GoogleCalendarMCP/`
+- Source: `Servers/GoogleCalendarMCP/src/` (entry `index.ts`), builds to `build/` via esbuild.
 - Handlers: `src/handlers/core/` (tool implementations), utilities in `src/handlers/utils/`.
 - Schemas: `src/schemas/` (Zod definitions shared between server and tests).
 - Services: `src/services/` (conflict detection, helpers), transports in `src/transports/`.
 - Auth: `src/auth/`, OAuth helper `src/auth-server.ts`.
 - Tests: `src/tests/unit/` and `src/tests/integration/`.
-- Docs: `docs/` (auth, testing, deployment, architecture).
+- Docs: `Servers/GoogleCalendarMCP/docs/` (auth, testing, deployment, architecture).
 
 ## Build, Test, and Dev
+- **Working Directory**: All commands should be run from `Servers/GoogleCalendarMCP/`
 - `npm run build`: Bundle to `build/index.js` and `build/auth-server.js` (Node 18 ESM).
 - `npm start`: Run stdio transport (for Claude Desktop). Example: `npx @cocal/google-calendar-mcp`.
 - `npm run start:http`: HTTP transport on `:3000` (use `start:http:public` for `0.0.0.0`).
@@ -25,7 +27,7 @@
 - Linting: `npm run lint` (TypeScript no‑emit checks).
 
 ## Testing Guidelines
-- Framework: Vitest with V8 coverage (`npm run test:coverage`).
+- Framework: Vitest with V8 coverage (`npm run test:coverage` from `Servers/GoogleCalendarMCP/`).
 - Unit test names: `*.test.ts` mirroring source paths (e.g., `src/tests/unit/handlers/...`).
 - Integration requires env: `GOOGLE_OAUTH_CREDENTIALS`, `TEST_CALENDAR_ID`; authenticate with `npm run dev auth:test`.
 - Use `src/tests/integration/test-data-factory.ts` utilities; ensure tests clean up created events.
@@ -44,7 +46,7 @@
 - Tokens stored locally in `~/.config/google-calendar-mcp/tokens.json`.
 
 ## Adding New Tools (MCP)
-- Implement handler in `src/handlers/core/YourToolHandler.ts` extending `BaseToolHandler`.
-- Define/extend Zod schema in `src/schemas/` and add unit + integration tests.
+- Implement handler in `Servers/GoogleCalendarMCP/src/handlers/core/YourToolHandler.ts` extending `BaseToolHandler`.
+- Define/extend Zod schema in `Servers/GoogleCalendarMCP/src/schemas/` and add unit + integration tests.
 - Handlers are auto‑registered; update docs if adding public tool names.
 

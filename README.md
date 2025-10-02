@@ -195,7 +195,7 @@ See `Servers/README.md` for detailed instructions and best practices.
 ### Security & Management
 - `setup-oracle-vm.sh` - Automated deployment script
 - `manage-tokens.sh` - Bearer token management
-- `docs/oracle-cloud-firewall.md` - Firewall configuration
+- `Servers/GoogleCalendarMCP/docs/oracle-cloud-firewall.md` - Firewall configuration
 
 ### Testing
 - `tests/infrastructure/` - Automated infrastructure tests
