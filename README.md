@@ -18,8 +18,8 @@ This repository provides a production-ready infrastructure for deploying multipl
 ```
 Internet → NGINX Proxy (SSL/TLS) → Internal Docker Network → Multiple MCP Containers
            ↓                                                   ├── GoogleCalendarMCP:3000
-        OAuth + Bearer Token                                   ├── YourMCP:3001
-        Authentication                                         └── AnotherMCP:3002
+        OAuth + Bearer Token                                   ├── TopDeskMCP:3030
+        Authentication                                         └── YourMCP:3001
 ```
 
 ### Directory Structure
@@ -28,6 +28,7 @@ Internet → NGINX Proxy (SSL/TLS) → Internal Docker Network → Multiple MCP 
 .
 ├── Servers/                    # All server components
 │   ├── GoogleCalendarMCP/      # Google Calendar MCP server
+│   ├── TopDeskMCP/             # TopDesk MCP server
 │   ├── NGINX/                  # NGINX proxy configuration
 │   └── TEMPLATE_MCP_SERVER/    # Template for new servers
 ├── tests/                      # Infrastructure test suite
@@ -261,6 +262,21 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
      }' \
      https://your-domain.com/
 ```
+
+## Included MCP Servers
+
+### 1. Google Calendar MCP
+- **Path**: `/` (root)
+- **Port**: 3000 (internal)
+- **Features**: Calendar management, event creation, availability checking
+- **Documentation**: See `Servers/GoogleCalendarMCP/README.md`
+
+### 2. TopDesk MCP
+- **Path**: `/topdesk/`
+- **Port**: 3030 (internal)
+- **Features**: Incident management, time tracking, operator/person management
+- **Documentation**: See `TOPDESK_MCP_SETUP.md`
+- **Configuration**: Set `TOPDESK_URL`, `TOPDESK_USERNAME`, `TOPDESK_PASSWORD` environment variables
 
 ## Bearer Token Management
 
