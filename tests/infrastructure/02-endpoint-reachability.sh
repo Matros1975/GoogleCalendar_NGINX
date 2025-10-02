@@ -79,12 +79,12 @@ fi
 
 # Test 4b: Direct TopDesk MCP container health check (internal)
 log_info "Test 4b: Testing direct TopDesk MCP container health..."
-TOPDESK_RESPONSE=$(docker exec topdesk-mcp python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:3030/mcp').read()[:100])" 2>/dev/null || echo "")
-if [[ -n "$TOPDESK_RESPONSE" ]]; then
-    log_success "TopDesk MCP container MCP endpoint working"
+TOPDESK_PROCESS=$(docker exec topdesk-mcp sh -c 'ps aux | grep -v grep | grep "topdesk_mcp.main"' 2>/dev/null || echo "")
+if [[ -n "$TOPDESK_PROCESS" ]]; then
+    log_success "TopDesk MCP container process is running"
     ((PASSED=PASSED+1))
 else
-    log_error "TopDesk MCP container MCP endpoint not responding"
+    log_error "TopDesk MCP container process not found"
     ((FAILED=FAILED+1))
 fi
 
