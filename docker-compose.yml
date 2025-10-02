@@ -3,12 +3,21 @@
 # Each MCP server is in its own subdirectory under Servers/
 
 networks:
+  # Internal network for MCP services
   mcp-internal:
     driver: bridge
-    internal: false  # Allow external access for OAuth callbacks
+    internal: false  # Allow external access for OAuth callbacks and Let's Encrypt
     ipam:
       config:
         - subnet: 172.20.0.0/16
+  
+  # External web traffic network
+  web:
+    driver: bridge
+    external: false
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
 
 services:
   # Google Calendar MCP Server
@@ -53,12 +62,24 @@ services:
           memory: 256M
           cpus: "0.5"
     
-    # Security options
+    # Enhanced Security Configuration
     security_opt:
       - no-new-privileges:true
+      - apparmor:unconfined
+    
+    # Read-only root filesystem for security
     read_only: true
+    
+    # Drop all capabilities and add only necessary ones
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    
+    # Temporary filesystems for writes
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=100m
+      - /tmp:rw,noexec,nosuid,nodev,size=100m
+      - /app/logs:rw,noexec,nosuid,nodev,size=50m
     
     # Health check
     healthcheck:
@@ -75,6 +96,15 @@ services:
       dockerfile: Dockerfile.duckdns
     container_name: duckdns-updater
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
     
     environment:
       - DUCKDNS_DOMAIN=matrosmcp
@@ -82,10 +112,10 @@ services:
       - TZ=Europe/Amsterdam  # Set your timezone
     
     networks:
-      - mcp-internal
+      - web
     
     volumes:
-      - duckdns-logs:/var/log
+      - duckdns-logs:/var/log:rw
     
     # Resource limits (very lightweight)
     deploy:
@@ -96,14 +126,6 @@ services:
         reservations:
           memory: 16M
           cpus: "0.05"
-    
-    # Security options
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=10m
-      - /var/spool/cron:rw,noexec,nosuid,size=1m
     
     # Health check
     healthcheck:
@@ -118,6 +140,19 @@ services:
     build: ./Servers/NGINX/ssl-renewer
     container_name: ssl-renewer
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=100m
+      - /var/tmp:rw,noexec,nosuid,size=50m
+      - /var/log/ssl-renewal:rw,noexec,nosuid,size=10m
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE  # Required for Let's Encrypt file operations
+      - CHOWN        # Required for certificate file ownership
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
     
     environment:
       - DOMAIN=matrosmcp.duckdns.org
@@ -127,7 +162,7 @@ services:
       - CERT_EXPIRY_DAYS=30
     
     networks:
-      - mcp-internal
+      - web
     
     volumes:
       # Let's Encrypt certificates (read-write for renewal)
@@ -136,8 +171,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Docker compose file for service management
       - ./docker-compose.yml:/compose/docker-compose.yml:ro
-      # Log storage
-      - ssl-renewal-logs:/var/log/ssl-renewal
     
     # Resource limits (lightweight)
     deploy:
@@ -148,22 +181,6 @@ services:
         reservations:
           memory: 64M
           cpus: "0.1"
-    
-    # Security options
-    security_opt:
-      - no-new-privileges:true
-    # Note: Cannot use read_only due to certbot needing write access
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=50m
-      - /var/spool/cron:rw,noexec,nosuid,size=1m
-    
-    # Health check
-    healthcheck:
-      test: ["CMD-SHELL", "/scripts/health-check.sh"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
     
     depends_on:
       - nginx-proxy
@@ -177,6 +194,7 @@ services:
     
     networks:
       - mcp-internal
+      - web
     
     # Expose only HTTPS to the world
     ports:
@@ -192,7 +210,42 @@ services:
       - nginx-logs:/var/log/nginx
     
     depends_on:
-      - calendar-mcp
+      calendar-mcp:
+        condition: service_healthy
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 128M
+          cpus: "0.25"
+    
+    # Enhanced Security Configuration
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
+    
+    # Read-only root filesystem
+    read_only: true
+    
+    # Drop all capabilities and add only necessary ones
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    
+    # Temporary filesystems for NGINX runtime
+    tmpfs:
+      - /var/cache/nginx:rw,noexec,nosuid,nodev,size=50m
+      - /var/run:rw,noexec,nosuid,nodev,size=10m
+      - /tmp:rw,noexec,nosuid,nodev,size=20m
     
     # Health check for NGINX
     healthcheck:
@@ -201,10 +254,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    
-    # Security
-    security_opt:
-      - no-new-privileges:true
 
 volumes:
   calendar-tokens:
@@ -212,6 +261,4 @@ volumes:
   nginx-logs:
     driver: local
   duckdns-logs:
-    driver: local
-  ssl-renewal-logs:
     driver: local
