@@ -190,6 +190,8 @@ All MCP servers use a centralized `.env` file for configuration:
 2. **Edit the configuration**: Update `.env` with your actual values
 3. **Secure your credentials**: Never commit the `.env` file (it's git-ignored)
 
+> **Note for Existing Deployments:** If you're migrating from `.env.production`, see [MIGRATION_TO_CENTRALIZED_ENV.md](MIGRATION_TO_CENTRALIZED_ENV.md) for step-by-step instructions.
+
 #### Required Configuration
 
 ```bash
