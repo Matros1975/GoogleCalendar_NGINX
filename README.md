@@ -78,10 +78,15 @@ Internet → NGINX Proxy (SSL/TLS) → Internal Docker Network → Multiple MCP 
 git clone <your-repo-url> mcp-nginx
 cd mcp-nginx
 
-# Copy your Google OAuth credentials
+# Step 1: Configure environment variables
+# Copy the template and edit with your values
+cp .env.template .env
+# Edit .env with your actual configuration values
+
+# Step 2: Copy your Google OAuth credentials
 cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
 
-# Run the automated setup (recommended)
+# Step 3: Run the automated setup (recommended)
 ./setup-oracle-vm.sh
 
 # OR manual setup:
@@ -92,11 +97,6 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 # Deploy the containers
 docker compose up -d
-```
-cp /path/to/your/gcp-oauth.keys.json ./gcp-oauth.keys.json
-
-# Run automated setup
-./setup-oracle-vm.sh
 ```
 
 ### Manual Setup
@@ -180,13 +180,59 @@ docker compose exec nginx-proxy nginx -s reload
 
 See `Servers/README.md` for detailed instructions and best practices.
 
+## Configuration
+
+### Environment Configuration
+
+All MCP servers use a centralized `.env` file for configuration:
+
+1. **Copy the template**: `cp .env.template .env`
+2. **Edit the configuration**: Update `.env` with your actual values
+3. **Secure your credentials**: Never commit the `.env` file (it's git-ignored)
+
+#### Required Configuration
+
+```bash
+# NGINX Authentication (generate with: openssl rand -hex 32)
+MCP_BEARER_TOKEN=your-secure-bearer-token-here
+
+# Google Calendar MCP
+GOOGLE_OAUTH_CREDENTIALS=/app/gcp-oauth.keys.json  # For Docker
+GOOGLE_ACCOUNT_MODE=normal
+
+# TopDesk MCP
+TOPDESK_URL=https://yourcompany.topdesk.net
+TOPDESK_USERNAME=your_username
+TOPDESK_PASSWORD=your_api_token
+```
+
+See `.env.template` for complete configuration options and documentation.
+
+### GoogleCalendarMCP OAuth Setup
+
+Following AGENTS.md guidelines, GoogleCalendarMCP uses Google OAuth:
+
+```bash
+# From the GoogleCalendarMCP directory
+cd Servers/GoogleCalendarMCP
+
+# Run OAuth authentication flow
+npm run auth
+
+# For Docker deployment
+docker compose exec calendar-mcp npm run auth
+```
+
+OAuth tokens are stored in `~/.config/google-calendar-mcp/tokens.json` (or `/home/nodejs/.config/google-calendar-mcp/` in Docker).
+
 ## Configuration Files
 
 ### Core Configuration
 - `docker-compose.yml` - Multi-MCP orchestration with NGINX proxy
 - `docker-compose.dev.yml` - Development/Claude Desktop integration
 - `nginx/conf.d/mcp-proxy.conf` - NGINX routing and authentication
-- `.env.production` - Production environment variables
+- `.env` - Centralized environment configuration (create from `.env.template`)
+- `.env.template` - Configuration template with documentation
 
 ### Service Directories
 - `Servers/GoogleCalendarMCP/` - Google Calendar MCP server

@@ -70,25 +70,30 @@ fi
 
 print_status "Google OAuth credentials found ✓"
 
-# Generate bearer tokens if not configured
-if [[ ! -f ".env.production" ]]; then
-    print_status "Creating production environment configuration..."
-    cp .env.production.example .env.production
+# Generate centralized environment configuration if not configured
+if [[ ! -f ".env" ]]; then
+    print_status "Creating centralized environment configuration..."
+    cp .env.template .env
     
-    # Generate secure bearer tokens
-    TOKEN1=$(openssl rand -hex 32)
-    TOKEN2=$(openssl rand -hex 32)
+    # Generate secure bearer token
+    TOKEN=$(openssl rand -hex 32)
     
-    sed -i.bak "s/your-secure-token-1/$TOKEN1/" .env.production
-    sed -i.bak "s/your-secure-token-2/$TOKEN2/" .env.production
-    rm .env.production.bak
+    sed -i.bak "s/your-secure-bearer-token-here/$TOKEN/" .env
+    rm .env.bak
     
-    print_status "Generated secure bearer tokens and saved to .env.production"
-    print_warning "IMPORTANT: Save these bearer tokens securely for API access:"
-    echo -e "${YELLOW}Token 1: $TOKEN1${NC}"
-    echo -e "${YELLOW}Token 2: $TOKEN2${NC}"
+    print_status "Generated secure bearer token and saved to .env"
+    print_warning "IMPORTANT: Save this bearer token securely for API access:"
+    echo -e "${YELLOW}Bearer Token: $TOKEN${NC}"
+    print_warning "Review and update other settings in .env file (TopDesk credentials, domain, etc.)"
 else
-    print_status "Production environment configuration exists ✓"
+    print_status "Environment configuration exists ✓"
+fi
+
+# Backward compatibility: also check for .env.production
+if [[ -f ".env.production" ]] && [[ ! -f ".env" ]]; then
+    print_warning "Found .env.production - migrating to centralized .env"
+    cp .env.production .env
+    print_status "Migrated .env.production to .env ✓"
 fi
 
 # Setup SSL certificates
@@ -190,4 +195,4 @@ echo "Base URL: https://your-domain.com"
 echo "Health Check: curl https://your-domain.com/health"
 echo "Authenticated Request: curl -H 'Authorization: Bearer YOUR_TOKEN' https://your-domain.com/endpoint"
 echo ""
-print_status "Bearer tokens are saved in .env.production file"
+print_status "Bearer token and configuration saved in .env file"
