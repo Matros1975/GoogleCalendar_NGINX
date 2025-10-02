@@ -114,8 +114,9 @@ services:
       - TOPDESK_MCP_HOST=${TOPDESK_MCP_HOST:-0.0.0.0}
       - TOPDESK_MCP_PORT=${TOPDESK_MCP_PORT:-3030}
       - TOPDESK_URL=${TOPDESK_URL:-https://example.topdesk.net}
-      - TOPDESK_USERNAME=${TOPDESK_USERNAME:-example_user}
-      - TOPDESK_PASSWORD=${TOPDESK_PASSWORD:-example_password}
+      - TOPDESK_USERNAME=api_aipilots
+      - TOPDESK_PASSWORD=7w7j6-ytlqt-wpcbz-ywu6v-remw7
+      - TOPDESK_API_TOKEN=${TOPDESK_API_TOKEN:-example_token}
     
     # Data storage
     volumes:
