@@ -26,6 +26,10 @@ services:
     container_name: calendar-mcp
     restart: unless-stopped
     
+    # Load centralized environment configuration
+    env_file:
+      - .env
+    
     # Internal network only - no port exposure to host except OAuth
     networks:
       - mcp-internal
@@ -41,11 +45,12 @@ services:
     
     # Environment configuration
     environment:
-      - TRANSPORT=http
-      - HOST=0.0.0.0
-      - PORT=3000
-      - NODE_ENV=production
-      - GOOGLE_OAUTH_CREDENTIALS=/app/gcp-oauth.keys.json
+      - TRANSPORT=${MCP_TRANSPORT:-http}
+      - HOST=${GOOGLE_MCP_HOST:-0.0.0.0}
+      - PORT=${GOOGLE_MCP_PORT:-3000}
+      - NODE_ENV=${NODE_ENV:-production}
+      - GOOGLE_OAUTH_CREDENTIALS=${GOOGLE_OAUTH_CREDENTIALS:-/app/gcp-oauth.keys.json}
+      - GOOGLE_ACCOUNT_MODE=${GOOGLE_ACCOUNT_MODE:-normal}
     
     # OAuth credentials and token storage
     volumes:
@@ -95,15 +100,19 @@ services:
     container_name: topdesk-mcp
     restart: unless-stopped
     
+    # Load centralized environment configuration
+    env_file:
+      - .env
+    
     # Internal network only
     networks:
       - mcp-internal
     
     # Environment configuration
     environment:
-      - TOPDESK_MCP_TRANSPORT=streamable-http
-      - TOPDESK_MCP_HOST=0.0.0.0
-      - TOPDESK_MCP_PORT=3030
+      - TOPDESK_MCP_TRANSPORT=${TOPDESK_MCP_TRANSPORT:-streamable-http}
+      - TOPDESK_MCP_HOST=${TOPDESK_MCP_HOST:-0.0.0.0}
+      - TOPDESK_MCP_PORT=${TOPDESK_MCP_PORT:-3030}
       - TOPDESK_URL=${TOPDESK_URL:-https://example.topdesk.net}
       - TOPDESK_USERNAME=${TOPDESK_USERNAME:-example_user}
       - TOPDESK_PASSWORD=${TOPDESK_PASSWORD:-example_password}
@@ -166,10 +175,14 @@ services:
       - no-new-privileges:true
       - apparmor:unconfined
     
+    # Load centralized environment configuration
+    env_file:
+      - .env
+    
     environment:
-      - DUCKDNS_DOMAIN=matrosmcp
-      - DUCKDNS_TOKEN=6fb5210e-71c6-4327-bbf9-af8283a08b37
-      - TZ=Europe/Amsterdam  # Set your timezone
+      - DUCKDNS_DOMAIN=${DUCKDNS_DOMAIN:-matrosmcp}
+      - DUCKDNS_TOKEN=${DUCKDNS_TOKEN:-6fb5210e-71c6-4327-bbf9-af8283a08b37}
+      - TZ=${TZ:-Europe/Amsterdam}
     
     networks:
       - web
@@ -214,12 +227,16 @@ services:
       - no-new-privileges:true
       - apparmor:unconfined
     
+    # Load centralized environment configuration
+    env_file:
+      - .env
+    
     environment:
-      - DOMAIN=matrosmcp.duckdns.org
-      - TZ=Europe/Amsterdam
+      - DOMAIN=${DOMAIN:-matrosmcp.duckdns.org}
+      - TZ=${TZ:-Europe/Amsterdam}
       - COMPOSE_PROJECT_PATH=/compose
       - NGINX_CONTAINER=nginx-proxy
-      - CERT_EXPIRY_DAYS=30
+      - CERT_EXPIRY_DAYS=${CERT_EXPIRY_DAYS:-30}
     
     networks:
       - web

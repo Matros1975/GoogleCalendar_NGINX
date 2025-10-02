@@ -32,21 +32,40 @@ generate_token() {
     openssl rand -hex 32
 }
 
+# Get the env file path (prefers .env, falls back to .env.production)
+get_env_file() {
+    if [[ -f ".env" ]]; then
+        echo ".env"
+    elif [[ -f ".env.production" ]]; then
+        echo ".env.production"
+    else
+        return 1
+    fi
+}
+
 # Function to display current tokens
 show_tokens() {
     print_header "Current Bearer Tokens"
-    if [[ -f ".env.production" ]]; then
-        tokens=$(grep "BEARER_TOKENS=" .env.production | cut -d'=' -f2)
-        if [[ -n "$tokens" ]]; then
+    local env_file=$(get_env_file)
+    if [[ -n "$env_file" ]]; then
+        # Try both BEARER_TOKENS and MCP_BEARER_TOKEN
+        tokens=$(grep "^BEARER_TOKENS=" "$env_file" 2>/dev/null | cut -d'=' -f2)
+        if [[ -z "$tokens" ]]; then
+            tokens=$(grep "^MCP_BEARER_TOKEN=" "$env_file" 2>/dev/null | cut -d'=' -f2)
+            if [[ -n "$tokens" ]]; then
+                echo -e "${YELLOW}Token:${NC} ${tokens}"
+            fi
+        else
             IFS=',' read -ra TOKEN_ARRAY <<< "$tokens"
             for i in "${!TOKEN_ARRAY[@]}"; do
                 echo -e "${YELLOW}Token $((i+1)):${NC} ${TOKEN_ARRAY[i]}"
             done
-        else
+        fi
+        if [[ -z "$tokens" ]]; then
             print_warning "No bearer tokens configured"
         fi
     else
-        print_error ".env.production file not found"
+        print_error "Neither .env nor .env.production file found"
     fi
 }
 
@@ -60,23 +79,28 @@ add_token() {
         print_status "Generated new token: $new_token"
     fi
     
-    if [[ -f ".env.production" ]]; then
-        current_tokens=$(grep "BEARER_TOKENS=" .env.production | cut -d'=' -f2)
-        if [[ -n "$current_tokens" ]]; then
-            updated_tokens="$current_tokens,$new_token"
+    local env_file=$(get_env_file)
+    if [[ -n "$env_file" ]]; then
+        # Check if using BEARER_TOKENS (old style) or MCP_BEARER_TOKEN (new style)
+        if grep -q "^BEARER_TOKENS=" "$env_file"; then
+            current_tokens=$(grep "^BEARER_TOKENS=" "$env_file" | cut -d'=' -f2)
+            if [[ -n "$current_tokens" ]]; then
+                updated_tokens="$current_tokens,$new_token"
+            else
+                updated_tokens="$new_token"
+            fi
+            sed -i.bak "s/^BEARER_TOKENS=.*/BEARER_TOKENS=$updated_tokens/" "$env_file"
         else
-            updated_tokens="$new_token"
+            # Use MCP_BEARER_TOKEN for new configuration
+            sed -i.bak "s/^MCP_BEARER_TOKEN=.*/MCP_BEARER_TOKEN=$new_token/" "$env_file"
         fi
+        rm "${env_file}.bak"
         
-        # Update the file
-        sed -i.bak "s/BEARER_TOKENS=.*/BEARER_TOKENS=$updated_tokens/" .env.production
-        rm .env.production.bak
-        
-        print_status "Token added successfully"
+        print_status "Token added/updated successfully in $env_file"
         print_warning "Restart the service to apply changes:"
-        echo "docker-compose -f docker-compose.production.yml restart"
+        echo "docker compose restart"
     else
-        print_error ".env.production file not found"
+        print_error "Neither .env nor .env.production file found"
         exit 1
     fi
 }
@@ -90,21 +114,26 @@ remove_token() {
         exit 1
     fi
     
-    if [[ -f ".env.production" ]]; then
-        current_tokens=$(grep "BEARER_TOKENS=" .env.production | cut -d'=' -f2)
-        
-        # Remove the token from the comma-separated list
-        updated_tokens=$(echo "$current_tokens" | sed "s/$token_to_remove,\?//g" | sed 's/,$//g' | sed 's/^,//g')
-        
-        # Update the file
-        sed -i.bak "s/BEARER_TOKENS=.*/BEARER_TOKENS=$updated_tokens/" .env.production
-        rm .env.production.bak
-        
-        print_status "Token removed successfully"
+    local env_file=$(get_env_file)
+    if [[ -n "$env_file" ]]; then
+        if grep -q "^BEARER_TOKENS=" "$env_file"; then
+            current_tokens=$(grep "^BEARER_TOKENS=" "$env_file" | cut -d'=' -f2)
+            
+            # Remove the token from the comma-separated list
+            updated_tokens=$(echo "$current_tokens" | sed "s/$token_to_remove,\?//g" | sed 's/,$//g' | sed 's/^,//g')
+            
+            # Update the file
+            sed -i.bak "s/^BEARER_TOKENS=.*/BEARER_TOKENS=$updated_tokens/" "$env_file"
+            rm "${env_file}.bak"
+            
+            print_status "Token removed successfully from $env_file"
+        else
+            print_warning "Single token mode (MCP_BEARER_TOKEN) - use 'add' to replace"
+        fi
         print_warning "Restart the service to apply changes:"
-        echo "docker-compose -f docker-compose.production.yml restart"
+        echo "docker compose restart"
     else
-        print_error ".env.production file not found"
+        print_error "Neither .env nor .env.production file found"
         exit 1
     fi
 }
@@ -149,20 +178,35 @@ rotate_tokens() {
     read -p "Are you sure? (y/N): " confirm
     
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
-        new_token1=$(generate_token)
-        new_token2=$(generate_token)
-        new_tokens="$new_token1,$new_token2"
+        local env_file=$(get_env_file)
+        if [[ -z "$env_file" ]]; then
+            print_error "Neither .env nor .env.production file found"
+            exit 1
+        fi
         
-        # Update the file
-        sed -i.bak "s/BEARER_TOKENS=.*/BEARER_TOKENS=$new_tokens/" .env.production
-        rm .env.production.bak
+        if grep -q "^BEARER_TOKENS=" "$env_file"; then
+            new_token1=$(generate_token)
+            new_token2=$(generate_token)
+            new_tokens="$new_token1,$new_token2"
+            
+            sed -i.bak "s/^BEARER_TOKENS=.*/BEARER_TOKENS=$new_tokens/" "$env_file"
+            rm "${env_file}.bak"
+            
+            print_status "Tokens rotated successfully in $env_file"
+            echo -e "${YELLOW}New Token 1:${NC} $new_token1"
+            echo -e "${YELLOW}New Token 2:${NC} $new_token2"
+        else
+            new_token=$(generate_token)
+            sed -i.bak "s/^MCP_BEARER_TOKEN=.*/MCP_BEARER_TOKEN=$new_token/" "$env_file"
+            rm "${env_file}.bak"
+            
+            print_status "Token rotated successfully in $env_file"
+            echo -e "${YELLOW}New Token:${NC} $new_token"
+        fi
         
-        print_status "Tokens rotated successfully"
-        echo -e "${YELLOW}New Token 1:${NC} $new_token1"
-        echo -e "${YELLOW}New Token 2:${NC} $new_token2"
         print_warning "Save these tokens securely!"
         print_warning "Restart the service to apply changes:"
-        echo "docker-compose -f docker-compose.production.yml restart"
+        echo "docker compose restart"
     else
         print_status "Token rotation cancelled"
     fi
