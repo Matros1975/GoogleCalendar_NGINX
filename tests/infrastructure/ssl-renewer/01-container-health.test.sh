@@ -40,7 +40,7 @@ fi
 
 # Test 2: Verify ssl-renewer Dockerfile exists
 log_info "Test 2: Checking if ssl-renewer Dockerfile exists..."
-if [[ -f "$PROJECT_ROOT/Servers/NGINX/ssl-renewer/Dockerfile" ]]; then
+if [[ -f "$PROJECT_ROOT/nginx/ssl-renewer/Dockerfile" ]]; then
     log_success "ssl-renewer Dockerfile exists"
     ((PASSED=PASSED+1))
 else
@@ -50,7 +50,7 @@ fi
 
 # Test 3: Verify ssl-renewal.sh script exists
 log_info "Test 3: Checking if ssl-renewal.sh script exists..."
-if [[ -f "$PROJECT_ROOT/Servers/NGINX/ssl-renewer/ssl-renewal.sh" ]]; then
+if [[ -f "$PROJECT_ROOT/nginx/ssl-renewer/ssl-renewal.sh" ]]; then
     log_success "ssl-renewal.sh script exists"
     ((PASSED=PASSED+1))
 else
@@ -60,7 +60,7 @@ fi
 
 # Test 4: Verify ssl-crontab file exists
 log_info "Test 4: Checking if ssl-crontab file exists..."
-if [[ -f "$PROJECT_ROOT/Servers/NGINX/ssl-renewer/ssl-crontab" ]]; then
+if [[ -f "$PROJECT_ROOT/nginx/ssl-renewer/ssl-crontab" ]]; then
     log_success "ssl-crontab file exists"
     ((PASSED=PASSED+1))
 else
@@ -70,7 +70,7 @@ fi
 
 # Test 5: Verify health-check.sh script exists
 log_info "Test 5: Checking if health-check.sh script exists..."
-if [[ -f "$PROJECT_ROOT/Servers/NGINX/ssl-renewer/health-check.sh" ]]; then
+if [[ -f "$PROJECT_ROOT/nginx/ssl-renewer/health-check.sh" ]]; then
     log_success "health-check.sh script exists"
     ((PASSED=PASSED+1))
 else
@@ -80,8 +80,8 @@ fi
 
 # Test 6: Verify scripts are executable
 log_info "Test 6: Checking if scripts are executable..."
-if [[ -x "$PROJECT_ROOT/Servers/NGINX/ssl-renewer/ssl-renewal.sh" ]] || \
-   [[ "$(stat -c %a "$PROJECT_ROOT/Servers/NGINX/ssl-renewer/ssl-renewal.sh" 2>/dev/null)" =~ [1357]$ ]]; then
+if [[ -x "$PROJECT_ROOT/nginx/ssl-renewer/ssl-renewal.sh" ]] || \
+   [[ "$(stat -c %a "$PROJECT_ROOT/nginx/ssl-renewer/ssl-renewal.sh" 2>/dev/null)" =~ [1357]$ ]]; then
     log_success "ssl-renewal.sh is marked as executable"
     ((PASSED=PASSED+1))
 else
@@ -136,8 +136,8 @@ fi
 
 # Test 11: Verify crontab schedule is correct
 log_info "Test 11: Verifying crontab schedule (twice daily at 3:30 AM/PM)..."
-if grep -q "30 3 \* \* \*" "$PROJECT_ROOT/Servers/NGINX/ssl-renewer/ssl-crontab" && \
-   grep -q "30 15 \* \* \*" "$PROJECT_ROOT/Servers/NGINX/ssl-renewer/ssl-crontab"; then
+if grep -q "30 3 \* \* \*" "$PROJECT_ROOT/nginx/ssl-renewer/ssl-crontab" && \
+   grep -q "30 15 \* \* \*" "$PROJECT_ROOT/nginx/ssl-renewer/ssl-crontab"; then
     log_success "Crontab schedule is correctly configured"
     ((PASSED=PASSED+1))
 else
@@ -147,7 +147,7 @@ fi
 
 # Test 12: Verify Dockerfile installs required packages
 log_info "Test 12: Checking Dockerfile for required packages..."
-DOCKERFILE="$PROJECT_ROOT/Servers/NGINX/ssl-renewer/Dockerfile"
+DOCKERFILE="$PROJECT_ROOT/nginx/ssl-renewer/Dockerfile"
 PACKAGES_OK=true
 for package in "certbot" "docker-cli" "dcron" "bash"; do
     if grep -q "$package" "$DOCKERFILE"; then

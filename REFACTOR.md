@@ -33,11 +33,12 @@ The project has been refactored from a single MCP deployment to a multi-MCP arch
 │   │   ├── Dockerfile
 │   │   ├── package.json
 │   │   └── ...
-│   ├── NGINX/              # NGINX proxy configuration
-│   │   ├── nginx.conf
-│   │   ├── conf.d/
-│   │   └── ssl/
 │   └── TEMPLATE_MCP_SERVER/ # Template for new servers
+├── nginx/                   # NGINX proxy configuration
+│   ├── nginx.conf
+│   ├── conf.d/
+│   ├── ssl/
+│   └── auth/
 ├── tests/                   # Infrastructure tests
 ├── docker-compose.yml       # Orchestrates all services
 └── ...
@@ -69,9 +70,9 @@ services:
 volumes:
   - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
 
-# After
+# After (now consistent)
 volumes:
-  - ./Servers/NGINX/nginx.conf:/etc/nginx/nginx.conf:ro
+  - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
 ```
 
 ### 3. Infrastructure Tests
@@ -232,7 +233,7 @@ services:
 
 ### 4. Update NGINX Configuration
 
-Add upstream and location in `Servers/NGINX/conf.d/mcp-proxy.conf`:
+Add upstream and location in `nginx/conf.d/mcp-proxy.conf`:
 
 ```nginx
 upstream your_mcp_backend {
@@ -302,7 +303,7 @@ Integrate tests into CI/CD pipeline:
 | `./package.json` | `./Servers/GoogleCalendarMCP/package.json` |
 | `./scripts/` | `./Servers/GoogleCalendarMCP/scripts/` |
 | `./docs/` | `./Servers/GoogleCalendarMCP/docs/` |
-| `./nginx/` | `./Servers/NGINX/` |
+| `./nginx/` | `./nginx/` (moved from Servers/) |
 
 ### Unchanged Files
 

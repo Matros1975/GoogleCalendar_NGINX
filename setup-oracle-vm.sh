@@ -58,7 +58,7 @@ print_status "Prerequisites check passed ✓"
 
 # Create necessary directories
 print_status "Creating directory structure..."
-mkdir -p Servers/NGINX/ssl nginx/auth logs
+mkdir -p nginx/ssl nginx/auth logs
 
 # Check if OAuth credentials exist
 if [[ ! -f "gcp-oauth.keys.json" ]]; then
@@ -93,7 +93,7 @@ fi
 
 # Setup SSL certificates
 print_status "Setting up SSL certificates..."
-if [[ ! -f "Servers/NGINX/ssl/cert.pem" || ! -f "Servers/NGINX/ssl/key.pem" ]]; then
+if [[ ! -f "nginx/ssl/cert.pem" || ! -f "nginx/ssl/key.pem" ]]; then
     print_warning "SSL certificates not found. You have several options:"
     echo "1. Use Let's Encrypt (recommended for production)"
     echo "2. Generate self-signed certificates (development/testing)"
@@ -107,15 +107,15 @@ if [[ ! -f "Servers/NGINX/ssl/cert.pem" || ! -f "Servers/NGINX/ssl/key.pem" ]]; 
             read -p "Enter your domain name: " domain_name
             
             # Update nginx config with domain
-            sed -i.bak "s/your-domain.com/$domain_name/" Servers/NGINX/conf.d/mcp-proxy.conf
-            rm Servers/NGINX/conf.d/mcp-proxy.conf.bak
+            sed -i.bak "s/your-domain.com/$domain_name/" nginx/conf.d/mcp-proxy.conf
+            rm nginx/conf.d/mcp-proxy.conf.bak
             
             print_status "Please run these commands to get Let's Encrypt certificates:"
             echo "sudo yum install certbot -y"
             echo "sudo certbot certonly --standalone -d $domain_name"
-            echo "sudo cp /etc/letsencrypt/live/$domain_name/fullchain.pem Servers/NGINX/ssl/cert.pem"
-            echo "sudo cp /etc/letsencrypt/live/$domain_name/privkey.pem Servers/NGINX/ssl/key.pem"
-            echo "sudo chown \$USER:\$USER Servers/NGINX/ssl/*.pem"
+            echo "sudo cp /etc/letsencrypt/live/$domain_name/fullchain.pem nginx/ssl/cert.pem"
+            echo "sudo cp /etc/letsencrypt/live/$domain_name/privkey.pem nginx/ssl/key.pem"
+            echo "sudo chown \$USER:\$USER nginx/ssl/*.pem"
             echo ""
             print_warning "Run the above commands, then re-run this script"
             exit 0
@@ -125,23 +125,23 @@ if [[ ! -f "Servers/NGINX/ssl/cert.pem" || ! -f "Servers/NGINX/ssl/key.pem" ]]; 
             read -p "Enter domain name (or localhost): " domain_name
             
             openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-                -keyout Servers/NGINX/ssl/key.pem \
-                -out Servers/NGINX/ssl/cert.pem \
+                -keyout nginx/ssl/key.pem \
+                -out nginx/ssl/cert.pem \
                 -subj "/C=US/ST=State/L=City/O=MCP/OU=Calendar/CN=$domain_name"
             
-            chmod 644 Servers/NGINX/ssl/cert.pem
-            chmod 600 Servers/NGINX/ssl/key.pem
+            chmod 644 nginx/ssl/cert.pem
+            chmod 600 nginx/ssl/key.pem
             
             # Update nginx config with domain
-            sed -i.bak "s/your-domain.com/$domain_name/" Servers/NGINX/conf.d/mcp-proxy.conf
-            rm Servers/NGINX/conf.d/mcp-proxy.conf.bak
+            sed -i.bak "s/your-domain.com/$domain_name/" nginx/conf.d/mcp-proxy.conf
+            rm nginx/conf.d/mcp-proxy.conf.bak
             
             print_status "Self-signed certificates generated ✓"
             ;;
         3)
             print_status "Please copy your SSL certificates to:"
-            print_status "  - Servers/NGINX/ssl/cert.pem (certificate)"
-            print_status "  - Servers/NGINX/ssl/key.pem (private key)"
+            print_status "  - nginx/ssl/cert.pem (certificate)"
+            print_status "  - nginx/ssl/key.pem (private key)"
             print_status "Then re-run this script"
             exit 0
             ;;

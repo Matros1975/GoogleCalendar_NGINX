@@ -66,7 +66,7 @@ cp .env.production .env
 # 3. Setup SSL certificates (see SSL section below)
 
 # 4. Update domain in NGINX config
-sed -i 's/your-domain.com/actual-domain.com/' Servers/NGINX/conf.d/mcp-proxy.conf
+sed -i 's/your-domain.com/actual-domain.com/' nginx/conf.d/mcp-proxy.conf
 
 # 5. Start services
 docker compose up -d
@@ -89,9 +89,9 @@ sudo apt install certbot -y  # Ubuntu
 sudo certbot certonly --standalone -d your-domain.com
 
 # Copy certificates
-sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem Servers/NGINX/ssl/cert.pem
-sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem Servers/NGINX/ssl/key.pem
-sudo chown $USER:$USER Servers/NGINX/ssl/*.pem
+sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/cert.pem
+sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/key.pem
+sudo chown $USER:$USER nginx/ssl/*.pem
 
 # Setup auto-renewal
 echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
@@ -101,8 +101,8 @@ echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
 
 ```bash
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout Servers/NGINX/ssl/key.pem \
-    -out Servers/NGINX/ssl/cert.pem \
+    -keyout nginx/ssl/key.pem \
+    -out nginx/ssl/cert.pem \
     -subj "/C=US/ST=State/L=City/O=MCP/OU=Calendar/CN=your-domain.com"
 ```
 
@@ -247,7 +247,7 @@ docker compose up -d --build
 # Backup important files
 tar -czf mcp-backup-$(date +%Y%m%d).tar.gz \
     .env.production \
-    Servers/NGINX/ssl/ \
+    nginx/ssl/ \
     gcp-oauth.keys.json \
     docker-compose.production.yml
 ```
@@ -269,7 +269,7 @@ docker compose restart nginx-proxy
 1. **SSL Certificate Errors**
    ```bash
    # Check certificate validity
-   openssl x509 -in Servers/NGINX/ssl/cert.pem -text -noout
+   openssl x509 -in nginx/ssl/cert.pem -text -noout
    
    # Test SSL
    openssl s_client -connect your-domain.com:443

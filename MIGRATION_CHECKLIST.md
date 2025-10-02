@@ -71,7 +71,7 @@ This checklist helps you migrate from the old structure to the new multi-MCP `Se
 - [ ] **Verify file paths exist**
   ```bash
   ls -la Servers/GoogleCalendarMCP/Dockerfile
-  ls -la Servers/NGINX/conf.d/mcp-proxy.conf
+  ls -la nginx/conf.d/mcp-proxy.conf
   ```
 
 - [ ] **Check OAuth credentials are accessible**
@@ -83,7 +83,7 @@ This checklist helps you migrate from the old structure to the new multi-MCP `Se
 
 - [ ] **Update NGINX domain (if needed)**
   ```bash
-  # Edit Servers/NGINX/conf.d/mcp-proxy.conf
+  # Edit nginx/conf.d/mcp-proxy.conf
   # Update server_name to your domain
   ```
 
@@ -92,7 +92,7 @@ This checklist helps you migrate from the old structure to the new multi-MCP `Se
   # Certificates should be at:
   # /etc/letsencrypt/live/YOUR_DOMAIN/ (mounted read-only)
   # OR
-  # Servers/NGINX/ssl/ (for self-signed)
+  # nginx/ssl/ (for self-signed)
   ```
 
 - [ ] **Check bearer tokens are configured**

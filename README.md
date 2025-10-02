@@ -109,12 +109,12 @@ cp .env.production .env
 ./manage-tokens.sh add
 
 # 3. Update domain in NGINX config
-sed -i 's/your-domain.com/your-actual-domain.com/' Servers/NGINX/conf.d/mcp-proxy.conf
+sed -i 's/your-domain.com/your-actual-domain.com/' nginx/conf.d/mcp-proxy.conf
 
 # 4. Setup SSL certificates (Let's Encrypt recommended)
 sudo certbot certonly --standalone -d your-domain.com
-sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem Servers/NGINX/ssl/cert.pem
-sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem Servers/NGINX/ssl/key.pem
+sudo cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/cert.pem
+sudo cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/key.pem
 
 # 5. Start services
 docker compose up -d
@@ -157,7 +157,7 @@ services:
 
 ### 3. Update NGINX Configuration
 
-Add routing in `Servers/NGINX/conf.d/mcp-proxy.conf`:
+Add routing in `nginx/conf.d/mcp-proxy.conf`:
 
 ```nginx
 upstream your_mcp_backend {
@@ -185,13 +185,14 @@ See `Servers/README.md` for detailed instructions and best practices.
 ### Core Configuration
 - `docker-compose.yml` - Multi-MCP orchestration with NGINX proxy
 - `docker-compose.dev.yml` - Development/Claude Desktop integration
-- `Servers/NGINX/conf.d/mcp-proxy.conf` - NGINX routing and authentication
+- `nginx/conf.d/mcp-proxy.conf` - NGINX routing and authentication
 - `.env.production` - Production environment variables
 
 ### Service Directories
 - `Servers/GoogleCalendarMCP/` - Google Calendar MCP server
-- `Servers/NGINX/` - NGINX proxy configuration
+- `Servers/TopDeskMCP/` - TopDesk MCP server
 - `Servers/TEMPLATE_MCP_SERVER/` - Template for new servers
+- `nginx/` - NGINX proxy configuration (infrastructure)
 
 ### Security & Management
 - `setup-oracle-vm.sh` - Automated deployment script

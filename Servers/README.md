@@ -11,11 +11,14 @@ Servers/
 │   ├── Dockerfile        # Container build config
 │   ├── package.json      # Dependencies
 │   └── ...
-├── NGINX/                # NGINX reverse proxy configuration
-│   ├── nginx.conf        # Main NGINX config
-│   ├── conf.d/           # Virtual host configs
-│   └── ssl/              # SSL certificates (not in git)
+├── TopDeskMCP/           # TopDesk MCP server
+│   ├── Dockerfile        # Container build config
+│   └── README.md
+├── TEMPLATE_MCP_SERVER/  # Template for new MCP servers
 └── README.md             # This file
+
+Note: NGINX configuration is at the root level (../nginx/) as it's 
+infrastructure, not an MCP server.
 ```
 
 ## Adding a New MCP Server
@@ -101,7 +104,7 @@ volumes:
 
 ### 4. Update NGINX Configuration
 
-Add a new upstream and location block in `Servers/NGINX/conf.d/mcp-proxy.conf`:
+Add a new upstream and location block in `nginx/conf.d/mcp-proxy.conf`:
 
 ```nginx
 # Upstream for your new MCP service
@@ -293,6 +296,6 @@ upstream your_mcp_backend {
 
 For issues specific to:
 - **GoogleCalendarMCP**: See `Servers/GoogleCalendarMCP/README.md`
-- **NGINX Configuration**: See `docs/nginx-configuration.md`
+- **NGINX Configuration**: See `nginx/conf.d/` or `DEPLOYMENT.md`
 - **Infrastructure Tests**: See `tests/README.md`
 - **General Deployment**: See `DEPLOYMENT.md`
