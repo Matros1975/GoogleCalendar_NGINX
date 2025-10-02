@@ -106,6 +106,19 @@ echo ""
 echo "════════════════════════════════════════════════════════"
 echo ""
 
+# Setup test prerequisites
+log_info "Setting up test prerequisites..."
+
+# Create mock OAuth credentials file if it doesn't exist
+# This is needed for container startup tests
+if [[ ! -f "$PROJECT_ROOT/gcp-oauth.keys.json" ]]; then
+    log_info "Creating mock gcp-oauth.keys.json for testing..."
+    cp "$PROJECT_ROOT/gcp-oauth.keys.example.json" "$PROJECT_ROOT/gcp-oauth.keys.json"
+    CREATED_MOCK_OAUTH=true
+else
+    CREATED_MOCK_OAUTH=false
+fi
+
 # Initialize results file if requested
 if [[ "$SAVE_RESULTS" == true ]]; then
     {
@@ -191,6 +204,12 @@ if [[ "$CLEANUP_AFTER" == true ]]; then
     cd "$PROJECT_ROOT"
     docker compose down -v > /dev/null 2>&1 || true
     log_success "Cleanup completed"
+fi
+
+# Cleanup mock OAuth file if we created it
+if [[ "$CREATED_MOCK_OAUTH" == true ]]; then
+    log_info "Removing mock gcp-oauth.keys.json..."
+    rm -f "$PROJECT_ROOT/gcp-oauth.keys.json"
 fi
 
 # Final summary

@@ -237,7 +237,7 @@ fi
 
 # Test 12: Test SSL session resumption
 log_info "Test 12: Testing SSL session resumption..."
-SESSION_OUTPUT=$(echo | openssl s_client -connect localhost:443 -reconnect 2>/dev/null | grep -c "Reused.*TLS" || echo "0")
+SESSION_OUTPUT=$(timeout 10 bash -c 'echo | openssl s_client -connect localhost:443 -reconnect 2>/dev/null | grep -c "Reused.*TLS"' || echo "0")
 
 if [[ $SESSION_OUTPUT -gt 0 ]]; then
     log_success "SSL session resumption working"

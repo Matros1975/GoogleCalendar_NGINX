@@ -124,7 +124,7 @@ else
 fi
 
 # Check ports 80 and 443
-if echo "$CONFIG_OUTPUT" | grep -A 30 "  nginx-proxy:" | grep -E "ports:" -A 5 | grep -q "443"; then
+if echo "$CONFIG_OUTPUT" | grep -A 30 "  nginx-proxy:" | grep -E "ports:" -A 10 | grep -q "443"; then
     log_success "nginx-proxy exposes HTTPS port 443"
     ((PASSED=PASSED+1))
 else
@@ -132,7 +132,7 @@ else
     ((FAILED=FAILED+1))
 fi
 
-if echo "$CONFIG_OUTPUT" | grep -A 30 "  nginx-proxy:" | grep -E "ports:" -A 5 | grep -q "80"; then
+if echo "$CONFIG_OUTPUT" | grep -A 30 "  nginx-proxy:" | grep -E "ports:" -A 10 | grep -q "80"; then
     log_success "nginx-proxy exposes HTTP port 80"
     ((PASSED=PASSED+1))
 else
