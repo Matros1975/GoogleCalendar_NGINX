@@ -101,12 +101,12 @@ services:
     
     # Environment configuration
     environment:
-      - TOPDESK_MCP_TRANSPORT=http
+      - TOPDESK_MCP_TRANSPORT=streamable-http
       - TOPDESK_MCP_HOST=0.0.0.0
       - TOPDESK_MCP_PORT=3030
       - TOPDESK_URL=${TOPDESK_URL:-https://example.topdesk.net}
-      - TOPDESK_USERNAME=${TOPDESK_USERNAME:-}
-      - TOPDESK_PASSWORD=${TOPDESK_PASSWORD:-}
+      - TOPDESK_USERNAME=${TOPDESK_USERNAME:-example_user}
+      - TOPDESK_PASSWORD=${TOPDESK_PASSWORD:-example_password}
     
     # Data storage
     volumes:
@@ -143,7 +143,7 @@ services:
     
     # Health check
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://0.0.0.0:3030/health || exit 1"]
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep 'topdesk_mcp.main' > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

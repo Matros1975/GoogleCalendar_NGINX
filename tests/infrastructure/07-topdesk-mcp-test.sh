@@ -65,15 +65,15 @@ case "$HEALTH_STATUS" in
         ;;
 esac
 
-# Test 3: Test direct container health endpoint
-log_info "Test 3: Testing TopDesk MCP health endpoint (internal)..."
-HEALTH_RESPONSE=$(docker exec topdesk-mcp wget -q -O- http://localhost:3030/health 2>/dev/null || echo "")
-if [[ -n "$HEALTH_RESPONSE" ]]; then
-    log_success "TopDesk MCP health endpoint responding"
-    echo "     Response: $(echo $HEALTH_RESPONSE | head -c 100)"
+# Test 3: Test direct container MCP endpoint
+log_info "Test 3: Testing TopDesk MCP endpoint (internal)..."
+MCP_RESPONSE=$(docker exec topdesk-mcp python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:3030/mcp').read()[:200])" 2>/dev/null || echo "")
+if [[ -n "$MCP_RESPONSE" ]]; then
+    log_success "TopDesk MCP endpoint responding"
+    echo "     Response: $(echo $MCP_RESPONSE | head -c 100)"
     ((PASSED=PASSED+1))
 else
-    log_error "TopDesk MCP health endpoint not responding"
+    log_error "TopDesk MCP endpoint not responding"
     ((FAILED=FAILED+1))
 fi
 
@@ -106,7 +106,7 @@ fi
 
 # Test 6: Check network connectivity between NGINX and TopDesk MCP
 log_info "Test 6: Testing network connectivity from NGINX to TopDesk MCP..."
-NETWORK_TEST=$(docker exec nginx-proxy wget -q -O- http://topdesk-mcp:3030/health 2>/dev/null || echo "")
+NETWORK_TEST=$(docker exec nginx-proxy wget -q -O- http://topdesk-mcp:3030/mcp 2>/dev/null || echo "")
 if [[ -n "$NETWORK_TEST" ]]; then
     log_success "NGINX can reach TopDesk MCP on internal network"
     ((PASSED=PASSED+1))
