@@ -1,0 +1,49 @@
+# Build output
+build/
+dist/
+*.js
+*.js.map
+!scripts/*.js
+
+# Dependencies
+node_modules/
+package-lock.json
+
+# OAuth credentials (NEVER commit these!)
+gcp-oauth.keys.json
+credentials.json
+tokens.json
+*.pem
+*.key
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+Thumbs.db
+
+# Temporary files
+.tmp/
+tmp/
+temp/
