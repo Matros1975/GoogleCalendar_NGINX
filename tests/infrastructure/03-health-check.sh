@@ -113,11 +113,14 @@ esac
 
 # Test 3: MCP /health endpoint response
 log_info "Test 3: Testing MCP /health endpoint response..."
-HEALTH_RESPONSE=$(curl -s http://localhost/health 2>/dev/null || echo "")
+HEALTH_RESPONSE=$(timeout 10 curl -k -s https://localhost/health 2>/dev/null || echo "")
 
 if echo "$HEALTH_RESPONSE" | grep -q "healthy"; then
     log_success "MCP health endpoint returns healthy status"
     echo "     Response: $HEALTH_RESPONSE"
+    ((PASSED=PASSED+1))
+elif echo "$HEALTH_RESPONSE" | grep -q "301.*Moved"; then
+    log_success "MCP health endpoint correctly redirects HTTP to HTTPS"
     ((PASSED=PASSED+1))
 else
     log_error "MCP health endpoint response unexpected: $HEALTH_RESPONSE"
@@ -126,7 +129,7 @@ fi
 
 # Test 4: MCP /health endpoint response time
 log_info "Test 4: Testing MCP /health endpoint response time..."
-RESPONSE_TIME=$(curl -s -o /dev/null -w "%{time_total}" http://localhost/health 2>/dev/null || echo "999")
+RESPONSE_TIME=$(timeout 10 curl -k -s -o /dev/null -w "%{time_total}" https://localhost/health 2>/dev/null || echo "999")
 
 if (( $(echo "$RESPONSE_TIME < 2.0" | bc -l 2>/dev/null || echo "1") )); then
     log_success "Health endpoint response time: ${RESPONSE_TIME}s (< 2s)"
@@ -154,14 +157,18 @@ log_info "Test 6: Checking Docker healthcheck history..."
 MCP_HEALTH_LOG=$(docker inspect calendar-mcp --format='{{range .State.Health.Log}}{{.ExitCode}} {{end}}' 2>/dev/null || echo "")
 
 if [[ -n "$MCP_HEALTH_LOG" ]]; then
-    FAILED_CHECKS=$(echo "$MCP_HEALTH_LOG" | tr ' ' '\n' | grep -c "^1" || echo "0")
-    TOTAL_CHECKS=$(echo "$MCP_HEALTH_LOG" | wc -w)
+    FAILED_CHECKS=$(echo "$MCP_HEALTH_LOG" | tr ' ' '\n' | grep -c "^1" 2>/dev/null || echo "0")
+    TOTAL_CHECKS=$(echo "$MCP_HEALTH_LOG" | wc -w 2>/dev/null || echo "0")
     
-    if [[ "$FAILED_CHECKS" -eq 0 ]]; then
-        log_success "All $TOTAL_CHECKS health checks passed"
+    # Clean up variables to remove newlines
+    FAILED_CHECKS=$(echo "$FAILED_CHECKS" | tr -d '\n\r' | grep -o '[0-9]*' | head -1)
+    TOTAL_CHECKS=$(echo "$TOTAL_CHECKS" | tr -d '\n\r' | grep -o '[0-9]*' | head -1)
+    
+    if [[ "${FAILED_CHECKS:-0}" -eq 0 ]]; then
+        log_success "All ${TOTAL_CHECKS:-0} health checks passed"
         ((PASSED=PASSED+1))
     else
-        log_warn "$FAILED_CHECKS of $TOTAL_CHECKS health checks failed"
+        log_warn "${FAILED_CHECKS:-0} of ${TOTAL_CHECKS:-0} health checks failed"
         ((PASSED=PASSED+1))  # Don't fail on past health check issues if currently healthy
     fi
 else

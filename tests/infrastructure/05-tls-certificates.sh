@@ -29,7 +29,7 @@ echo "=========================================="
 echo ""
 
 # Get domain from NGINX config
-DOMAIN=$(grep -oP 'server_name\s+\K[^\s;]+' "$PROJECT_ROOT/nginx/conf.d/mcp-proxy.conf" 2>/dev/null | head -1 || echo "localhost")
+DOMAIN=$(grep -oP 'server_name\s+\K[^\s;]+' "$PROJECT_ROOT/nginx/conf.d/mcp-proxy.conf" 2>/dev/null | grep -v localhost | head -1 || echo "localhost")
 echo "Testing domain: $DOMAIN"
 echo ""
 
@@ -237,9 +237,10 @@ fi
 
 # Test 12: Test SSL session resumption
 log_info "Test 12: Testing SSL session resumption..."
-SESSION_OUTPUT=$(timeout 10 bash -c 'echo | openssl s_client -connect localhost:443 -reconnect 2>/dev/null | grep -c "Reused.*TLS"' || echo "0")
+SESSION_OUTPUT=$(timeout 10 bash -c 'echo | openssl s_client -connect localhost:443 -reconnect 2>/dev/null | grep -c "Reused.*TLS"' 2>/dev/null || echo "0")
+SESSION_OUTPUT=$(echo "$SESSION_OUTPUT" | tr -d '\n\r' | grep -o '[0-9]*' | head -1)
 
-if [[ $SESSION_OUTPUT -gt 0 ]]; then
+if [[ "${SESSION_OUTPUT:-0}" -gt 0 ]]; then
     log_success "SSL session resumption working"
     ((PASSED=PASSED+1))
 else
