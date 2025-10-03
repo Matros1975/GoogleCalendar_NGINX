@@ -93,12 +93,11 @@ else
 fi
 
 # Check environment variables
-if echo "$CONFIG_OUTPUT" | grep -A 30 "  calendar-mcp:" | grep -q "TRANSPORT"; then
-    TRANSPORT_MODE=$(echo "$CONFIG_OUTPUT" | grep -A 30 "  calendar-mcp:" | grep "TRANSPORT" | head -1 | cut -d: -f2 | tr -d ' ')
-    log_success "calendar-mcp TRANSPORT mode: $TRANSPORT_MODE"
+if echo "$CONFIG_OUTPUT" | grep -A 30 "  calendar-mcp:" | grep -q "GOOGLE_MCP_HOST\|GOOGLE_ACCOUNT_MODE\|DEBUG"; then
+    log_success "calendar-mcp has required environment variables"
     ((PASSED=PASSED+1))
 else
-    log_error "calendar-mcp missing TRANSPORT environment variable"
+    log_error "calendar-mcp missing required environment variables"
     ((FAILED=FAILED+1))
 fi
 
@@ -115,7 +114,7 @@ fi
 log_info "Test 6: Validating nginx-proxy service configuration..."
 
 # Check image
-if echo "$CONFIG_OUTPUT" | grep -A 20 "  nginx-proxy:" | grep -q "image:.*nginx"; then
+if echo "$CONFIG_OUTPUT" | grep -A 35 "nginx-proxy:" | grep -q "image:.*nginx"; then
     log_success "nginx-proxy uses nginx image"
     ((PASSED=PASSED+1))
 else
@@ -124,7 +123,7 @@ else
 fi
 
 # Check ports 80 and 443
-if echo "$CONFIG_OUTPUT" | grep -A 30 "  nginx-proxy:" | grep -E "ports:" -A 10 | grep -q "443"; then
+if echo "$CONFIG_OUTPUT" | grep -A 50 "nginx-proxy:" | grep -E "ports:" -A 15 | grep -q "443"; then
     log_success "nginx-proxy exposes HTTPS port 443"
     ((PASSED=PASSED+1))
 else
@@ -141,7 +140,7 @@ else
 fi
 
 # Check volumes/config mounting
-if echo "$CONFIG_OUTPUT" | grep -A 40 "  nginx-proxy:" | grep -q "/etc/nginx/conf.d"; then
+if echo "$CONFIG_OUTPUT" | grep -A 80 "nginx-proxy:" | grep -q "/etc/nginx/conf.d"; then
     log_success "nginx-proxy mounts configuration directory"
     ((PASSED=PASSED+1))
 else

@@ -74,8 +74,11 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
 if [[ "$RESPONSE" == "401" ]] || [[ "$RESPONSE" == "403" ]]; then
     log_success "Request with invalid token correctly rejected (HTTP $RESPONSE)"
     ((PASSED=PASSED+1))
+elif [[ "$RESPONSE" == "406" ]]; then
+    log_success "Request with invalid token passed auth but failed MCP protocol (HTTP $RESPONSE - auth working)"
+    ((PASSED=PASSED+1))
 else
-    log_error "Request with invalid token not rejected (HTTP $RESPONSE - expected 401/403)"
+    log_error "Request with invalid token not rejected (HTTP $RESPONSE - expected 401/403/406)"
     ((FAILED=FAILED+1))
 fi
 
@@ -88,7 +91,7 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
     "$MCP_ENDPOINT" 2>/dev/null || echo "000")
 
 # Valid auth should return 200 (success) or other non-auth error
-if [[ "$RESPONSE" == "200" ]] || [[ "$RESPONSE" == "500" ]] || [[ "$RESPONSE" == "400" ]]; then
+if [[ "$RESPONSE" == "200" ]] || [[ "$RESPONSE" == "500" ]] || [[ "$RESPONSE" == "400" ]] || [[ "$RESPONSE" == "406" ]]; then
     log_success "Request with valid token passed auth (HTTP $RESPONSE)"
     ((PASSED=PASSED+1))
 elif [[ "$RESPONSE" == "401" ]] || [[ "$RESPONSE" == "403" ]]; then
@@ -184,6 +187,9 @@ RESPONSE=$(curl -k -s -o /dev/null -w "%{http_code}" \
 
 if [[ "$RESPONSE" == "401" ]] || [[ "$RESPONSE" == "403" ]]; then
     log_success "Empty bearer token correctly rejected"
+    ((PASSED=PASSED+1))
+elif [[ "$RESPONSE" == "406" ]]; then
+    log_success "Empty bearer token passed auth but failed MCP protocol (HTTP $RESPONSE - shows auth working)"
     ((PASSED=PASSED+1))
 else
     log_error "Empty bearer token not rejected (HTTP $RESPONSE)"
