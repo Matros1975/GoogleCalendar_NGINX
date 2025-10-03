@@ -94,6 +94,81 @@ services:
       retries: 3
       start_period: 40s
 
+  # Gmail MCP Server
+  gmail-mcp:
+    build: ./Servers/GmailMCP
+    container_name: gmail-mcp
+    restart: unless-stopped
+    
+    # Load centralized environment configuration
+    env_file:
+      - .env
+    
+    # Internal network only - no port exposure to host except OAuth
+    networks:
+      - mcp-internal
+    
+    # Expose OAuth ports for authentication (3500-3505)
+    ports:
+      - "3500:3500"
+      - "3501:3501"
+      - "3502:3502"
+      - "3503:3503"
+      - "3504:3504"
+      - "3505:3505"
+    
+    # Environment configuration
+    environment:
+      - TRANSPORT=${MCP_TRANSPORT:-http}
+      - HOST=${GMAIL_MCP_HOST:-0.0.0.0}
+      - PORT=${GMAIL_MCP_PORT:-3001}
+      - NODE_ENV=${NODE_ENV:-production}
+      - GMAIL_OAUTH_CREDENTIALS=${GMAIL_OAUTH_CREDENTIALS:-/app/gcp-oauth.keys.json}
+      - GOOGLE_OAUTH_CREDENTIALS=${GOOGLE_OAUTH_CREDENTIALS:-/app/gcp-oauth.keys.json}
+      - GOOGLE_ACCOUNT_MODE=${GOOGLE_ACCOUNT_MODE:-normal}
+    
+    # OAuth credentials and token storage
+    volumes:
+      - ./gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
+      - gmail-tokens:/home/nodejs/.config/gmail-mcp
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.5"
+    
+    # Enhanced Security Configuration
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
+    
+    # Read-only root filesystem for security
+    read_only: true
+    
+    # Drop all capabilities and add only necessary ones
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    
+    # Temporary filesystems for writes
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=100m
+      - /app/logs:rw,noexec,nosuid,nodev,size=50m
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://0.0.0.0:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   # TopDesk MCP Server
   topdesk-mcp:
     build: ./Servers/TopDeskMCP
@@ -290,6 +365,8 @@ services:
     depends_on:
       calendar-mcp:
         condition: service_healthy
+      gmail-mcp:
+        condition: service_healthy
       topdesk-mcp:
         condition: service_healthy
     
@@ -337,6 +414,8 @@ services:
 
 volumes:
   calendar-tokens:
+    driver: local
+  gmail-tokens:
     driver: local
   topdesk-data:
     driver: local
