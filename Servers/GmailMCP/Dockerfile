@@ -19,13 +19,13 @@ COPY src ./src
 COPY tsconfig.json .
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm ci --no-audit --no-fund --silent
+RUN npm install --no-audit --no-fund
 
 # Build the project
 RUN npm run build
 
 # Remove dev dependencies to reduce image size
-RUN npm prune --production --silent
+RUN npm prune --production
 
 # Create config directory and set permissions
 RUN mkdir -p /home/nodejs/.config/gmail-mcp && \
