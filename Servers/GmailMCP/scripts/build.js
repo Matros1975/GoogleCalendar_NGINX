@@ -15,9 +15,10 @@ const buildOptions = {
   target: 'node18',
   outfile: join(__dirname, '../build/index.js'),
   format: 'esm',
-  banner: {
-    js: '#!/usr/bin/env node\n',
-  },
+  // Remove shebang banner for ES modules to avoid Node.js issues
+  // banner: {
+  //   js: '#!/usr/bin/env node\n',
+  // },
   packages: 'external', // Don't bundle node_modules
   sourcemap: true,
 };

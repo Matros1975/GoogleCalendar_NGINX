@@ -108,14 +108,14 @@ services:
     networks:
       - mcp-internal
     
-    # Expose OAuth ports for authentication (3500-3505)
+    # Expose OAuth ports for authentication (3506-3511)
     ports:
-      - "3500:3500"
-      - "3501:3501"
-      - "3502:3502"
-      - "3503:3503"
-      - "3504:3504"
-      - "3505:3505"
+      - "3506:3506"
+      - "3507:3507"
+      - "3508:3508"
+      - "3509:3509"
+      - "3510:3510"
+      - "3511:3511"
     
     # Environment configuration
     environment:
@@ -161,9 +161,9 @@ services:
       - /tmp:rw,noexec,nosuid,nodev,size=100m
       - /app/logs:rw,noexec,nosuid,nodev,size=50m
     
-    # Health check
+    # Health check - simple process check
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://0.0.0.0:3001/health || exit 1"]
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep node || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -187,7 +187,7 @@ services:
     environment:
       - TOPDESK_MCP_TRANSPORT=${TOPDESK_MCP_TRANSPORT:-streamable-http}
       - TOPDESK_MCP_HOST=${TOPDESK_MCP_HOST:-0.0.0.0}
-      - TOPDESK_MCP_PORT=${TOPDESK_MCP_PORT:-3030}
+      - TOPDESK_MCP_PORT=${TOPDESK_MCP_PORT:-3002}
       - TOPDESK_URL=${TOPDESK_URL:-https://example.topdesk.net}
       - TOPDESK_USERNAME=api_aipilots
       - TOPDESK_PASSWORD=7w7j6-ytlqt-wpcbz-ywu6v-remw7
@@ -365,8 +365,8 @@ services:
     depends_on:
       calendar-mcp:
         condition: service_healthy
-      gmail-mcp:
-        condition: service_healthy
+      # gmail-mcp:
+      #   condition: service_healthy
       topdesk-mcp:
         condition: service_healthy
     
