@@ -169,7 +169,7 @@ services:
       retries: 3
       start_period: 40s
 
-  # TopDesk MCP Server
+  # TopDesk MCP Server (old buggy implementation)
   topdesk-mcp:
     build: ./Servers/TopDeskMCP
     container_name: topdesk-mcp
@@ -233,6 +233,67 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  # TopDesk Custom MCP Server (new direct implementation)
+  topdesk-custom-mcp:
+    build: ./Servers/TopDeskCustomMCP
+    container_name: topdesk-custom-mcp
+    restart: unless-stopped
+    
+    # Load centralized environment configuration
+    env_file:
+      - .env
+    
+    # Internal network only
+    networks:
+      - mcp-internal
+    
+    # Environment configuration
+    environment:
+      - TOPDESK_BASE_URL=${TOPDESK_BASE_URL:-https://pietervanforeest-test.topdesk.net/tas/api}
+      - TOPDESK_USERNAME=${TOPDESK_CUSTOM_USERNAME:-api_aipilots}
+      - TOPDESK_PASSWORD=${TOPDESK_CUSTOM_PASSWORD:-7w7j6-ytlqt-wpcbz-ywu6v-remw7}
+      - BEARER_TOKENS=${TOPDESK_CUSTOM_BEARER_TOKENS:-["e3707c16425c14fa417e2384a12748c0c7c51dfdfd1714c58992215983f33257"]}
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=3003
+      - MCP_LOG_LEVEL=${LOG_LEVEL:-INFO}
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.5"
+    
+    # Enhanced Security Configuration
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
+    
+    # Read-only root filesystem for security
+    read_only: true
+    
+    # Drop all capabilities and add only necessary ones
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    
+    # Temporary filesystems for writes
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=100m
+      - /app/logs:rw,noexec,nosuid,nodev,size=50m
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3003/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # DuckDNS IP updater service
   duckdns-updater:
