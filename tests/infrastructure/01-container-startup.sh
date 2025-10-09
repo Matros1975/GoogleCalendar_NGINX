@@ -65,7 +65,7 @@ sleep 10
 
 # Test 4: Check all containers are running
 log_info "Test 4: Checking all containers are running..."
-EXPECTED_CONTAINERS=("calendar-mcp" "topdesk-mcp" "nginx-proxy" "duckdns-updater")
+EXPECTED_CONTAINERS=("calendar-mcp" "topdesk-custom-mcp" "nginx-proxy" "duckdns-updater")
 ALL_RUNNING=true
 
 for container in "${EXPECTED_CONTAINERS[@]}"; do
@@ -83,7 +83,7 @@ done
 log_info "Test 5: Checking container health status..."
 sleep 10  # Wait for health checks to run
 
-for container in "calendar-mcp" "topdesk-mcp" "nginx-proxy"; do
+for container in "calendar-mcp" "topdesk-custom-mcp" "nginx-proxy"; do
     HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$container" 2>/dev/null || echo "unknown")
     
     if [[ "$HEALTH_STATUS" == "healthy" ]]; then

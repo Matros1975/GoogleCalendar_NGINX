@@ -58,7 +58,7 @@ esac
 
 # Test 1b: TopDesk MCP container health check
 log_info "Test 1b: Checking TopDesk MCP container health status..."
-TOPDESK_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' topdesk-mcp 2>/dev/null || echo "unknown")
+TOPDESK_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' topdesk-custom-mcp 2>/dev/null || echo "unknown")
 
 case "$TOPDESK_HEALTH" in
     "healthy")
@@ -68,7 +68,7 @@ case "$TOPDESK_HEALTH" in
     "starting")
         log_warn "TopDesk MCP container is still starting, waiting..."
         sleep 30
-        TOPDESK_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' topdesk-mcp 2>/dev/null || echo "unknown")
+        TOPDESK_HEALTH=$(docker inspect --format='{{.State.Health.Status}}' topdesk-custom-mcp 2>/dev/null || echo "unknown")
         if [[ "$TOPDESK_HEALTH" == "healthy" ]]; then
             log_success "TopDesk MCP container is now healthy"
             ((PASSED=PASSED+1))

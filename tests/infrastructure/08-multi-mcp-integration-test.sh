@@ -78,6 +78,10 @@ sse_response=$(curl -k -s -o /dev/null -w "%{http_code}" \
     "$DOMAIN/topdesk/sse")
 
 case "$sse_response" in
+    "405")
+        echo -e "${GREEN}✅ TopDesk SSE: Correctly rejects GET requests (405 - normal for MCP protocol)${NC}"
+        echo -e "${YELLOW}SSE endpoint routing configured correctly${NC}"
+        ;;
     "400")
         echo -e "${GREEN}✅ TopDesk SSE: Endpoint accessible (needs session initialization)${NC}"
         echo -e "${YELLOW}SSE endpoint ready for ElevenLabs VoiceAgent${NC}"

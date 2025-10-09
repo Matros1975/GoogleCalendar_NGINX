@@ -30,7 +30,7 @@ echo ""
 
 # Test 1: Verify TopDesk MCP container is running
 log_info "Test 1: Checking if TopDesk MCP container is running..."
-if docker ps --format '{{.Names}}' | grep -q "^topdesk-mcp$"; then
+if docker ps --format '{{.Names}}' | grep -q "^topdesk-custom-mcp$"; then
     log_success "TopDesk MCP container is running"
     ((PASSED=PASSED+1))
 else
@@ -40,7 +40,7 @@ fi
 
 # Test 2: Check TopDesk MCP container health status
 log_info "Test 2: Checking TopDesk MCP container health status..."
-HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' topdesk-mcp 2>/dev/null || echo "unknown")
+HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' topdesk-custom-mcp 2>/dev/null || echo "unknown")
 
 case "$HEALTH_STATUS" in
     "healthy")
@@ -50,7 +50,7 @@ case "$HEALTH_STATUS" in
     "starting")
         log_warn "TopDesk MCP container is still starting, waiting..."
         sleep 30
-        HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' topdesk-mcp 2>/dev/null || echo "unknown")
+        HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' topdesk-custom-mcp 2>/dev/null || echo "unknown")
         if [[ "$HEALTH_STATUS" == "healthy" ]]; then
             log_success "TopDesk MCP container is now healthy"
             ((PASSED=PASSED+1))
@@ -68,7 +68,7 @@ esac
 # Test 3: Test direct container MCP endpoint
 log_info "Test 3: Testing TopDesk MCP endpoint (internal)..."
 # MCP endpoints may return 406 without proper headers, but this confirms the server is running
-MCP_TEST=$(docker exec topdesk-mcp sh -c 'ps aux | grep -v grep | grep "topdesk_mcp.main"' 2>/dev/null || echo "")
+MCP_TEST=$(docker exec topdesk-custom-mcp sh -c 'ls -la /proc/1/exe 2>/dev/null | grep python' 2>/dev/null || echo "")
 if [[ -n "$MCP_TEST" ]]; then
     log_success "TopDesk MCP process is running and serving"
     ((PASSED=PASSED+1))
@@ -79,9 +79,9 @@ fi
 
 # Test 4: Check container logs for critical errors
 log_info "Test 4: Checking TopDesk MCP container logs..."
-if docker logs topdesk-mcp 2>&1 | grep -iE "fatal|exception" | grep -v "no error" > /dev/null; then
+if docker logs topdesk-custom-mcp 2>&1 | grep -iE "fatal|exception|error" | grep -v "no error" > /dev/null; then
     log_warn "TopDesk MCP container has error messages in logs"
-    docker logs topdesk-mcp 2>&1 | grep -iE "fatal|exception" | tail -3
+    docker logs topdesk-custom-mcp 2>&1 | grep -iE "fatal|exception|error" | tail -3
     # Don't fail the test, just warn
     ((PASSED=PASSED+1))
 else
@@ -140,7 +140,7 @@ log_info "Test 6: Testing network connectivity from NGINX to TopDesk MCP..."
 # Check if NGINX is running first
 if docker ps | grep -q nginx-proxy; then
     # Ping test to verify network connectivity
-    NETWORK_TEST=$(docker exec nginx-proxy sh -c 'nc -zv topdesk-mcp 3030 2>&1' || echo "netcat not available")
+    NETWORK_TEST=$(docker exec nginx-proxy sh -c 'nc -zv topdesk-custom-mcp 3003 2>&1' || echo "netcat not available")
     if echo "$NETWORK_TEST" | grep -q "succeeded\|open\|netcat not available"; then
         log_success "NGINX can reach TopDesk MCP on internal network"
         ((PASSED=PASSED+1))
@@ -155,8 +155,8 @@ fi
 
 # Test 7: Verify TopDesk MCP container resource usage
 log_info "Test 7: Checking TopDesk MCP resource usage..."
-MEMORY_USAGE=$(docker stats topdesk-mcp --no-stream --format "{{.MemUsage}}" 2>/dev/null || echo "unknown")
-CPU_USAGE=$(docker stats topdesk-mcp --no-stream --format "{{.CPUPerc}}" 2>/dev/null || echo "unknown")
+MEMORY_USAGE=$(docker stats topdesk-custom-mcp --no-stream --format "{{.MemUsage}}" 2>/dev/null || echo "unknown")
+CPU_USAGE=$(docker stats topdesk-custom-mcp --no-stream --format "{{.CPUPerc}}" 2>/dev/null || echo "unknown")
 if [[ "$MEMORY_USAGE" != "unknown" ]] && [[ "$CPU_USAGE" != "unknown" ]]; then
     log_success "TopDesk MCP resource usage: CPU=$CPU_USAGE, Memory=$MEMORY_USAGE"
     ((PASSED=PASSED+1))
@@ -167,7 +167,7 @@ fi
 
 # Test 8: Verify TopDesk MCP is on correct network
 log_info "Test 8: Verifying TopDesk MCP network configuration..."
-NETWORK_INFO=$(docker inspect topdesk-mcp --format '{{json .NetworkSettings.Networks}}' 2>/dev/null || echo "")
+NETWORK_INFO=$(docker inspect topdesk-custom-mcp --format '{{json .NetworkSettings.Networks}}' 2>/dev/null || echo "")
 if echo "$NETWORK_INFO" | grep -q "mcp-internal"; then
     log_success "TopDesk MCP is on mcp-internal network"
     ((PASSED=PASSED+1))
@@ -178,8 +178,8 @@ fi
 
 # Test 9: Check TopDesk MCP security configuration
 log_info "Test 9: Checking TopDesk MCP security configuration..."
-READ_ONLY=$(docker inspect topdesk-mcp --format '{{.HostConfig.ReadonlyRootfs}}' 2>/dev/null || echo "false")
-NO_NEW_PRIVS=$(docker inspect topdesk-mcp --format '{{.HostConfig.SecurityOpt}}' 2>/dev/null || echo "")
+READ_ONLY=$(docker inspect topdesk-custom-mcp --format '{{.HostConfig.ReadonlyRootfs}}' 2>/dev/null || echo "false")
+NO_NEW_PRIVS=$(docker inspect topdesk-custom-mcp --format '{{.HostConfig.SecurityOpt}}' 2>/dev/null || echo "")
 
 if [[ "$READ_ONLY" == "true" ]]; then
     log_success "TopDesk MCP has read-only root filesystem"

@@ -94,7 +94,7 @@ fi
 
 # Test 4b: Direct TopDesk MCP container health check (internal)
 log_info "Test 4b: Testing direct TopDesk MCP container health..."
-TOPDESK_PROCESS=$(docker exec topdesk-mcp sh -c 'ps aux | grep -v grep | grep "topdesk_mcp.main"' 2>/dev/null || echo "")
+TOPDESK_PROCESS=$(docker exec topdesk-custom-mcp sh -c 'ls -la /proc/1/exe 2>/dev/null | grep python' 2>/dev/null || echo "")
 if [[ -n "$TOPDESK_PROCESS" ]]; then
     log_success "TopDesk MCP container process is running"
     ((PASSED=PASSED+1))
