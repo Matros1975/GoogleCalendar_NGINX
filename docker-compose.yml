@@ -169,70 +169,71 @@ services:
       retries: 3
       start_period: 40s
 
-  # TopDesk MCP Server (old buggy implementation)
-  topdesk-mcp:
-    build: ./Servers/TopDeskMCP
-    container_name: topdesk-mcp
-    restart: unless-stopped
-    
-    # Load centralized environment configuration
-    env_file:
-      - .env
-    
-    # Internal network only
-    networks:
-      - mcp-internal
-    
-    # Environment configuration
-    environment:
-      - TOPDESK_MCP_TRANSPORT=${TOPDESK_MCP_TRANSPORT:-streamable-http}
-      - TOPDESK_MCP_HOST=${TOPDESK_MCP_HOST:-0.0.0.0}
-      - TOPDESK_MCP_PORT=${TOPDESK_MCP_PORT:-3002}
-      - TOPDESK_URL=${TOPDESK_URL:-https://example.topdesk.net}
-      - TOPDESK_USERNAME=api_aipilots
-      - TOPDESK_PASSWORD=7w7j6-ytlqt-wpcbz-ywu6v-remw7
-      - TOPDESK_API_TOKEN=${TOPDESK_API_TOKEN:-example_token}
-    
-    # Data storage
-    volumes:
-      - topdesk-data:/app/data
-    
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "1.0"
-        reservations:
-          memory: 256M
-          cpus: "0.5"
-    
-    # Enhanced Security Configuration
-    security_opt:
-      - no-new-privileges:true
-      - apparmor:unconfined
-    
-    # Read-only root filesystem for security
-    read_only: true
-    
-    # Drop all capabilities and add only necessary ones
-    cap_drop:
-      - ALL
-    cap_add:
-      - NET_BIND_SERVICE
-    
-    # Temporary filesystems for writes
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,nodev,size=100m
-      - /app/logs:rw,noexec,nosuid,nodev,size=50m
-    
-    # Health check
-    healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep -v grep | grep 'topdesk_mcp.main' > /dev/null || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+  # TopDesk MCP Server (old buggy implementation) - DISABLED
+  # Replaced with TopDeskCustomMCP due to FastMCP parameter validation bugs
+  # topdesk-mcp:
+  #   build: ./Servers/TopDeskMCP
+  #   container_name: topdesk-mcp
+  #   restart: unless-stopped
+  #   
+  #   # Load centralized environment configuration
+  #   env_file:
+  #     - .env
+  #   
+  #   # Internal network only
+  #   networks:
+  #     - mcp-internal
+  #   
+  #   # Environment configuration
+  #   environment:
+  #     - TOPDESK_MCP_TRANSPORT=${TOPDESK_MCP_TRANSPORT:-streamable-http}
+  #     - TOPDESK_MCP_HOST=${TOPDESK_MCP_HOST:-0.0.0.0}
+  #     - TOPDESK_MCP_PORT=${TOPDESK_MCP_PORT:-3002}
+  #     - TOPDESK_URL=${TOPDESK_URL:-https://example.topdesk.net}
+  #     - TOPDESK_USERNAME=api_aipilots
+  #     - TOPDESK_PASSWORD=7w7j6-ytlqt-wpcbz-ywu6v-remw7
+  #     - TOPDESK_API_TOKEN=${TOPDESK_API_TOKEN:-example_token}
+  #   
+  #   # Data storage
+  #   volumes:
+  #     - topdesk-data:/app/data
+  #   
+  #   # Resource limits
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #         cpus: "1.0"
+  #       reservations:
+  #         memory: 256M
+  #         cpus: "0.5"
+  #   
+  #   # Enhanced Security Configuration
+  #   security_opt:
+  #     - no-new-privileges:true
+  #     - apparmor:unconfined
+  #   
+  #   # Read-only root filesystem for security
+  #   read_only: true
+  #   
+  #   # Drop all capabilities and add only necessary ones
+  #   cap_drop:
+  #     - ALL
+  #   cap_add:
+  #     - NET_BIND_SERVICE
+  #   
+  #   # Temporary filesystems for writes
+  #   tmpfs:
+  #     - /tmp:rw,noexec,nosuid,nodev,size=100m
+  #     - /app/logs:rw,noexec,nosuid,nodev,size=50m
+  #   
+  #   # Health check
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "ps aux | grep -v grep | grep 'topdesk_mcp.main' > /dev/null || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
 
   # TopDesk Custom MCP Server (new direct implementation)
   topdesk-custom-mcp:
@@ -428,7 +429,7 @@ services:
         condition: service_healthy
       # gmail-mcp:
       #   condition: service_healthy
-      topdesk-mcp:
+      topdesk-custom-mcp:
         condition: service_healthy
     
     # Resource limits

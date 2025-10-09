@@ -6,9 +6,24 @@ import base64
 import time
 
 def test_mcp_server_with_llabs_payload():
-    """Test MCP server with exact 11Labs payload format"""
+    """Test NEW TopDesk Custom MCP server with exactif __name__ == '__main__':
+    print("NEW TopDesk Custom MCP Server Test (Direct Implementation)")
+    print("=" * 60)
+    print("🔧 Testing the new custom MCP that avoids FastMCP parameter validation bugs")
+    print("=" * 60)
     
-    # MCP server details
+    # Test NEW Custom MCP server
+    test_mcp_server_with_llabs_payload()
+    
+    # Test direct TopDesk API for comparison
+    test_direct_topdesk_api()
+    
+    print("\n" + "=" * 60)
+    print("Test completed!")
+    print("If both work, the new custom MCP has successfully replaced the buggy FastMCP implementation.")
+    print("=" * 60)ad format"""
+    
+    # NEW: TopDesk Custom MCP details (avoiding FastMCP bugs)
     mcp_url = 'https://matrosmcp.duckdns.org/topdesk/mcp'
     token = 'e3707c16425c14fa417e2384a12748c0c7c51dfdfd1714c58992215983f33257'
     
@@ -18,7 +33,7 @@ def test_mcp_server_with_llabs_payload():
         'Accept': 'application/json, text/event-stream'
     }
     
-    print("🧪 Testing MCP server with exact 11Labs payload format")
+    print("🧪 Testing NEW TopDesk Custom MCP server (avoiding FastMCP bugs)")
     print("=" * 60)
     
     # Initialize MCP server
@@ -44,15 +59,9 @@ def test_mcp_server_with_llabs_payload():
         print(f"❌ Init failed: {response.text}")
         return
     
-    session_id = response.headers.get('mcp-session-id')
-    print(f"Session ID: {session_id}")
-    
-    if not session_id:
-        print("❌ No session ID")
-        return
-    
-    headers['mcp-session-id'] = session_id
-    time.sleep(2)
+    # NEW: TopDesk Custom MCP doesn't use session IDs - it's stateless with bearer tokens
+    print("✅ Custom MCP initialized successfully (stateless authentication)")
+    time.sleep(1)
     
     # Test with simplified MCP payload using known person ID
     print("\n🎯 Testing with MCP payload using real person ID...")
