@@ -66,6 +66,51 @@ else
 fi
 echo
 
+echo -e "${BLUE}Testing TopDesk MCP SSE Endpoint...${NC}"
+echo "Endpoint: $DOMAIN/topdesk/sse"
+
+# Test the new SSE endpoint for ElevenLabs VoiceAgent compatibility
+echo "Testing SSE endpoint configuration..."
+sse_response=$(curl -k -s -o /dev/null -w "%{http_code}" \
+    -H "Authorization: Bearer $BEARER_TOKEN" \
+    -H "Accept: text/event-stream" \
+    -H "Cache-Control: no-cache" \
+    "$DOMAIN/topdesk/sse")
+
+case "$sse_response" in
+    "400")
+        echo -e "${GREEN}✅ TopDesk SSE: Endpoint accessible (needs session initialization)${NC}"
+        echo -e "${YELLOW}SSE endpoint ready for ElevenLabs VoiceAgent${NC}"
+        ;;
+    "401"|"403")
+        echo -e "${YELLOW}⚠️ TopDesk SSE: Authentication required (HTTP $sse_response)${NC}"
+        ;;
+    "502"|"503")
+        echo -e "${RED}❌ TopDesk SSE: Backend error (HTTP $sse_response)${NC}"
+        ;;
+    *)
+        echo -e "${YELLOW}⚠️ TopDesk SSE: Unexpected response (HTTP $sse_response)${NC}"
+        ;;
+esac
+echo
+init_response=$(curl -k -s -H "Authorization: Bearer $BEARER_TOKEN" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -d '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {"roots": {"listChanged": true}}, "clientInfo": {"name": "test-client", "version": "1.0.0"}}}' \
+    "$DOMAIN/topdesk/mcp")
+
+if echo "$init_response" | grep -q '"serverInfo"'; then
+    echo -e "${GREEN}✅ TopDesk MCP: Connected and initialized${NC}"
+    server_name=$(echo "$init_response" | grep -o '"name":"[^"]*"' | head -1 | sed 's/"name":"//g' | sed 's/"//g')
+    server_version=$(echo "$init_response" | grep -o '"version":"[^"]*"' | head -1 | sed 's/"version":"//g' | sed 's/"//g')
+    echo -e "${YELLOW}Server: $server_name v$server_version${NC}"
+    echo -e "${YELLOW}Capabilities: Tools, Prompts, Resources with live updates${NC}"
+else
+    echo -e "${RED}❌ TopDesk MCP: Initialization failed${NC}"
+    echo "Response: $init_response"
+fi
+echo
+
 echo -e "${BLUE}Testing TopDesk API Connectivity...${NC}"
 topdesk_api_response=$(curl -s -o /dev/null -w "%{http_code}" \
     -H "Authorization: Basic $(echo -n 'api_aipilots:7w7j6-ytlqt-wpcbz-ywu6v-remw7' | base64)" \

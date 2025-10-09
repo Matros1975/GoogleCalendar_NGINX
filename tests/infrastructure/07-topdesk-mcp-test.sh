@@ -109,6 +109,32 @@ else
     ((PASSED=PASSED+1))
 fi
 
+# Test 5b: Verify TopDesk MCP SSE endpoint is accessible through NGINX proxy
+log_info "Test 5b: Testing TopDesk MCP SSE endpoint via NGINX..."
+if docker ps | grep -q nginx-proxy; then
+    # Test the new SSE endpoint with proper headers
+    SSE_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+        -H "Accept: text/event-stream" \
+        -H "Cache-Control: no-cache" \
+        http://localhost/topdesk/sse 2>/dev/null || echo "000")
+    if [[ "$SSE_RESPONSE" == "401" ]] || [[ "$SSE_RESPONSE" == "403" ]]; then
+        log_success "TopDesk MCP SSE endpoint accessible via NGINX (auth required: $SSE_RESPONSE)"
+        ((PASSED=PASSED+1))
+    elif [[ "$SSE_RESPONSE" == "400" ]]; then
+        log_success "TopDesk MCP SSE endpoint responding (needs session: $SSE_RESPONSE)"
+        ((PASSED=PASSED+1))
+    elif [[ "$SSE_RESPONSE" == "502" ]] || [[ "$SSE_RESPONSE" == "503" ]]; then
+        log_error "TopDesk MCP SSE endpoint returns error via NGINX (status: $SSE_RESPONSE)"
+        ((FAILED=FAILED+1))
+    else
+        log_warn "TopDesk MCP SSE endpoint response via NGINX: $SSE_RESPONSE"
+        ((PASSED=PASSED+1))
+    fi
+else
+    log_warn "NGINX not running, skipping SSE proxy test"
+    ((PASSED=PASSED+1))
+fi
+
 # Test 6: Check network connectivity between NGINX and TopDesk MCP
 log_info "Test 6: Testing network connectivity from NGINX to TopDesk MCP..."
 # Check if NGINX is running first

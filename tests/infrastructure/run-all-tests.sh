@@ -38,6 +38,8 @@ TESTS=(
     ["05-tls-certificates.sh"]="TLS Certificates"
     ["06-yaml-validation.sh"]="YAML Configuration"
     ["07-topdesk-mcp-test.sh"]="TopDesk MCP Container"
+    ["08-multi-mcp-integration-test.sh"]="Multi-MCP Integration"
+    ["09-sse-endpoint-test.sh"]="SSE Endpoint Configuration"
 )
 
 # Parse command line arguments
