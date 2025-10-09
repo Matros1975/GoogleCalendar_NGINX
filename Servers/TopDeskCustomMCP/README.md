@@ -147,7 +147,7 @@ cp .env.example .env
 python -m src.main
 ```
 
-The server will start on `http://0.0.0.0:3002` by default.
+The server will start on `http://0.0.0.0:3003` by default.
 
 ## Docker Deployment
 
@@ -160,7 +160,7 @@ docker build -t topdesk-custom-mcp .
 ```bash
 docker run -d \
   --name topdesk-custom-mcp \
-  -p 3002:3002 \
+  -p 3003:3003 \
   -e TOPDESK_BASE_URL=https://your-instance.topdesk.net/tas/api \
   -e TOPDESK_USERNAME=your_username \
   -e TOPDESK_PASSWORD=your_password \
@@ -170,7 +170,7 @@ docker run -d \
 
 ### Health Check
 ```bash
-curl http://localhost:3002/health
+curl http://localhost:3003/health
 ```
 
 ## Testing
@@ -226,7 +226,7 @@ TopDeskCustomMCP/
 This MCP server integrates seamlessly with the existing multi-MCP setup:
 
 1. **Same Security Model**: Bearer token authentication matching GoogleCalendarMCP
-2. **Port 3002**: Next available port in sequence
+2. **Port 3003**: Custom MCP on port 3003 (old TopDeskMCP uses 3002)
 3. **Docker Compose**: Add to main docker-compose.yml
 4. **NGINX Routing**: Configure `/topdesk-custom/` route
 5. **Health Checks**: Standard health endpoint at `/health`
@@ -236,7 +236,7 @@ This MCP server integrates seamlessly with the existing multi-MCP setup:
 ### Server won't start
 - Check environment variables are set correctly
 - Verify TopDesk credentials are valid
-- Check port 3002 is not in use
+- Check port 3003 is not in use
 
 ### Authentication failures
 - Verify bearer token is configured correctly

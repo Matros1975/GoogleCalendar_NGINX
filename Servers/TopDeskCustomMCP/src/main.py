@@ -79,7 +79,7 @@ def main():
         bearer_tokens = parse_bearer_tokens(bearer_tokens_str)
         
         mcp_host = get_env_var("MCP_HOST", required=False, default="0.0.0.0")
-        mcp_port = int(get_env_var("MCP_PORT", required=False, default="3002"))
+        mcp_port = int(get_env_var("MCP_PORT", required=False, default="3003"))
         
         logger.info(f"Configuration loaded:")
         logger.info(f"  TopDesk URL: {topdesk_base_url}")

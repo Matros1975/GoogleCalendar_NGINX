@@ -17,7 +17,8 @@ WORKDIR /app
 
 # Copy requirements and install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Use trusted host for CI/CD environments with certificate issues
+RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
 
 # Copy application code
 COPY src/ /app/src/
@@ -29,12 +30,12 @@ RUN mkdir -p /app/logs && \
 # Switch to non-root user
 USER topdeskuser
 
-# Expose port 3002
-EXPOSE 3002
+# Expose port 3003 (TopDesk Custom MCP uses 3003, old TopDeskMCP uses 3002)
+EXPOSE 3003
 
 # Health check - verify HTTP endpoint responds
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
-    CMD curl -f http://localhost:3002/health || exit 1
+    CMD curl -f http://localhost:3003/health || exit 1
 
 # Run the MCP server
 CMD ["python", "-m", "src.main"]

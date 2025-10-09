@@ -326,7 +326,7 @@ class MCPServer:
         server_version: str,
         bearer_validator: BearerTokenValidator,
         host: str = "0.0.0.0",
-        port: int = 3002
+        port: int = 3003
     ):
         """Initialize MCP server.
         
