@@ -8,7 +8,7 @@ from unittest.mock import Mock
 def mock_topdesk_client():
     """Mock TopDesk API client."""
     client = Mock()
-    
+
     # Mock successful incident creation
     client.create_incident.return_value = {
         'success': True,
@@ -18,7 +18,7 @@ def mock_topdesk_client():
         'category': 'Core applicaties',
         'priority': 'P1 (I&A)'
     }
-    
+
     # Mock successful incident retrieval
     client.get_incident.return_value = {
         'success': True,
@@ -28,7 +28,7 @@ def mock_topdesk_client():
             'briefDescription': 'Test incident'
         }
     }
-    
+
     # Mock successful incident list
     client.list_incidents.return_value = {
         'success': True,
@@ -38,7 +38,7 @@ def mock_topdesk_client():
         ],
         'count': 2
     }
-    
+
     # Mock successful person retrieval
     client.get_person.return_value = {
         'success': True,
@@ -48,7 +48,7 @@ def mock_topdesk_client():
             'surName': 'User'
         }
     }
-    
+
     # Mock successful person search
     client.search_persons.return_value = {
         'success': True,
@@ -57,7 +57,7 @@ def mock_topdesk_client():
         ],
         'count': 1
     }
-    
+
     # Mock successful categories
     client.get_categories.return_value = {
         'success': True,
@@ -66,7 +66,7 @@ def mock_topdesk_client():
             {'name': 'Werkplek hardware'}
         ]
     }
-    
+
     # Mock successful priorities
     client.get_priorities.return_value = {
         'success': True,
@@ -75,7 +75,27 @@ def mock_topdesk_client():
             {'name': 'P2 (I&A)'}
         ]
     }
-    
+
+    # Mock successful incident retrieval by ticket number
+    client.get_incident_by_number.return_value = {
+        'success': True,
+        'incident_number': 'I2510 017',
+        'incident_id': 'test-incident-id',
+        'brief_description': 'Test incident',
+        'status': 'Open',
+        'caller_name': 'Test User',
+        'caller_email': 'test@example.com',
+        'caller_phone': '+1234567890',
+        'category': 'Core applicaties',
+        'priority': 'P1 (I&A)',
+        'creation_date': '2024-10-14T10:00:00Z',
+        'target_date': '2024-10-15T10:00:00Z',
+        'request_details': 'Detailed description of the incident',
+        'operator': 'Operator Name',
+        'branch': 'Main Branch',
+        'raw_response': {}
+    }
+
     return client
 
 
