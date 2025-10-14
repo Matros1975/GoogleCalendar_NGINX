@@ -93,3 +93,40 @@ class IncidentHandlers:
         )
         
         return result
+    
+    async def get_incident_by_number(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Get an incident by ticket number.
+        
+        This method resolves the ticket number (e.g., 2510017 or 12345) to the UUID
+        internally and returns full incident details. Users only need to provide
+        the numeric ticket number, which is automatically formatted to TopDesk
+        format "Ixxxx xxx" with proper zero-padding.
+        
+        Examples:
+        - 2510017 becomes "I2510 017"
+        - 12345 becomes "I0012 345" 
+        - 999 becomes "I0000 999"
+        
+        Args:
+            args: Tool arguments with ticket_number (integer)
+            
+        Returns:
+            Incident details
+        """
+        ticket_number = args.get("ticket_number")
+        
+        if not ticket_number:
+            return {"error": "Missing required parameter: ticket_number"}
+        
+        # Validate that ticket_number is an integer
+        if not isinstance(ticket_number, int):
+            return {"error": "ticket_number must be an integer (e.g., 2510017, 12345)"}
+        
+        # Validate ticket number range (0 to 9999999)
+        if ticket_number < 0 or ticket_number > 9999999:
+            return {"error": "ticket_number must be between 0 and 9999999"}
+        
+        logger.info(f"Getting incident by number: {ticket_number}")
+        
+        result = self.client.get_incident_by_number(ticket_number)
+        return result

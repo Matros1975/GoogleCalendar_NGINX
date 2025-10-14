@@ -201,6 +201,122 @@ class TopDeskAPIClient:
                 'error': str(e)
             }
     
+    def get_incident_by_number(self, ticket_number: int) -> Dict[str, Any]:
+        """Get an incident by ticket number (e.g., 2510017).
+        
+        This method first searches for the incident by number, then retrieves
+        full details using the UUID. This resolves the ticket number to UUID
+        internally, so users only need to provide the numeric ticket number.
+        
+        The ticket number is automatically formatted to TopDesk format "Ixxxx xxx".
+        For example: 2510017 becomes "I2510 017"
+        
+        Args:
+            ticket_number: The incident number as integer (e.g., 2510017)
+            
+        Returns:
+            Dictionary with incident details or error
+        """
+        try:
+            # Format the ticket number to TopDesk format "Ixxxx xxx"
+            # Pad with leading zeros to ensure exactly 7 digits
+            ticket_str = f"{ticket_number:07d}"  # Pad to 7 digits with leading zeros
+            
+            if ticket_number < 0 or ticket_number > 9999999:
+                return {
+                    'success': False,
+                    'error': f"Ticket number must be between 0 and 9999999, got: {ticket_number}"
+                }
+            
+            formatted_ticket = f"I{ticket_str[:4]} {ticket_str[4:]}"
+            
+            logger.info(f"Searching for incident by number: {ticket_number} (formatted as: {formatted_ticket})")
+            
+            # Step 1: Search for incident by number
+            search_params = {
+                'query': f'number=="{formatted_ticket}"',
+                'fields': 'id,number,briefDescription'
+            }
+            
+            search_response = requests.get(
+                f"{self.base_url}/incidents",
+                headers=self.headers,
+                params=search_params,
+                timeout=30
+            )
+            
+            if search_response.status_code not in [200, 204]:
+                return {
+                    'success': False,
+                    'error': f"Search failed: HTTP {search_response.status_code}: {search_response.text}"
+                }
+            
+            # Handle 204 No Content (no results found)
+            if search_response.status_code == 204:
+                return {
+                    'success': False,
+                    'error': f"No incident found with number {ticket_number} (searched as '{formatted_ticket}')"
+                }
+            
+            incidents = search_response.json()
+            
+            if not incidents or len(incidents) == 0:
+                return {
+                    'success': False,
+                    'error': f"No incident found with number {ticket_number} (searched as '{formatted_ticket}')"
+                }
+            
+            # Step 2: Get full incident details using UUID
+            incident_id = incidents[0].get('id')
+            if not incident_id:
+                return {
+                    'success': False,
+                    'error': f"Incident found but no ID available for {ticket_number}"
+                }
+            
+            logger.info(f"Found incident {ticket_number}, retrieving full details for UUID: {incident_id}")
+            
+            detail_response = requests.get(
+                f"{self.base_url}/incidents/id/{incident_id}",
+                headers=self.headers,
+                timeout=30
+            )
+            
+            if detail_response.status_code != 200:
+                return {
+                    'success': False,
+                    'error': f"Detail fetch failed: HTTP {detail_response.status_code}: {detail_response.text}"
+                }
+            
+            full_incident = detail_response.json()
+            
+            # Return formatted response similar to create_incident
+            return {
+                'success': True,
+                'incident_number': full_incident.get('number'),
+                'incident_id': full_incident.get('id'),
+                'brief_description': full_incident.get('briefDescription'),
+                'status': full_incident.get('processingStatus', {}).get('name'),
+                'caller_name': full_incident.get('caller', {}).get('dynamicName'),
+                'caller_email': full_incident.get('caller', {}).get('email'),
+                'caller_phone': full_incident.get('caller', {}).get('phoneNumber'),
+                'category': full_incident.get('category', {}).get('name'),
+                'priority': full_incident.get('priority', {}).get('name'),
+                'creation_date': full_incident.get('creationDate'),
+                'target_date': full_incident.get('targetDate'),
+                'request_details': full_incident.get('request'),
+                'operator': full_incident.get('operator', {}).get('name') if full_incident.get('operator') else None,
+                'branch': full_incident.get('callerBranch', {}).get('name'),
+                'raw_response': full_incident
+            }
+                
+        except Exception as e:
+            logger.exception(f"Error getting incident by number {ticket_number}")
+            return {
+                'success': False,
+                'error': f"Exception: {str(e)}"
+            }
+    
     def get_person(self, person_id: str) -> Dict[str, Any]:
         """Get a specific person by ID.
         

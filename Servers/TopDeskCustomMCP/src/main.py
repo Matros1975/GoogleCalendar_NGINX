@@ -178,6 +178,24 @@ def main():
             handler=incident_handlers.list_incidents
         )
         
+        server.register_tool(
+            name="topdesk_get_incident_by_number",
+            description="Get a specific incident by ticket number (e.g., 2510017, 12345). The MCP server will automatically format the number to TopDesk format 'Ixxxx xxx' with zero-padding internally.",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "ticket_number": {
+                        "type": "integer",
+                        "description": "The incident ticket number as integer (e.g., 2510017, 12345). Will be zero-padded to 7 digits and formatted as 'Ixxxx xxx'",
+                        "minimum": 0,
+                        "maximum": 9999999
+                    }
+                },
+                "required": ["ticket_number"]
+            },
+            handler=incident_handlers.get_incident_by_number
+        )
+        
         # Register person tools
         server.register_tool(
             name="topdesk_get_person",

@@ -67,6 +67,26 @@ Get a specific incident by ID.
 **Parameters:**
 - `incident_id` (required): UUID of the incident
 
+#### `topdesk_get_incident_by_number`
+Get a specific incident by human-readable ticket number.
+
+**Parameters:**
+- `ticket_number` (required): Incident number as integer (e.g., 2510017, 12345)
+
+**Example:**
+```json
+{
+  "ticket_number": 2510017
+}
+```
+
+This tool automatically formats the integer to TopDesk format "Ixxxx xxx" internally with zero-padding. Examples:
+- `2510017` becomes `"I2510 017"`
+- `12345` becomes `"I0012 345"`
+- `999` becomes `"I0000 999"`
+
+This makes it easier for voice agents and automated systems to use without worrying about string formatting or leading zeros.
+
 #### `topdesk_list_incidents`
 List incidents with optional filters.
 
