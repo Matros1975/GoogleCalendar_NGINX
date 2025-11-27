@@ -168,9 +168,13 @@ class TranscriptionHandler:
             except (json.JSONDecodeError, TypeError):
                 pass  # Keep as string if not valid JSON
         
-        # Format arguments as key="value" pairs
+        # Format arguments as key="value" pairs with proper escaping
         if isinstance(arguments, dict):
-            arg_parts = [f'{k}="{v}"' for k, v in arguments.items()]
+            arg_parts = []
+            for k, v in arguments.items():
+                # Convert value to string and escape quotes
+                v_str = str(v).replace('\\', '\\\\').replace('"', '\\"')
+                arg_parts.append(f'{k}="{v_str}"')
             args_str = ", ".join(arg_parts)
         else:
             args_str = str(arguments)
@@ -189,7 +193,7 @@ class TranscriptionHandler:
         """
         output = tool_result.get("output", "")
         
-        # If output is already a string that looks like JSON, use it directly
+        # If output is a string, use it directly
         if isinstance(output, str):
             return f"toolcall_result: {output}"
         
