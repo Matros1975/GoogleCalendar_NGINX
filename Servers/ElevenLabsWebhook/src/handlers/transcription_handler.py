@@ -6,20 +6,42 @@ Processes full conversation data including:
 - Metadata (duration, cost, timestamps)
 - Analysis results (evaluation, summary)
 - Dynamic variables
+- TopDesk ticket creation (AI-powered)
+- Email notifications on failure
 """
 
 import json
 import logging
+import os
 from typing import Dict, Any, Optional, List
+
+from pydantic import BaseModel, Field
 
 from src.models.webhook_models import TranscriptionPayload, ConversationData, TranscriptEntry
 from src.utils.storage import StorageManager
+from src.utils.topdesk_client import TopDeskClient
+from src.utils.email_sender import EmailSender
 
 logger = logging.getLogger(__name__)
 
+# Configuration constants
+DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+MAX_FALLBACK_REQUEST_LENGTH = 2000
+
+
+class TicketDataPayload(BaseModel):
+    """Schema for TopDesk ticket creation from transcript."""
+    brief_description: str = Field(description="Short summary of the issue (max 80 chars)")
+    request: str = Field(description="Detailed description of the customer's request")
+    caller_name: Optional[str] = Field(None, description="Caller's name if mentioned")
+    caller_email: Optional[str] = Field(None, description="Caller's email if mentioned")
+    caller_phone: Optional[str] = Field(None, description="Caller's phone number if mentioned")
+    category: Optional[str] = Field(None, description="Issue category (e.g., 'Hardware', 'Software', 'Network')")
+    priority: Optional[str] = Field(None, description="Priority level if determinable from urgency")
+
 
 class TranscriptionHandler:
-    """Handler for post_call_transcription webhook events."""
+    """Handler for post_call_transcription webhook events with TopDesk integration."""
     
     def __init__(self, storage: Optional[StorageManager] = None):
         """
@@ -29,16 +51,30 @@ class TranscriptionHandler:
             storage: Optional storage manager for persisting transcripts
         """
         self.storage = storage or StorageManager.from_env()
+        self.topdesk_client: Optional[TopDeskClient] = None
+        self.email_sender: Optional[EmailSender] = None
+        self._llm = None  # Lazy-loaded LangChain LLM
     
     async def handle(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Process a post_call_transcription webhook payload.
+        Process a post_call_transcription webhook payload and create TopDesk ticket.
         
         Args:
             payload: Raw webhook payload dictionary
             
         Returns:
-            Processing result dictionary
+            Processing result dictionary with keys:
+            - status: "processed"
+            - conversation_id: str
+            - agent_id: str
+            - saved_path: str (if storage enabled)
+            - formatted_transcript: str
+            - ticket_created: bool
+            - ticket_number: Optional[str]
+            - ticket_id: Optional[str]
+            - transcript_added: bool
+            - email_sent: bool (if ticket creation failed)
+            - error: Optional[str]
         """
         logger.info("Processing post_call_transcription webhook")
         
@@ -66,13 +102,92 @@ class TranscriptionHandler:
             # Generate formatted transcript
             formatted_transcript = self._generate_formatted_transcript(transcription.data)
             
-            return {
+            # Initialize result dict with all required fields
+            result: Dict[str, Any] = {
                 "status": "processed",
                 "conversation_id": transcription.conversation_id,
                 "agent_id": transcription.agent_id,
                 "saved_path": saved_path,
-                "formatted_transcript": formatted_transcript
+                "formatted_transcript": formatted_transcript,
+                "ticket_created": False,
+                "ticket_number": None,
+                "ticket_id": None,
+                "transcript_added": False,
+                "email_sent": False,
+                "error": None
             }
+            
+            # Skip ticket creation if no transcript
+            if not formatted_transcript:
+                logger.warning(f"No transcript for {transcription.conversation_id}, skipping ticket creation")
+                return result
+            
+            # Attempt TopDesk ticket creation
+            try:
+                # Extract ticket data using OpenAI/LangChain
+                ticket_data = await self._extract_ticket_data(formatted_transcript)
+                
+                # Initialize TopDesk client if needed
+                if not self.topdesk_client:
+                    self.topdesk_client = TopDeskClient()
+                
+                # Create TopDesk incident
+                ticket_response = await self.topdesk_client.create_incident(
+                    brief_description=ticket_data.brief_description,
+                    request=ticket_data.request,
+                    conversation_id=transcription.conversation_id,
+                    caller_name=ticket_data.caller_name,
+                    caller_email=ticket_data.caller_email,
+                    category=ticket_data.category,
+                    priority=ticket_data.priority
+                )
+                
+                if ticket_response["success"]:
+                    result["ticket_created"] = True
+                    result["ticket_number"] = ticket_response["ticket_number"]
+                    result["ticket_id"] = ticket_response["ticket_id"]
+                    
+                    logger.info(f"Created ticket {ticket_response['ticket_number']} for {transcription.conversation_id}")
+                    
+                    # Add transcript as invisible action
+                    try:
+                        transcript_added = await self.topdesk_client.add_invisible_action(
+                            ticket_response["ticket_id"],
+                            formatted_transcript
+                        )
+                        result["transcript_added"] = transcript_added
+                        
+                        if transcript_added:
+                            logger.info(f"Added transcript to ticket {ticket_response['ticket_number']}")
+                        else:
+                            logger.warning(f"Failed to add transcript to ticket {ticket_response['ticket_number']}")
+                    except Exception as e:
+                        logger.error(f"Error adding transcript to ticket: {e}")
+                        result["transcript_added"] = False
+                else:
+                    # Ticket creation failed
+                    raise Exception(f"TopDesk API error: {ticket_response.get('error', 'Unknown error')}")
+            
+            except Exception as e:
+                # Send email notification on failure
+                error_msg = str(e)
+                result["error"] = error_msg
+                logger.error(f"Ticket creation failed for {transcription.conversation_id}: {error_msg}")
+                
+                if not self.email_sender:
+                    self.email_sender = EmailSender()
+                
+                try:
+                    email_sent = await self.email_sender.send_error_notification(
+                        transcription.conversation_id,
+                        formatted_transcript,
+                        error_msg
+                    )
+                    result["email_sent"] = email_sent
+                except Exception as email_error:
+                    logger.error(f"Failed to send error notification email: {email_error}")
+            
+            return result
             
         except Exception as e:
             logger.exception(f"Error processing transcription: {e}")
@@ -126,6 +241,98 @@ class TranscriptionHandler:
         # Log metadata/dynamic variables
         if data.metadata:
             logger.debug(f"Dynamic variables: {list(data.metadata.keys())}")
+    
+    async def _extract_ticket_data(self, transcript: str) -> TicketDataPayload:
+        """
+        Extract ticket creation data from formatted transcript using OpenAI/LangChain.
+        
+        Args:
+            transcript: Human-readable formatted transcript
+            
+        Returns:
+            TicketDataPayload with extracted information
+        """
+        # Check if OpenAI API key is configured
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            logger.warning("OPENAI_API_KEY not configured, using fallback extraction")
+            return self._fallback_ticket_extraction(transcript)
+        
+        try:
+            # Lazy import LangChain to avoid import errors if not installed
+            from langchain_openai import ChatOpenAI
+            from langchain.prompts import ChatPromptTemplate
+            from langchain.output_parsers import PydanticOutputParser
+            
+            # Initialize LLM if not already done
+            if self._llm is None:
+                model = os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
+                self._llm = ChatOpenAI(
+                    model=model,
+                    temperature=0,
+                    api_key=api_key
+                )
+            
+            parser = PydanticOutputParser(pydantic_object=TicketDataPayload)
+            
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", """You are an AI assistant that extracts ticket information from call transcripts.
+Analyze the conversation and extract:
+- A brief description (max 80 characters) summarizing the main issue
+- Detailed request description explaining what the caller needs
+- Caller information if mentioned (name, email, phone)
+- Issue category if determinable (e.g., 'Hardware', 'Software', 'Network', 'Account')
+- Priority level if determinable from urgency (e.g., 'High', 'Medium', 'Low')
+
+{format_instructions}"""),
+                ("human", "Call transcript:\n\n{transcript}")
+            ])
+            
+            chain = prompt | self._llm | parser
+            
+            result = await chain.ainvoke({
+                "transcript": transcript,
+                "format_instructions": parser.get_format_instructions()
+            })
+            
+            logger.info("Successfully extracted ticket data using OpenAI")
+            return result
+            
+        except ImportError as e:
+            logger.warning(f"LangChain not available: {e}, using fallback extraction")
+            return self._fallback_ticket_extraction(transcript)
+        except Exception as e:
+            logger.error(f"Failed to extract ticket data with OpenAI: {e}")
+            return self._fallback_ticket_extraction(transcript)
+    
+    def _fallback_ticket_extraction(self, transcript: str) -> TicketDataPayload:
+        """
+        Fallback ticket data extraction when OpenAI is not available.
+        
+        Args:
+            transcript: Human-readable formatted transcript
+            
+        Returns:
+            TicketDataPayload with basic extracted information
+        """
+        # Extract first meaningful message as brief description
+        lines = transcript.strip().split('\n')
+        brief_desc = "Call transcript"
+        
+        for line in lines:
+            if "caller:" in line.lower():
+                # Extract caller message
+                parts = line.split(':', 2)
+                if len(parts) >= 3:
+                    message = parts[2].strip()[:80]
+                    if message:
+                        brief_desc = message
+                        break
+        
+        return TicketDataPayload(
+            brief_description=brief_desc,
+            request=transcript[:MAX_FALLBACK_REQUEST_LENGTH] if len(transcript) > MAX_FALLBACK_REQUEST_LENGTH else transcript
+        )
     
     def _format_timestamp(self, seconds: float) -> str:
         """
