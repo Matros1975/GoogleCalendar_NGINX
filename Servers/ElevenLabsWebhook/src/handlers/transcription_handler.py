@@ -8,10 +8,11 @@ Processes full conversation data including:
 - Dynamic variables
 """
 
+import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
-from src.models.webhook_models import TranscriptionPayload, ConversationData
+from src.models.webhook_models import TranscriptionPayload, ConversationData, TranscriptEntry
 from src.utils.storage import StorageManager
 
 logger = logging.getLogger(__name__)
@@ -62,11 +63,15 @@ class TranscriptionHandler:
                 data=payload.get("data", {})
             )
             
+            # Generate formatted transcript
+            formatted_transcript = self._generate_formatted_transcript(transcription.data)
+            
             return {
                 "status": "processed",
                 "conversation_id": transcription.conversation_id,
                 "agent_id": transcription.agent_id,
-                "saved_path": saved_path
+                "saved_path": saved_path,
+                "formatted_transcript": formatted_transcript
             }
             
         except Exception as e:
@@ -121,3 +126,112 @@ class TranscriptionHandler:
         # Log metadata/dynamic variables
         if data.metadata:
             logger.debug(f"Dynamic variables: {list(data.metadata.keys())}")
+    
+    def _format_timestamp(self, seconds: float) -> str:
+        """
+        Convert seconds to [HH:MM:SS] format.
+        
+        Args:
+            seconds: Time in seconds (can be float)
+            
+        Returns:
+            Formatted timestamp string [HH:MM:SS]
+            
+        Examples:
+            0.5 -> [00:00:00]
+            65.0 -> [00:01:05]
+            3665.5 -> [01:01:05]
+        """
+        total_seconds = int(seconds)
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        secs = total_seconds % 60
+        return f"[{hours:02d}:{minutes:02d}:{secs:02d}]"
+    
+    def _format_tool_call(self, tool_call: Dict[str, Any]) -> str:
+        """
+        Format a tool call entry for the transcript.
+        
+        Args:
+            tool_call: Tool call dictionary with 'name' and 'arguments'
+            
+        Returns:
+            Formatted tool call string
+        """
+        name = tool_call.get("name", "unknown")
+        arguments = tool_call.get("arguments", "")
+        
+        # Parse arguments if they are a JSON string
+        if isinstance(arguments, str):
+            try:
+                arguments = json.loads(arguments)
+            except (json.JSONDecodeError, TypeError):
+                pass  # Keep as string if not valid JSON
+        
+        # Format arguments as key="value" pairs
+        if isinstance(arguments, dict):
+            arg_parts = [f'{k}="{v}"' for k, v in arguments.items()]
+            args_str = ", ".join(arg_parts)
+        else:
+            args_str = str(arguments)
+        
+        return f"toolcall: {name}({args_str})"
+    
+    def _format_tool_result(self, tool_result: Dict[str, Any]) -> str:
+        """
+        Format a tool result entry for the transcript.
+        
+        Args:
+            tool_result: Tool result dictionary with 'output'
+            
+        Returns:
+            Formatted tool result string
+        """
+        output = tool_result.get("output", "")
+        
+        # If output is already a string that looks like JSON, use it directly
+        if isinstance(output, str):
+            return f"toolcall_result: {output}"
+        
+        # Otherwise, serialize the output
+        return f"toolcall_result: {json.dumps(output)}"
+    
+    def _generate_formatted_transcript(self, data: Optional[ConversationData]) -> str:
+        """
+        Generate formatted text transcript from conversation data.
+        
+        Format: [HH:MM:SS] - speaker: message
+        Tool calls are included as 'toolcall' entries.
+        
+        Args:
+            data: Conversation data containing transcript
+            
+        Returns:
+            Formatted transcript string with timestamps
+        """
+        if not data or not data.transcript:
+            return ""
+        
+        lines: List[str] = []
+        
+        for entry in data.transcript:
+            timestamp = self._format_timestamp(entry.timestamp or 0)
+            
+            # Map role: "user" -> "caller", keep "agent" as is
+            speaker = "caller" if entry.role == "user" else entry.role
+            
+            # Add regular message if present
+            if entry.message:
+                lines.append(f"{timestamp} - {speaker}: {entry.message}")
+            
+            # Add tool call if present
+            if entry.tool_call:
+                tool_line = self._format_tool_call(entry.tool_call)
+                lines.append(f"{timestamp} - {tool_line}")
+            
+            # Add tool result if present
+            if entry.tool_result:
+                result_line = self._format_tool_result(entry.tool_result)
+                lines.append(f"{timestamp} - {result_line}")
+        
+        return "\n".join(lines)
