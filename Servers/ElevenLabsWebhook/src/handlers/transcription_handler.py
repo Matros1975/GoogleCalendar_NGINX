@@ -24,6 +24,10 @@ from src.utils.email_sender import EmailSender
 
 logger = logging.getLogger(__name__)
 
+# Configuration constants
+DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+MAX_FALLBACK_REQUEST_LENGTH = 2000
+
 
 class TicketDataPayload(BaseModel):
     """Schema for TopDesk ticket creation from transcript."""
@@ -262,8 +266,9 @@ class TranscriptionHandler:
             
             # Initialize LLM if not already done
             if self._llm is None:
+                model = os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL)
                 self._llm = ChatOpenAI(
-                    model="gpt-4o-mini",
+                    model=model,
                     temperature=0,
                     api_key=api_key
                 )
@@ -326,7 +331,7 @@ Analyze the conversation and extract:
         
         return TicketDataPayload(
             brief_description=brief_desc,
-            request=transcript[:2000] if len(transcript) > 2000 else transcript
+            request=transcript[:MAX_FALLBACK_REQUEST_LENGTH] if len(transcript) > MAX_FALLBACK_REQUEST_LENGTH else transcript
         )
     
     def _format_timestamp(self, seconds: float) -> str:

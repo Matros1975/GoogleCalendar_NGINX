@@ -4,7 +4,7 @@ Unit tests for TranscriptionHandler.
 
 import pytest
 
-from src.handlers.transcription_handler import TranscriptionHandler
+from src.handlers.transcription_handler import TranscriptionHandler, TicketDataPayload
 
 
 class TestTranscriptionHandler:
@@ -395,7 +395,6 @@ class TestTopDeskIntegration:
         handler, mock_topdesk, mock_email = handler_with_mocks
         
         # Mock OpenAI extraction with fallback
-        from src.handlers.transcription_handler import TicketDataPayload
         mock_ticket_data = TicketDataPayload(
             brief_description="Customer needs password reset",
             request="Customer called requesting password reset for email account.",
@@ -453,7 +452,6 @@ class TestTopDeskIntegration:
         handler, mock_topdesk, mock_email = handler_with_mocks
         
         # Mock OpenAI extraction with fallback
-        from src.handlers.transcription_handler import TicketDataPayload
         mock_ticket_data = TicketDataPayload(
             brief_description="Test issue",
             request="Test request"
@@ -500,7 +498,6 @@ class TestTopDeskIntegration:
         """Test that email is NOT sent if only transcript addition fails."""
         handler, mock_topdesk, mock_email = handler_with_mocks
         
-        from src.handlers.transcription_handler import TicketDataPayload
         handler._extract_ticket_data = mocker.AsyncMock(return_value=TicketDataPayload(
             brief_description="Test", request="Test"
         ))
@@ -595,8 +592,6 @@ class TestTopDeskIntegration:
     @pytest.mark.asyncio
     async def test_ticket_data_payload_validation(self):
         """Test TicketDataPayload model validation."""
-        from src.handlers.transcription_handler import TicketDataPayload
-        
         # Valid minimal payload
         payload = TicketDataPayload(
             brief_description="Test issue",

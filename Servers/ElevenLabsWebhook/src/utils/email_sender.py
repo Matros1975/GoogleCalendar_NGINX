@@ -25,7 +25,7 @@ class EmailSender:
         self.username = os.getenv("GMAIL_SMTP_USERNAME", "")
         self.password = os.getenv("GMAIL_SMTP_PASSWORD", "")
         self.from_address = os.getenv("GMAIL_FROM_ADDRESS", "")
-        self.default_to_address = os.getenv("SERVICEDESK_EMAIL", "servicedesk@pvforeest.nl")
+        self.default_to_address = os.getenv("SERVICEDESK_EMAIL", "")
     
     def is_configured(self) -> bool:
         """Check if email sender is properly configured."""

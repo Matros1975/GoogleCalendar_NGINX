@@ -14,6 +14,10 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
+# TopDesk ticket number format constants
+TICKET_NUMBER_TOTAL_DIGITS = 7
+TICKET_NUMBER_PREFIX_DIGITS = 4
+
 
 class TopDeskClient:
     """Async client for TopDesk API integration."""
@@ -70,10 +74,10 @@ class TopDeskClient:
         # Extract digits only
         digits = ''.join(filter(str.isdigit, str(number)))
         
-        if len(digits) < 7:
-            digits = digits.zfill(7)
+        if len(digits) < TICKET_NUMBER_TOTAL_DIGITS:
+            digits = digits.zfill(TICKET_NUMBER_TOTAL_DIGITS)
         
-        return f"I{digits[:4]} {digits[4:7]}"
+        return f"I{digits[:TICKET_NUMBER_PREFIX_DIGITS]} {digits[TICKET_NUMBER_PREFIX_DIGITS:TICKET_NUMBER_TOTAL_DIGITS]}"
     
     async def create_incident(
         self,
