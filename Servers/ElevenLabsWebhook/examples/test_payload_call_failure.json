@@ -1,0 +1,15 @@
+{
+  "type": "call_initiation_failure",
+  "conversation_id": "conv_abc123def456",
+  "agent_id": "agent_xyz789",
+  "error_message": "Call could not be completed - line busy",
+  "error_code": "BUSY",
+  "provider": "twilio",
+  "provider_details": {
+    "error_code": "31005",
+    "error_message": "The called party is busy",
+    "call_status": "busy",
+    "to_number": "+1234567890",
+    "from_number": "+0987654321"
+  }
+}
