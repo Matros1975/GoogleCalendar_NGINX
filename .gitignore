@@ -9,6 +9,7 @@ coverage/
 settings.local.json
 CLAUDE.md
 .env
+.venv/
 
 # Test results
 tests/*-results.txt
@@ -19,3 +20,8 @@ post-refactor-results.txt
 # Backup files
 *.backup
 docker-compose.yml.backup
+
+# Testing files
+playground.ipynb
+test_external.py
+**/test_external.py
