@@ -125,3 +125,242 @@ class TestTranscriptionHandler:
         result = await handler.handle(payload)
         
         assert result["status"] == "processed"
+
+
+class TestFormattedTranscript:
+    """Tests for formatted transcript generation."""
+    
+    @pytest.fixture
+    def handler(self):
+        """Create handler instance for testing."""
+        return TranscriptionHandler(storage=None)
+    
+    @pytest.mark.asyncio
+    async def test_formatted_transcript_basic(self, handler):
+        """Test basic transcript formatting without tool calls."""
+        payload = {
+            "type": "post_call_transcription",
+            "conversation_id": "conv_format_test",
+            "agent_id": "agent_test",
+            "data": {
+                "transcript": [
+                    {
+                        "role": "agent",
+                        "message": "Hello! How can I help?",
+                        "time_in_call_secs": 0.5
+                    },
+                    {
+                        "role": "user",
+                        "message": "I need assistance",
+                        "time_in_call_secs": 3.2
+                    }
+                ]
+            }
+        }
+        
+        result = await handler.handle(payload)
+        
+        assert "formatted_transcript" in result
+        transcript = result["formatted_transcript"]
+        
+        # Validate format
+        assert "[00:00:00] - agent: Hello! How can I help?" in transcript
+        assert "[00:00:03] - caller: I need assistance" in transcript
+    
+    @pytest.mark.asyncio
+    async def test_formatted_transcript_with_tool_calls(self, handler):
+        """Test transcript formatting with tool calls."""
+        payload = {
+            "type": "post_call_transcription",
+            "conversation_id": "conv_tool_test",
+            "agent_id": "agent_test",
+            "data": {
+                "transcript": [
+                    {
+                        "role": "agent",
+                        "message": "Let me check that for you",
+                        "time_in_call_secs": 8.1,
+                        "tool_call": {
+                            "name": "get_order_status",
+                            "arguments": "{\"order_id\": \"12345\"}"
+                        }
+                    },
+                    {
+                        "role": "agent",
+                        "message": "",
+                        "time_in_call_secs": 10.5,
+                        "tool_result": {
+                            "output": "{\"status\": \"shipped\", \"tracking\": \"ABC123\"}"
+                        }
+                    }
+                ]
+            }
+        }
+        
+        result = await handler.handle(payload)
+        transcript = result["formatted_transcript"]
+        
+        # Validate tool call formatting
+        assert "toolcall: get_order_status" in transcript
+        assert 'order_id="12345"' in transcript
+        assert "toolcall_result:" in transcript
+        assert '"status": "shipped"' in transcript
+    
+    @pytest.mark.asyncio
+    async def test_formatted_transcript_timestamp_conversion(self, handler):
+        """Test timestamp formatting (seconds to HH:MM:SS)."""
+        payload = {
+            "type": "post_call_transcription",
+            "conversation_id": "conv_time_test",
+            "agent_id": "agent_test",
+            "data": {
+                "transcript": [
+                    {"role": "agent", "message": "Start", "time_in_call_secs": 0},
+                    {"role": "agent", "message": "One minute", "time_in_call_secs": 65},
+                    {"role": "agent", "message": "One hour", "time_in_call_secs": 3665}
+                ]
+            }
+        }
+        
+        result = await handler.handle(payload)
+        transcript = result["formatted_transcript"]
+        
+        assert "[00:00:00]" in transcript
+        assert "[00:01:05]" in transcript
+        assert "[01:01:05]" in transcript
+    
+    @pytest.mark.asyncio
+    async def test_formatted_transcript_empty(self, handler):
+        """Test handling of missing or empty transcript."""
+        payload = {
+            "type": "post_call_transcription",
+            "conversation_id": "conv_empty",
+            "agent_id": "agent_test",
+            "data": {}
+        }
+        
+        result = await handler.handle(payload)
+        
+        # Should handle gracefully
+        assert result["formatted_transcript"] == ""
+    
+    @pytest.mark.asyncio
+    async def test_formatted_transcript_role_mapping(self, handler):
+        """Test that 'user' role is mapped to 'caller'."""
+        payload = {
+            "type": "post_call_transcription",
+            "conversation_id": "conv_role_test",
+            "agent_id": "agent_test",
+            "data": {
+                "transcript": [
+                    {"role": "user", "message": "Hello", "time_in_call_secs": 1.0}
+                ]
+            }
+        }
+        
+        result = await handler.handle(payload)
+        transcript = result["formatted_transcript"]
+        
+        # 'user' should be displayed as 'caller'
+        assert "caller:" in transcript
+        assert "user:" not in transcript
+    
+    @pytest.mark.asyncio
+    async def test_formatted_transcript_no_data(self, handler):
+        """Test handling when data is None."""
+        payload = {
+            "type": "post_call_transcription",
+            "conversation_id": "conv_no_data",
+            "agent_id": "agent_test"
+        }
+        
+        result = await handler.handle(payload)
+        
+        assert result["formatted_transcript"] == ""
+    
+    @pytest.mark.asyncio
+    async def test_formatted_transcript_tool_call_with_dict_arguments(self, handler):
+        """Test tool call formatting when arguments are already a dict."""
+        payload = {
+            "type": "post_call_transcription",
+            "conversation_id": "conv_dict_args",
+            "agent_id": "agent_test",
+            "data": {
+                "transcript": [
+                    {
+                        "role": "agent",
+                        "message": "Checking",
+                        "time_in_call_secs": 5.0,
+                        "tool_call": {
+                            "name": "search_orders",
+                            "arguments": {"customer_id": "cust_123", "limit": 10}
+                        }
+                    }
+                ]
+            }
+        }
+        
+        result = await handler.handle(payload)
+        transcript = result["formatted_transcript"]
+        
+        assert "toolcall: search_orders" in transcript
+        assert 'customer_id="cust_123"' in transcript
+        assert 'limit="10"' in transcript
+    
+    @pytest.mark.asyncio
+    async def test_formatted_transcript_tool_result_with_dict_output(self, handler):
+        """Test tool result formatting when output is already a dict."""
+        payload = {
+            "type": "post_call_transcription",
+            "conversation_id": "conv_dict_output",
+            "agent_id": "agent_test",
+            "data": {
+                "transcript": [
+                    {
+                        "role": "agent",
+                        "message": "",
+                        "time_in_call_secs": 10.0,
+                        "tool_result": {
+                            "output": {"status": "success", "count": 5}
+                        }
+                    }
+                ]
+            }
+        }
+        
+        result = await handler.handle(payload)
+        transcript = result["formatted_transcript"]
+        
+        assert "toolcall_result:" in transcript
+        # Dict should be serialized to JSON
+        assert "status" in transcript
+        assert "success" in transcript
+    
+    @pytest.mark.asyncio
+    async def test_formatted_transcript_tool_call_with_quotes_in_value(self, handler):
+        """Test tool call formatting when arguments contain quotes."""
+        payload = {
+            "type": "post_call_transcription",
+            "conversation_id": "conv_quotes",
+            "agent_id": "agent_test",
+            "data": {
+                "transcript": [
+                    {
+                        "role": "agent",
+                        "message": "Searching",
+                        "time_in_call_secs": 5.0,
+                        "tool_call": {
+                            "name": "search",
+                            "arguments": {"query": 'test "quoted" value'}
+                        }
+                    }
+                ]
+            }
+        }
+        
+        result = await handler.handle(payload)
+        transcript = result["formatted_transcript"]
+        
+        # Quotes should be escaped
+        assert "toolcall: search" in transcript
+        assert '\\"quoted\\"' in transcript

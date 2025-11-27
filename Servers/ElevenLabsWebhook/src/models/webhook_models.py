@@ -16,6 +16,8 @@ class TranscriptEntry:
     role: str  # "agent" or "user"
     message: str
     timestamp: Optional[float] = None  # Time offset in seconds
+    tool_call: Optional[Dict[str, Any]] = None  # Tool invocation details
+    tool_result: Optional[Dict[str, Any]] = None  # Tool result details
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TranscriptEntry":
@@ -23,7 +25,9 @@ class TranscriptEntry:
         return cls(
             role=data.get("role", ""),
             message=data.get("message", ""),
-            timestamp=data.get("time_in_call_secs")
+            timestamp=data.get("time_in_call_secs"),
+            tool_call=data.get("tool_call"),
+            tool_result=data.get("tool_result")
         )
 
 
