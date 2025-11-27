@@ -20,3 +20,14 @@ pytest-cov>=4.1.0
 black>=23.7.0
 flake8>=6.1.0
 mypy>=1.5.0
+
+# LangChain and OpenAI for AI-powered ticket extraction
+langchain>=0.1.0
+langchain-openai>=0.0.5
+openai>=1.10.0
+
+# Email
+aiosmtplib>=3.0.0
+
+# Testing mocks
+pytest-mock>=3.11.0
