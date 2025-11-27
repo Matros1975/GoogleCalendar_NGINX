@@ -344,11 +344,9 @@ services:
     # Read-only root filesystem for security
     read_only: true
     
-    # Drop all capabilities and add only necessary ones
+    # Drop all capabilities (port 3004 doesn't need NET_BIND_SERVICE)
     cap_drop:
       - ALL
-    cap_add:
-      - NET_BIND_SERVICE
     
     # Temporary filesystems for writes
     tmpfs:

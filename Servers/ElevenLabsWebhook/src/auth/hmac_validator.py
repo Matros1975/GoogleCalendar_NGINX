@@ -53,7 +53,8 @@ class HMACValidator:
         
         try:
             # Parse header: "t=timestamp,v0=hash"
-            parts = signature_header.split(",")
+            # Use split with maxsplit=1 to prevent comma injection attacks
+            parts = signature_header.split(",", 1)
             if len(parts) < 2:
                 logger.warning("Invalid signature header format")
                 return False, "Invalid signature header format"
