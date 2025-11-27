@@ -296,6 +296,73 @@ services:
       retries: 3
       start_period: 10s
 
+  # ElevenLabs Webhook Service
+  elevenlabs-webhook:
+    build: ./Servers/ElevenLabsWebhook
+    container_name: elevenlabs-webhook
+    restart: unless-stopped
+    
+    # Load centralized environment configuration
+    env_file:
+      - .env
+    
+    # Internal network only
+    networks:
+      - mcp-internal
+    
+    # Environment configuration
+    environment:
+      - ELEVENLABS_WEBHOOK_SECRET=${ELEVENLABS_WEBHOOK_SECRET:-}
+      - ELEVENLABS_WEBHOOK_HOST=${ELEVENLABS_WEBHOOK_HOST:-0.0.0.0}
+      - ELEVENLABS_WEBHOOK_PORT=${ELEVENLABS_WEBHOOK_PORT:-3004}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-text}
+      - ENABLE_AUDIO_STORAGE=${ENABLE_AUDIO_STORAGE:-false}
+      - ENABLE_TRANSCRIPT_STORAGE=${ENABLE_TRANSCRIPT_STORAGE:-true}
+      - AUDIO_STORAGE_PATH=/app/storage/audio
+      - TRANSCRIPT_STORAGE_PATH=/app/storage/transcripts
+    
+    # Optional: Persistent storage for audio/transcripts
+    volumes:
+      - elevenlabs-storage:/app/storage
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.5"
+    
+    # Enhanced Security Configuration
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
+    
+    # Read-only root filesystem for security
+    read_only: true
+    
+    # Drop all capabilities and add only necessary ones
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    
+    # Temporary filesystems for writes
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=100m
+      - /app/logs:rw,noexec,nosuid,nodev,size=50m
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3004/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   # DuckDNS IP updater service
   duckdns-updater:
     build:
@@ -484,4 +551,6 @@ volumes:
   nginx-logs:
     driver: local
   duckdns-logs:
+    driver: local
+  elevenlabs-storage:
     driver: local

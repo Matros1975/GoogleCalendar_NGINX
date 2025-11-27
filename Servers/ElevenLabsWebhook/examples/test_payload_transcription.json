@@ -1,0 +1,63 @@
+{
+  "type": "post_call_transcription",
+  "conversation_id": "conv_abc123def456",
+  "agent_id": "agent_xyz789",
+  "data": {
+    "conversation_id": "conv_abc123def456",
+    "agent_id": "agent_xyz789",
+    "status": "completed",
+    "call_duration_secs": 245.5,
+    "message_count": 12,
+    "start_time_unix_secs": 1700000000,
+    "end_time_unix_secs": 1700000245,
+    "transcript": [
+      {
+        "role": "agent",
+        "message": "Hello! Thank you for calling. How can I help you today?",
+        "time_in_call_secs": 0.5
+      },
+      {
+        "role": "user",
+        "message": "Hi, I'm calling about my recent order. It hasn't arrived yet.",
+        "time_in_call_secs": 3.2
+      },
+      {
+        "role": "agent",
+        "message": "I'm sorry to hear that. Let me look into that for you. Can you please provide your order number?",
+        "time_in_call_secs": 8.1
+      },
+      {
+        "role": "user",
+        "message": "Yes, it's order number 12345.",
+        "time_in_call_secs": 15.0
+      },
+      {
+        "role": "agent",
+        "message": "Thank you. I can see your order was shipped yesterday. It should arrive within 2-3 business days.",
+        "time_in_call_secs": 22.5
+      },
+      {
+        "role": "user",
+        "message": "Great, thank you for checking!",
+        "time_in_call_secs": 30.0
+      }
+    ],
+    "analysis": {
+      "call_summary": "Customer called to inquire about a delayed order. Agent verified the order status and confirmed delivery timeline.",
+      "evaluation": {
+        "sentiment": "positive",
+        "issue_resolved": true,
+        "customer_satisfaction": 4.5
+      },
+      "data_collection": {
+        "order_number": "12345",
+        "inquiry_type": "delivery_status"
+      }
+    },
+    "metadata": {
+      "customer_name": "John Doe",
+      "customer_id": "cust_123",
+      "callback_url": "https://api.example.com/callback"
+    }
+  }
+}
