@@ -335,3 +335,32 @@ class TestFormattedTranscript:
         # Dict should be serialized to JSON
         assert "status" in transcript
         assert "success" in transcript
+    
+    @pytest.mark.asyncio
+    async def test_formatted_transcript_tool_call_with_quotes_in_value(self, handler):
+        """Test tool call formatting when arguments contain quotes."""
+        payload = {
+            "type": "post_call_transcription",
+            "conversation_id": "conv_quotes",
+            "agent_id": "agent_test",
+            "data": {
+                "transcript": [
+                    {
+                        "role": "agent",
+                        "message": "Searching",
+                        "time_in_call_secs": 5.0,
+                        "tool_call": {
+                            "name": "search",
+                            "arguments": {"query": 'test "quoted" value'}
+                        }
+                    }
+                ]
+            }
+        }
+        
+        result = await handler.handle(payload)
+        transcript = result["formatted_transcript"]
+        
+        # Quotes should be escaped
+        assert "toolcall: search" in transcript
+        assert '\\"quoted\\"' in transcript
