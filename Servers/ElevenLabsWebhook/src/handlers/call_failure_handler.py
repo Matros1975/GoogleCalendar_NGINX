@@ -12,6 +12,7 @@ import logging
 from typing import Dict, Any, Optional
 
 from src.models.webhook_models import CallFailurePayload
+from src.utils.logger import conversation_context
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,9 @@ class CallFailureHandler:
         try:
             # Parse payload into typed model
             failure = CallFailurePayload.from_dict(payload)
+            
+            # Set conversation context for all subsequent log entries
+            conversation_context.set(failure.conversation_id)
             
             logger.warning(
                 f"Call initiation failed - "

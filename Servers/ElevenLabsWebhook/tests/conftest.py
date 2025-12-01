@@ -5,11 +5,20 @@ Pytest configuration for ElevenLabs Webhook tests.
 import os
 import pytest
 
-# Set test environment variables
+# Set test environment variables BEFORE importing anything
 os.environ.setdefault("ELEVENLABS_WEBHOOK_SECRET", "test-secret-key")
 os.environ.setdefault("LOG_LEVEL", "DEBUG")
 os.environ.setdefault("ENABLE_AUDIO_STORAGE", "false")
 os.environ.setdefault("ENABLE_TRANSCRIPT_STORAGE", "false")
+
+# Configure logging directories for tests
+# Use centralized logging location if not already set
+os.environ.setdefault("LOG_DIR", "/home/ubuntu/GoogleCalendar_NGINX/logs")
+os.environ.setdefault("LOG_FILENAME", "webhook.log")
+
+# Initialize logger at module level (before any test imports)
+from src.utils.logger import setup_logger
+setup_logger()  # Configure root logger for all tests
 
 
 @pytest.fixture

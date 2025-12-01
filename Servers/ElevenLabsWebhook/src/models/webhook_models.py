@@ -46,7 +46,7 @@ class AnalysisResult:
         return cls(
             evaluation=data.get("evaluation"),
             data_collection=data.get("data_collection"),
-            summary=data.get("call_summary")
+            summary=data.get("transcript_summary") or data.get("call_summary")
         )
 
 

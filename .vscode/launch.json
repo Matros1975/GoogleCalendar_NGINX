@@ -1,0 +1,197 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Handler Test (Valid Payload)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/unit/test_transcription_handler.py::TestTranscriptionHandler::test_handle_valid_payload",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+                "LOG_DIR": "/home/ubuntu/GoogleCalendar_NGINX/logs",
+                "LOG_FILENAME": "webhook.log"
+            }
+        },
+        {
+            "name": "Debug Handler Test (Formatted Transcript)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/unit/test_transcription_handler.py::TestFormattedTranscript::test_formatted_transcript_basic",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+                "LOG_DIR": "/home/ubuntu/GoogleCalendar_NGINX/logs",
+                "LOG_FILENAME": "webhook.log"
+            }
+        },
+        {
+            "name": "Debug All Handler Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/unit/test_transcription_handler.py",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+                "LOG_DIR": "/home/ubuntu/GoogleCalendar_NGINX/logs",
+                "LOG_FILENAME": "webhook.log"
+            }
+        },
+        {
+            "name": "Debug Handler with Custom Payload",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/Servers/ElevenLabsWebhook/debug_handler.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+                "LOG_DIR": "/home/ubuntu/GoogleCalendar_NGINX/logs",
+                "LOG_FILENAME": "webhook.log"
+            }
+        },
+        {
+            "name": "Debug Specific Test by Name",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/unit/test_transcription_handler.py::${input:testName}",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+                "LOG_DIR": "/home/ubuntu/GoogleCalendar_NGINX/logs",
+                "LOG_FILENAME": "webhook.log"
+            }
+        },
+        {
+            "name": "Debug Integration Test (TopDesk Real API)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "args": [
+                "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/integration/test_topdesk_integration.py::TestTopDeskIntegration::test_end_to_end_ticket_creation",
+                "-v",
+                "-s",
+                "-m",
+                "integration"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+                "LOG_DIR": "/home/ubuntu/GoogleCalendar_NGINX/logs",
+                "LOG_FILENAME": "webhook.log"
+            }
+        },
+        {
+            "name": "Debug Integration Test (OpenAI Extraction)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "args": [
+                "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/integration/test_topdesk_integration.py::TestOpenAIIntegration::test_extract_ticket_data_with_openai",
+                "-v",
+                "-s",
+                "-m",
+                "integration"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+                "LOG_DIR": "/home/ubuntu/GoogleCalendar_NGINX/logs",
+                "LOG_FILENAME": "webhook.log"
+            }
+        },
+        {
+            "name": "Debug All Integration Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/integration/test_topdesk_integration.py",
+                "-v",
+                "-s",
+                "-m",
+                "integration"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+                "TOPDESK_URL": "${env:TOPDESK_URL}",
+                "TOPDESK_USERNAME": "${env:TOPDESK_USERNAME}",
+                "TOPDESK_PASSWORD": "${env:TOPDESK_PASSWORD}",
+                "OPENAI_API_KEY": "${env:OPENAI_API_KEY}",
+                "LOG_DIR": "/home/ubuntu/GoogleCalendar_NGINX/logs",
+                "LOG_FILENAME": "webhook.log"
+            }
+        },
+        {
+            "name": "Debug Integration Test (Custom Payload, Create TopDesk Ticket)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "args": [
+                "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/integration/test_topdesk_integration.py::TestCustomPayload::test_custom_payload_create_ticket",
+                "-v",
+                "-s",
+                "-m",
+                "integration"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/Servers/ElevenLabsWebhook",
+                "LOG_DIR": "/home/ubuntu/GoogleCalendar_NGINX/logs",
+                "LOG_FILENAME": "webhook.log"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testName",
+            "type": "promptString",
+            "description": "Enter test name (e.g., TestTranscriptionHandler::test_handle_valid_payload)",
+            "default": "TestTranscriptionHandler::test_handle_valid_payload"
+        }
+    ]
+}

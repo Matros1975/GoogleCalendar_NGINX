@@ -24,8 +24,8 @@ RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pyth
 COPY src/ /app/src/
 
 # Create necessary directories and set permissions
-RUN mkdir -p /app/logs /app/storage/audio /app/storage/transcripts && \
-    chown -R elevenlabsuser:elevenlabsuser /app
+RUN mkdir -p /app/logs /app/storage/audio /app/storage/transcripts /var/log/mcp-services && \
+    chown -R elevenlabsuser:elevenlabsuser /app /var/log/mcp-services
 
 # Switch to non-root user
 USER elevenlabsuser

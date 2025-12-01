@@ -72,5 +72,9 @@ Thumbs.db
 storage/
 logs/
 
+# Log files
+*.log
+webhook_*.log
+
 # Local development
 *.local

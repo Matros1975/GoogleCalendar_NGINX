@@ -317,14 +317,17 @@ services:
       - ELEVENLABS_WEBHOOK_PORT=${ELEVENLABS_WEBHOOK_PORT:-3004}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_FORMAT=${LOG_FORMAT:-text}
+      - LOG_DIR=/var/log/mcp-services
+      - LOG_FILENAME=webhook.log
       - ENABLE_AUDIO_STORAGE=${ENABLE_AUDIO_STORAGE:-false}
       - ENABLE_TRANSCRIPT_STORAGE=${ENABLE_TRANSCRIPT_STORAGE:-true}
       - AUDIO_STORAGE_PATH=/app/storage/audio
       - TRANSCRIPT_STORAGE_PATH=/app/storage/transcripts
     
-    # Optional: Persistent storage for audio/transcripts
+    # Persistent storage for audio/transcripts and logs
     volumes:
       - elevenlabs-storage:/app/storage
+      - ./logs:/var/log/mcp-services
     
     # Resource limits
     deploy:

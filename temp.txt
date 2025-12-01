@@ -1,0 +1,23 @@
+[00:00:00] - agent: Hoi! Je spreekt met Alex. Waarmee kan ik helpen? 
+[00:00:06] - caller: Hallo.
+[00:00:07] - agent: ...
+[00:00:06] - caller: Ik heb een probleem met mijn wifi.
+[00:00:11] - agent: Oké, geen probleem! Laten we dat eens even goed bekijken. Voordat we erin duiken, wat is je volledige naam?
+[00:00:19] - caller: Ik heet Charles en mijn personeelsnummer is 432.
+[00:00:24] - agent: Hé Charles, leuk je te spreken! En je personeelsnummer is vier drie twee, duidelijk. Voor welk bedrijf werk je, als ik vragen mag?
+[00:00:32] - caller: Ja, ik werk bij Shell, gebouw 3. En dat is in Rotterdam. En het hele gebouw staat volledig stil. Het probleem is vanochtend begonnen. En ja, we hebben haast. Het is dringend.
+[00:00:44] - agent: Oké, Charles, ik hoor je! Shell, gebouw drie in Rotterdam, en het hele gebouw ligt plat sinds vanochtend. Dat klinkt als een flinke uitdaging, maar we gaan dit fixen!
+
+Mag ik een bevestiging SMS sturen naar nul zes, vier vier drie nul nul acht acht negen? Dat is het nummer waarmee je nu belt.
+[00:01:00] - caller: Ja dat mag hoor! Ja dat mag...
+[00:01:05] - agent: Perfect! Dan stuur ik daar zo meteen een SMS'je naartoe.
+
+Even samenvattend, Charles: je naam is Charles met personeelsnummer vier drie twee, je werkt bij Shell in gebouw drie in Rotterdam. Het hele gebouw heeft sinds vanochtend geen wifi en staat stil. Klopt dit allemaal?
+[00:01:21] - caller: Klopt!
+[00:01:22] - agent: Super! We hebben je melding genoteerd...
+[00:01:22] - caller: Ja...
+[00:01:25] - agent: Perfect! We hebben je melding genoteerd. Het systeem maakt nu automatisch een incident aan en je ontvangt binnen enkele minuten een SMS met je incidentnummer. De juiste afdeling neemt contact met je op. Is er nog iets anders waarmee ik je kan helpen?
+[00:01:40] - caller: Nou, klinkt goed dankjewel dat was hem
+[00:01:45] - agent: Graag gedaan, Charles! Succes daar in Rotterdam en ik hoop dat de wifi snel weer werkt. Fijne dag!
+[00:01:51] - caller: Dankjewel, dag
+[00:01:55] - agent: Dag!

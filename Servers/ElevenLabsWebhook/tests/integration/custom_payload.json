@@ -1,0 +1,966 @@
+{
+  "type": "post_call_transcription",
+  "event_timestamp": 1764425485,
+  "data": {
+    "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+    "conversation_id": "conv_9101kb7z4sqpfvfawx075mkb7zk1",
+    "status": "done",
+    "user_id": null,
+    "branch_id": null,
+    "transcript": [
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "Hoi! Je spreekt met Alex. Waarmee kan ik helpen? ",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 0,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.22061321399814915
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Hallo.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 6,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.10978006299410481
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "...",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 7,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.5946336799970595
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.33546466499683447
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.7182688390021212
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.20980481999868061
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 883,
+                "price": 0.00013245
+              },
+              "input_cache_read": {
+                "tokens": 6810,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 29,
+                "price": 1.74e-05
+              }
+            }
+          }
+        },
+        "interrupted": true,
+        "original_message": "Hoi! Ik hoor je, maar ik heb je niet helemaal verstaan. Zou je alsjeblieft kunnen herhalen wat je zei?",
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Ik heb een probleem met mijn wifi.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 6,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.16704569199646357
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "Oké, geen probleem! Laten we dat eens even goed bekijken. Voordat we erin duiken, wat is je volledige naam?",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 11,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.7454427979973843
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.4454678110050736
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.8717566639970755
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.2045931019965792
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 900,
+                "price": 0.000135
+              },
+              "input_cache_read": {
+                "tokens": 6802,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 29,
+                "price": 1.74e-05
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Ik heet Charles en mijn personeelsnummer is 432.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 19,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.12629802200535778
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "Hé Charles, leuk je te spreken! En je personeelsnummer is vier drie twee, duidelijk. Voor welk bedrijf werk je, als ik vragen mag?",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 24,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.766594451997662
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.4554182209976716
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 1.0154856699955417
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.173212406996754
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 7744,
+                "price": 0.0011615999999999998
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 32,
+                "price": 1.92e-05
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Ja, ik werk bij Shell, gebouw 3. En dat is in Rotterdam. En het hele gebouw staat volledig stil. Het probleem is vanochtend begonnen. En ja, we hebben haast. Het is dringend.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 32,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.12169015100516845
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "Oké, Charles, ik hoor je! Shell, gebouw drie in Rotterdam, en het hele gebouw ligt plat sinds vanochtend. Dat klinkt als een flinke uitdaging, maar we gaan dit fixen!\n\nMag ik een bevestiging SMS sturen naar nul zes, vier vier drie nul nul acht acht negen? Dat is het nummer waarmee je nu belt.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 44,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.7475322460086318
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.5036893930082442
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 1.1392603510030312
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.1851279710099334
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 1037,
+                "price": 0.00015554999999999999
+              },
+              "input_cache_read": {
+                "tokens": 6781,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 76,
+                "price": 4.5600000000000004e-05
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Ja dat mag hoor! Ja dat mag...",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 60,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.23465609099366702
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "Perfect! Dan stuur ik daar zo meteen een SMS'je naartoe.\n\nEven samenvattend, Charles: je naam is Charles met personeelsnummer vier drie twee, je werkt bij Shell in gebouw drie in Rotterdam. Het hele gebouw heeft sinds vanochtend geen wifi en staat stil. Klopt dit allemaal?",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 65,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.7807082520012045
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.40323725099733565
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 1.0872166430053767
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.2224650029966142
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 163,
+                "price": 2.4449999999999998e-05
+              },
+              "input_cache_read": {
+                "tokens": 7739,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 64,
+                "price": 3.84e-05
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Klopt!",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 81,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.14532927400432527
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "Super! We hebben je melding genoteerd...",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 82,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.4714608659996884
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.29351141399820335
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.8862221389863407
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.16564470699813683
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 239,
+                "price": 3.5850000000000004e-05
+              },
+              "input_cache_read": {
+                "tokens": 7730,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 72,
+                "price": 4.319999999999999e-05
+              }
+            }
+          }
+        },
+        "interrupted": true,
+        "original_message": "Super! We hebben je melding genoteerd met de hoogste prioriteit, want als het hele gebouw stilstaat, dan is het code rood! Je ontvangt binnen enkele minuten een SMS met je incidentnummer. De juiste afdeling gaat hier direct mee aan de slag en neemt contact met je op. Is er nog iets anders waarmee ik je kan helpen?",
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Ja...",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 82,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.14088523399550468
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "Perfect! We hebben je melding genoteerd. Het systeem maakt nu automatisch een incident aan en je ontvangt binnen enkele minuten een SMS met je incidentnummer. De juiste afdeling neemt contact met je op. Is er nog iets anders waarmee ik je kan helpen?",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 85,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.6949215189961251
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.5198380390065722
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.9430190090060933
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.20784859500417951
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 260,
+                "price": 3.9e-05
+              },
+              "input_cache_read": {
+                "tokens": 7721,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 53,
+                "price": 3.18e-05
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Nou, klinkt goed dankjewel dat was hem",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 100,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.19377661299949978
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "Graag gedaan, Charles! Succes daar in Rotterdam en ik hoop dat de wifi snel weer werkt. Fijne dag!",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 105,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 1.3106012880016351
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.9528764099959517
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 1.4635035599931143
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.2573719770007301
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 1294,
+                "price": 0.0001941
+              },
+              "input_cache_read": {
+                "tokens": 6750,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 24,
+                "price": 1.44e-05
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Dankjewel, dag",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 111,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.21268202099599876
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "Dag!",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 115,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.5021285799884936
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.3504436609946424
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.5021078559948364
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.15040430400404148
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 1331,
+                "price": 0.00019965
+              },
+              "input_cache_read": {
+                "tokens": 6741,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 2,
+                "price": 1.2e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      }
+    ],
+    "metadata": {
+      "start_time_unix_secs": 1764425361,
+      "accepted_time_unix_secs": 1764425361,
+      "call_duration_secs": 119,
+      "cost": 803,
+      "deletion_settings": {
+        "deletion_time_unix_secs": null,
+        "deleted_logs_at_time_unix_secs": null,
+        "deleted_audio_at_time_unix_secs": null,
+        "deleted_transcript_at_time_unix_secs": null,
+        "delete_transcript_and_pii": false,
+        "delete_audio": false
+      },
+      "feedback": {
+        "type": null,
+        "overall_score": null,
+        "likes": 0,
+        "dislikes": 0,
+        "rating": null,
+        "comment": null
+      },
+      "authorization_method": "signed_url",
+      "charging": {
+        "dev_discount": false,
+        "is_burst": false,
+        "tier": "creator",
+        "llm_usage": {
+          "irreversible_generation": {
+            "model_usage": {
+              "gemini-2.5-flash": {
+                "input": {
+                  "tokens": 13851,
+                  "price": 0.00207765
+                },
+                "input_cache_read": {
+                  "tokens": 57074,
+                  "price": 0.0
+                },
+                "input_cache_write": {
+                  "tokens": 0,
+                  "price": 0.0
+                },
+                "output_total": {
+                  "tokens": 381,
+                  "price": 0.00022859999999999997
+                }
+              }
+            }
+          },
+          "initiated_generation": {
+            "model_usage": {
+              "gemini-2.5-flash": {
+                "input": {
+                  "tokens": 13851,
+                  "price": 0.00207765
+                },
+                "input_cache_read": {
+                  "tokens": 57074,
+                  "price": 0.0
+                },
+                "input_cache_write": {
+                  "tokens": 0,
+                  "price": 0.0
+                },
+                "output_total": {
+                  "tokens": 381,
+                  "price": 0.00022859999999999997
+                }
+              }
+            }
+          }
+        },
+        "llm_price": 0.0023062499999999997,
+        "llm_charge": 10,
+        "call_charge": 793,
+        "free_minutes_consumed": 0.0,
+        "free_llm_dollars_consumed": 0.0
+      },
+      "phone_call": {
+        "direction": "inbound",
+        "phone_number_id": "phnum_8801kb7z3x33f0qagnmwembq9tgq",
+        "agent_number": "+3197010274742",
+        "external_number": "+31644300889",
+        "type": "twilio",
+        "stream_sid": "MZ7e517b5c9ddcb1776e440aebd4070403",
+        "call_sid": "CA6578a1f77182c1bb833d4a34c44e6440"
+      },
+      "batch_call": null,
+      "termination_reason": "Call ended by remote party",
+      "error": null,
+      "warnings": [],
+      "main_language": "nl",
+      "rag_usage": null,
+      "text_only": false,
+      "features_usage": {
+        "language_detection": {
+          "enabled": false,
+          "used": false
+        },
+        "transfer_to_agent": {
+          "enabled": false,
+          "used": false
+        },
+        "transfer_to_number": {
+          "enabled": false,
+          "used": false
+        },
+        "multivoice": {
+          "enabled": false,
+          "used": false
+        },
+        "dtmf_tones": {
+          "enabled": false,
+          "used": false
+        },
+        "external_mcp_servers": {
+          "enabled": false,
+          "used": false
+        },
+        "pii_zrm_workspace": false,
+        "pii_zrm_agent": false,
+        "tool_dynamic_variable_updates": {
+          "enabled": false,
+          "used": false
+        },
+        "is_livekit": false,
+        "voicemail_detection": {
+          "enabled": false,
+          "used": false
+        },
+        "workflow": {
+          "enabled": false,
+          "tool_node": {
+            "enabled": false,
+            "used": false
+          },
+          "standalone_agent_node": {
+            "enabled": false,
+            "used": false
+          },
+          "phone_number_node": {
+            "enabled": false,
+            "used": false
+          },
+          "end_node": {
+            "enabled": false,
+            "used": false
+          }
+        },
+        "agent_testing": {
+          "enabled": false,
+          "tests_ran_after_last_modification": false,
+          "tests_ran_in_last_7_days": false
+        }
+      },
+      "eleven_assistant": {
+        "is_eleven_assistant": false
+      },
+      "initiator_id": null,
+      "conversation_initiation_source": "twilio",
+      "conversation_initiation_source_version": null,
+      "timezone": null,
+      "initiation_trigger": {
+        "trigger_type": "default"
+      },
+      "async_metadata": null,
+      "whatsapp": null,
+      "agent_created_from": "ui",
+      "agent_last_updated_from": "ui"
+    },
+    "analysis": {
+      "evaluation_criteria_results": {},
+      "data_collection_results": {},
+      "call_successful": "success",
+      "transcript_summary": "Charles from Shell in Rotterdam, building 3, reports a building-wide WiFi outage since this morning. The agent confirmed Charles's details, created an incident ticket, and promised an SMS with the incident number and follow-up from the relevant department.\n",
+      "call_summary_title": "Wifi outage Rotterdam Shell"
+    },
+    "conversation_initiation_client_data": {
+      "conversation_config_override": {
+        "turn": null,
+        "tts": null,
+        "conversation": null,
+        "agent": null
+      },
+      "custom_llm_extra_body": {},
+      "user_id": null,
+      "source_info": {
+        "source": null,
+        "version": null
+      },
+      "dynamic_variables": {
+        "system__agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+        "system__agent_turns": 10,
+        "system__current_agent_turns": 10,
+        "system__current_subagent_turns": 10,
+        "system__current_agent_id": "agent_4101kb7yrc0se60ae675fxktnb8r",
+        "system__conversation_id": "conv_9101kb7z4sqpfvfawx075mkb7zk1",
+        "system__call_duration_secs": 118,
+        "system__time_utc": "2025-11-29T14:11:20.273817+00:00",
+        "system__time": "Saturday, 14:11 29 November 2025",
+        "system__timezone": null,
+        "system__caller_id": "+31644300889",
+        "system__called_number": "+3197010274742",
+        "system__call_sid": "CA6578a1f77182c1bb833d4a34c44e6440"
+      }
+    }
+  }
+}

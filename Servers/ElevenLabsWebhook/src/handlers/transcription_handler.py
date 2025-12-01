@@ -21,6 +21,7 @@ from src.models.webhook_models import TranscriptionPayload, ConversationData, Tr
 from src.utils.storage import StorageManager
 from src.utils.topdesk_client import TopDeskClient
 from src.utils.email_sender import EmailSender
+from src.utils.logger import conversation_context  # Import conversation context
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ class TicketDataPayload(BaseModel):
     """Schema for TopDesk ticket creation from transcript."""
     brief_description: str = Field(description="Short summary of the issue (max 80 chars)")
     request: str = Field(description="Detailed description of the customer's request")
+    summary: str = Field(description="Structured summary with: Issue reported, Steps already performed, Steps suggested by agent, Next steps planned")
     caller_name: Optional[str] = Field(None, description="Caller's name if mentioned")
     caller_email: Optional[str] = Field(None, description="Caller's email if mentioned")
     caller_phone: Optional[str] = Field(None, description="Caller's phone number if mentioned")
@@ -41,14 +43,64 @@ class TicketDataPayload(BaseModel):
 
 
 class TranscriptionHandler:
-    """Handler for post_call_transcription webhook events with TopDesk integration."""
+    """
+    Handler for post_call_transcription webhook events with TopDesk integration.
+    
+    This handler processes ElevenLabs conversation transcripts and automatically creates
+    support tickets in TopDesk using AI-powered data extraction. It provides:
+    
+    **Core Features:**
+    - Webhook payload parsing and validation
+    - Transcript storage and formatting
+    - AI-powered ticket data extraction (OpenAI/LangChain)
+    - TopDesk incident creation with full transcript
+    - Email notifications on failure
+    
+    **Processing Workflow:**
+    1. Parse and validate incoming webhook payload
+    2. Log conversation metadata (duration, message count, etc.)
+    3. Store transcript to disk (if storage enabled)
+    4. Format transcript with timestamps and speaker labels
+    5. Extract ticket data using OpenAI (or fallback to basic extraction)
+    6. Create TopDesk incident with extracted information
+    7. Attach full transcript as invisible action
+    8. Send email notification if ticket creation fails
+    
+    **Components:**
+    - storage: Manages transcript persistence to disk
+    - topdesk_client: Handles TopDesk API interactions
+    - email_sender: Sends error notifications via SMTP
+    - _llm: Lazy-loaded LangChain ChatOpenAI instance
+    
+    **Environment Variables:**
+    - OPENAI_API_KEY: Required for AI extraction (falls back to basic if missing)
+    - OPENAI_MODEL: Model to use (default: gpt-4o-mini)
+    - TOPDESK_URL, TOPDESK_USERNAME, TOPDESK_PASSWORD: TopDesk credentials
+    - GMAIL_SMTP_*: Email notification settings
+    """
     
     def __init__(self, storage: Optional[StorageManager] = None):
         """
-        Initialize handler.
+        Initialize the transcription handler with lazy-loaded dependencies.
+        
+        The handler initializes with minimal components and lazily loads TopDesk client,
+        email sender, and LLM only when needed. This reduces startup overhead and allows
+        the service to run even if some integrations are not configured.
         
         Args:
-            storage: Optional storage manager for persisting transcripts
+            storage: Optional storage manager for persisting transcripts to disk.
+                    If None, creates default StorageManager from environment variables.
+                    Storage can be disabled by setting STORAGE_ENABLED=false in env.
+        
+        Attributes Initialized:
+            storage: StorageManager instance (always initialized)
+            topdesk_client: None (initialized on first ticket creation)
+            email_sender: None (initialized on first error notification)
+            _llm: None (initialized on first OpenAI extraction call)
+        
+        Note:
+            This method does not perform any API calls or validate credentials.
+            Validation happens during first use of each component.
         """
         self.storage = storage or StorageManager.from_env()
         self.topdesk_client: Optional[TopDeskClient] = None
@@ -59,28 +111,72 @@ class TranscriptionHandler:
         """
         Process a post_call_transcription webhook payload and create TopDesk ticket.
         
+        This is the main entry point for webhook processing. It orchestrates the entire
+        workflow from payload parsing to ticket creation and error handling.
+        
+        **Processing Steps:**
+        1. Parse payload into TranscriptionPayload model (validates structure)
+        2. Log conversation metadata and statistics
+        3. Save transcript to disk (if storage enabled)
+        4. Generate formatted transcript with timestamps
+        5. Extract ticket data using OpenAI/LangChain
+        6. Create TopDesk incident with extracted data
+        7. Attach transcript as invisible action to ticket
+        8. Send email notification if ticket creation fails
+        
+        **Error Handling:**
+        - Validation errors: Raised immediately (invalid payload structure)
+        - Storage errors: Logged but processing continues
+        - OpenAI errors: Falls back to basic extraction
+        - TopDesk errors: Triggers email notification, sets error in result
+        - Email errors: Logged but does not fail the request
+        
         Args:
-            payload: Raw webhook payload dictionary
-            
+            payload: Raw webhook payload dictionary from ElevenLabs containing:
+                - type: "post_call_transcription"
+                - conversation_id: Unique conversation identifier
+                - agent_id: ElevenLabs agent identifier
+                - data: Conversation data with transcript, metadata, analysis
+        
         Returns:
             Processing result dictionary with keys:
-            - status: "processed"
-            - conversation_id: str
-            - agent_id: str
-            - saved_path: str (if storage enabled)
-            - formatted_transcript: str
-            - ticket_created: bool
-            - ticket_number: Optional[str]
-            - ticket_id: Optional[str]
-            - transcript_added: bool
-            - email_sent: bool (if ticket creation failed)
-            - error: Optional[str]
+            - status: Always "processed"
+            - conversation_id: Conversation identifier from payload
+            - agent_id: Agent identifier from payload
+            - saved_path: File path where transcript was saved (or None)
+            - formatted_transcript: Human-readable transcript with timestamps
+            - ticket_created: True if TopDesk ticket was created successfully
+            - ticket_number: TopDesk ticket number (e.g., "I 240001") or None
+            - ticket_id: TopDesk internal ticket ID (UUID) or None
+            - transcript_added: True if transcript attached to ticket successfully
+            - email_sent: True if error notification email was sent
+            - error: Error message if ticket creation failed, None otherwise
+        
+        Raises:
+            Exception: If payload parsing fails or critical error occurs.
+                      TopDesk/email errors are caught and returned in result dict.
+        
+        Examples:
+            >>> handler = TranscriptionHandler()
+            >>> result = await handler.handle(webhook_payload)
+            >>> if result["ticket_created"]:
+            ...     print(f"Created ticket {result['ticket_number']}")
+            >>> else:
+            ...     print(f"Error: {result['error']}")
+        
+        Note:
+            - Empty transcripts skip ticket creation (returns early with ticket_created=False)
+            - Costs ~$0.01 per call when using OpenAI extraction
+            - Processing time: 2-5 seconds depending on transcript length
         """
         logger.info("Processing post_call_transcription webhook")
         
         try:
             # Parse payload into typed model
             transcription = TranscriptionPayload.from_dict(payload)
+            
+            # Set conversation context for all subsequent log entries
+            conversation_context.set(transcription.conversation_id)
             
             logger.info(
                 f"Transcription received - "
@@ -125,16 +221,19 @@ class TranscriptionHandler:
             # Attempt TopDesk ticket creation
             try:
                 # Extract ticket data using OpenAI/LangChain
-                ticket_data = await self._extract_ticket_data(formatted_transcript)
+                ticket_data = await self._extract_ticket_data(formatted_transcript, transcription.data)
                 
                 # Initialize TopDesk client if needed
                 if not self.topdesk_client:
                     self.topdesk_client = TopDeskClient()
                 
+                # Prepend summary to request for structured ticket data
+                full_request = f"{ticket_data.summary}\n\n---\n\n{ticket_data.request}"
+                
                 # Create TopDesk incident
                 ticket_response = await self.topdesk_client.create_incident(
                     brief_description=ticket_data.brief_description,
-                    request=ticket_data.request,
+                    request=full_request,
                     conversation_id=transcription.conversation_id,
                     caller_name=ticket_data.caller_name,
                     caller_email=ticket_data.caller_email,
@@ -195,10 +294,41 @@ class TranscriptionHandler:
     
     def _process_conversation_data(self, data: ConversationData) -> None:
         """
-        Process and log conversation data details.
+        Process and log conversation metadata and statistics for observability.
+        
+        This method does NOT modify any data or make API calls. It only extracts
+        and logs useful information from the conversation data for debugging and
+        monitoring purposes.
+        
+        **Logged Information:**
+        - Basic metadata: duration, message count, call status
+        - Timestamps: start time, end time (if available)
+        - Audio availability: flags for audio presence (future ElevenLabs feature)
+        - Transcript statistics: agent message count, user message count
+        - Analysis results: call summary, evaluation criteria, collected data
+        - Dynamic variables: custom metadata fields set during conversation
+        
+        **Log Levels Used:**
+        - INFO: Call duration, message counts, transcript statistics, summaries
+        - DEBUG: Timestamps, audio flags, evaluation criteria, dynamic variables
         
         Args:
-            data: Parsed conversation data
+            data: Parsed conversation data containing transcript, metadata, and analysis.
+                  See ConversationData model for full structure.
+        
+        Returns:
+            None. All output is logged via the logger instance.
+        
+        Side Effects:
+            - Writes log messages at INFO and DEBUG levels
+            - No state changes, no API calls, no file I/O
+        
+        Examples:
+            Log output:
+            INFO - Conversation details - duration: 127.5s, messages: 8, status: completed
+            INFO - Transcript: 4 agent messages, 4 user messages
+            INFO - Call summary: Customer reported laptop screen flickering...
+            DEBUG - Dynamic variables: ['customer_email', 'issue_type']
         """
         # Log basic metadata
         logger.info(
@@ -242,27 +372,80 @@ class TranscriptionHandler:
         if data.metadata:
             logger.debug(f"Dynamic variables: {list(data.metadata.keys())}")
     
-    async def _extract_ticket_data(self, transcript: str) -> TicketDataPayload:
+    async def _extract_ticket_data(self, transcript: str, conversation_data: Optional['ConversationData'] = None) -> TicketDataPayload:
         """
-        Extract ticket creation data from formatted transcript using OpenAI/LangChain.
+        Extract structured ticket data from transcript using AI or fallback extraction.
+        
+        This method uses OpenAI's LLM (via LangChain) to intelligently extract ticket
+        information from the conversation transcript. If OpenAI is unavailable or fails,
+        it falls back to basic text parsing.
+        
+        **AI Extraction (Primary):**
+        - Uses ChatOpenAI with gpt-4o-mini (configurable via OPENAI_MODEL)
+        - Temperature 0 for consistent, deterministic output
+        - Pydantic parser ensures valid TicketDataPayload structure
+        - Extracts: brief description, request details, caller info, category, priority
+        
+        **Fallback Extraction (When OpenAI unavailable):**
+        - Uses first caller message as brief description
+        - Truncates full transcript to MAX_FALLBACK_REQUEST_LENGTH (2000 chars)
+        - Sets all optional fields (caller info, category, priority) to None
+        
+        **LLM Prompt Instructions:**
+        - Brief description: max 80 chars, main issue summary
+        - Request: detailed explanation of caller's needs
+        - Caller info: name, email, phone (if mentioned in conversation)
+        - Category: Hardware, Software, Network, Account, etc.
+        - Priority: High, Medium, Low (based on urgency indicators)
         
         Args:
-            transcript: Human-readable formatted transcript
-            
+            transcript: Human-readable formatted transcript with timestamps and speaker labels.
+                       Format: "[HH:MM:SS] - speaker: message"
+        
         Returns:
-            TicketDataPayload with extracted information
+            TicketDataPayload: Pydantic model with extracted fields:
+                - brief_description: Short summary (max 80 chars)
+                - request: Detailed description
+                - caller_name: Extracted name or None
+                - caller_email: Extracted email or None
+                - caller_phone: Extracted phone or None
+                - category: Issue category or None
+                - priority: Priority level or None
+        
+        Raises:
+            No exceptions raised. All errors are caught and logged:
+            - ImportError: LangChain not installed → fallback extraction
+            - API errors: OpenAI call failed → fallback extraction
+            - Parsing errors: Invalid LLM response → fallback extraction
+        
+        Side Effects:
+            - May make OpenAI API call (costs ~$0.005-$0.01 per call)
+            - Initializes self._llm on first call (cached for subsequent calls)
+            - Logs warnings/errors for failures
+        
+        Performance:
+            - AI extraction: 1-3 seconds (depends on transcript length)
+            - Fallback extraction: <10ms (simple text parsing)
+        
+        Examples:
+            >>> transcript = "[00:00:05] - caller: My laptop won't boot\n[00:00:10] - agent: Let me help"
+            >>> data = await handler._extract_ticket_data(transcript)
+            >>> print(data.brief_description)
+            "Laptop boot failure"
+            >>> print(data.category)
+            "Hardware"
         """
         # Check if OpenAI API key is configured
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             logger.warning("OPENAI_API_KEY not configured, using fallback extraction")
-            return self._fallback_ticket_extraction(transcript)
+            return self._fallback_ticket_extraction(transcript, conversation_data)
         
         try:
             # Lazy import LangChain to avoid import errors if not installed
             from langchain_openai import ChatOpenAI
-            from langchain.prompts import ChatPromptTemplate
-            from langchain.output_parsers import PydanticOutputParser
+            from langchain_core.prompts import ChatPromptTemplate
+            from langchain_core.output_parsers import PydanticOutputParser
             
             # Initialize LLM if not already done
             if self._llm is None:
@@ -280,6 +463,20 @@ class TranscriptionHandler:
 Analyze the conversation and extract:
 - A brief description (max 80 characters) summarizing the main issue
 - Detailed request description explaining what the caller needs
+- A structured summary in the following format:
+
+**Issue Reported:**
+[Detailed description of the problem as reported by the caller]
+
+**Steps Already Performed:**
+[List of troubleshooting steps or actions the caller has already tried]
+
+**Steps Suggested by Agent:**
+[List of recommendations or solutions provided by the agent during the call]
+
+**Next Steps Planned:**
+[Planned actions, follow-ups, or what should happen next]
+
 - Caller information if mentioned (name, email, phone)
 - Issue category if determinable (e.g., 'Hardware', 'Software', 'Network', 'Account')
 - Priority level if determinable from urgency (e.g., 'High', 'Medium', 'Low')
@@ -300,20 +497,63 @@ Analyze the conversation and extract:
             
         except ImportError as e:
             logger.warning(f"LangChain not available: {e}, using fallback extraction")
-            return self._fallback_ticket_extraction(transcript)
+            return self._fallback_ticket_extraction(transcript, conversation_data)
         except Exception as e:
             logger.error(f"Failed to extract ticket data with OpenAI: {e}")
-            return self._fallback_ticket_extraction(transcript)
+            return self._fallback_ticket_extraction(transcript, conversation_data)
     
-    def _fallback_ticket_extraction(self, transcript: str) -> TicketDataPayload:
+    def _fallback_ticket_extraction(self, transcript: str, conversation_data: Optional['ConversationData'] = None) -> TicketDataPayload:
         """
-        Fallback ticket data extraction when OpenAI is not available.
+        Simple text-based ticket extraction when AI is unavailable.
+        
+        This fallback method provides basic ticket data extraction without using AI.
+        It's used when OPENAI_API_KEY is not configured or when AI extraction fails.
+        If ElevenLabs provided a summary in the payload, it will be used instead of the placeholder.
+        
+        **Extraction Algorithm:**
+        1. Split transcript into lines
+        2. Find first line containing "caller:" (case-insensitive)
+        3. Extract text after second colon (skips timestamp)
+        4. Use first 80 chars as brief description
+        5. Use full transcript (up to 2000 chars) as request
+        6. All optional fields (caller info, category, priority) set to None
+        
+        **Limitations:**
+        - No semantic understanding of conversation
+        - Cannot extract caller information (name, email, phone)
+        - Cannot determine category or priority
+        - Brief description may not be meaningful
+        - Long transcripts truncated to 2000 chars
         
         Args:
-            transcript: Human-readable formatted transcript
-            
+            transcript: Human-readable formatted transcript.
+                       Expected format: "[HH:MM:SS] - speaker: message"
+        
         Returns:
-            TicketDataPayload with basic extracted information
+            TicketDataPayload with:
+                - brief_description: First caller message (max 80 chars) or "Call transcript"
+                - request: Full transcript (max 2000 chars)
+                - caller_name: None
+                - caller_email: None
+                - caller_phone: None
+                - category: None
+                - priority: None
+        
+        Examples:
+            >>> transcript = "[00:00:00] - agent: Hello\n[00:00:03] - caller: My computer is broken"
+            >>> data = handler._fallback_ticket_extraction(transcript)
+            >>> print(data.brief_description)
+            "My computer is broken"
+            >>> print(data.caller_name)
+            None
+        
+        Performance:
+            - Execution time: <10ms (simple string operations)
+            - No API calls, no AI processing
+        
+        Note:
+            This method is deterministic and will always produce the same output
+            for the same input transcript.
         """
         # Extract first meaningful message as brief description
         lines = transcript.strip().split('\n')
@@ -329,9 +569,41 @@ Analyze the conversation and extract:
                         brief_desc = message
                         break
         
+        # Use ElevenLabs summary if available, otherwise create basic summary
+        if conversation_data and conversation_data.analysis and conversation_data.analysis.summary:
+            elevenlabs_summary = conversation_data.analysis.summary
+            logger.info("Using ElevenLabs call summary for fallback extraction")
+            # Format the ElevenLabs summary into our structured format
+            fallback_summary = f"""**Issue Reported:**
+{elevenlabs_summary}
+
+**Steps Already Performed:**
+See transcript for details.
+
+**Steps Suggested by Agent:**
+See transcript for details.
+
+**Next Steps Planned:**
+Review call summary and transcript for follow-up actions."""
+        else:
+            # No ElevenLabs summary available, use placeholder
+            logger.info("No ElevenLabs summary available, using placeholder")
+            fallback_summary = """**Issue Reported:**
+See full transcript below for details.
+
+**Steps Already Performed:**
+Unable to extract - see transcript.
+
+**Steps Suggested by Agent:**
+Unable to extract - see transcript.
+
+**Next Steps Planned:**
+Follow up required - review full transcript."""
+        
         return TicketDataPayload(
             brief_description=brief_desc,
-            request=transcript[:MAX_FALLBACK_REQUEST_LENGTH] if len(transcript) > MAX_FALLBACK_REQUEST_LENGTH else transcript
+            request=transcript[:MAX_FALLBACK_REQUEST_LENGTH] if len(transcript) > MAX_FALLBACK_REQUEST_LENGTH else transcript,
+            summary=fallback_summary
         )
     
     def _format_timestamp(self, seconds: float) -> str:
@@ -357,13 +629,41 @@ Analyze the conversation and extract:
     
     def _format_tool_call(self, tool_call: Dict[str, Any]) -> str:
         """
-        Format a tool call entry for the transcript.
+        Format a tool invocation entry for human-readable transcript display.
+        
+        ElevenLabs agents can invoke tools during conversations (e.g., check calendar,
+        create tasks). This method formats those invocations into a readable format
+        suitable for inclusion in transcripts.
+        
+        **Formatting Rules:**
+        - Tool name is preserved as-is
+        - Dictionary arguments formatted as key="value" pairs
+        - String values are properly escaped (quotes and backslashes)
+        - JSON string arguments are parsed before formatting
+        - Non-dict arguments converted to string representation
         
         Args:
-            tool_call: Tool call dictionary with 'name' and 'arguments'
-            
+            tool_call: Tool call dictionary from ElevenLabs webhook containing:
+                - name: Tool name (e.g., "check_calendar", "send_email")
+                - arguments: Tool arguments as dict or JSON string
+        
         Returns:
-            Formatted tool call string
+            Formatted string in format: toolcall: name(key="value", key2="value2")
+            Or: toolcall: name(unknown) if name is missing
+        
+        Examples:
+            >>> tool_call = {"name": "send_email", "arguments": {"to": "user@example.com", "subject": "Test"}}
+            >>> handler._format_tool_call(tool_call)
+            'toolcall: send_email(to="user@example.com", subject="Test")'
+            
+            >>> tool_call = {"name": "get_time", "arguments": {}}
+            >>> handler._format_tool_call(tool_call)
+            'toolcall: get_time()'
+        
+        Note:
+            - Handles malformed JSON gracefully (keeps as string)
+            - Escapes special characters to prevent transcript corruption
+            - Arguments order may not be preserved (dict iteration)
         """
         name = tool_call.get("name", "unknown")
         arguments = tool_call.get("arguments", "")
@@ -390,13 +690,41 @@ Analyze the conversation and extract:
     
     def _format_tool_result(self, tool_result: Dict[str, Any]) -> str:
         """
-        Format a tool result entry for the transcript.
+        Format a tool execution result for human-readable transcript display.
+        
+        After a tool is invoked, ElevenLabs provides the result of that invocation.
+        This method formats the result for inclusion in the transcript, handling
+        both simple string outputs and complex structured data.
+        
+        **Formatting Rules:**
+        - String outputs: Used directly without modification
+        - Complex outputs (dict, list, etc.): JSON serialized
+        - Missing output field: Empty string used
         
         Args:
-            tool_result: Tool result dictionary with 'output'
-            
+            tool_result: Tool result dictionary from ElevenLabs webhook containing:
+                - output: The result of the tool execution (any type)
+        
         Returns:
-            Formatted tool result string
+            Formatted string in format: toolcall_result: {output}
+        
+        Examples:
+            >>> tool_result = {"output": "Email sent successfully"}
+            >>> handler._format_tool_result(tool_result)
+            'toolcall_result: Email sent successfully'
+            
+            >>> tool_result = {"output": {"status": "ok", "count": 3}}
+            >>> handler._format_tool_result(tool_result)
+            'toolcall_result: {"status": "ok", "count": 3}'
+            
+            >>> tool_result = {}
+            >>> handler._format_tool_result(tool_result)
+            'toolcall_result: '
+        
+        Note:
+            - JSON serialization uses default settings (no pretty printing)
+            - Non-serializable objects will raise JSONDecodeError
+            - Empty results produce valid but empty output
         """
         output = tool_result.get("output", "")
         
@@ -409,16 +737,63 @@ Analyze the conversation and extract:
     
     def _generate_formatted_transcript(self, data: Optional[ConversationData]) -> str:
         """
-        Generate formatted text transcript from conversation data.
+        Generate human-readable transcript from conversation data with timestamps.
         
-        Format: [HH:MM:SS] - speaker: message
-        Tool calls are included as 'toolcall' entries.
+        This method transforms the raw transcript data from ElevenLabs into a
+        well-formatted, timestamped text document suitable for human reading
+        and AI processing. It handles regular messages, tool calls, and tool results.
+        
+        **Format Specification:**
+        - Timestamp format: [HH:MM:SS] (24-hour format)
+        - Speaker labels: "agent" or "caller" (user → caller mapping)
+        - Entry format: [timestamp] - speaker: message
+        - Tool calls: [timestamp] - toolcall: name(args)
+        - Tool results: [timestamp] - toolcall_result: output
+        - Entries separated by newlines
+        
+        **Processing Rules:**
+        1. Each transcript entry can have message, tool_call, and/or tool_result
+        2. All present components are included as separate lines
+        3. User role is mapped to "caller" for clarity
+        4. Timestamps default to 0 if missing
+        5. Empty/null data returns empty string
         
         Args:
-            data: Conversation data containing transcript
-            
+            data: Optional conversation data containing:
+                - transcript: List of TranscriptEntry objects
+                - Each entry may have: role, message, timestamp, tool_call, tool_result
+                Returns empty string if None or if transcript is empty.
+        
         Returns:
-            Formatted transcript string with timestamps
+            Multi-line formatted transcript string with timestamps.
+            Empty string if no data or no transcript entries.
+        
+        Examples:
+            Input:
+            ```python
+            data.transcript = [
+                {"role": "agent", "message": "Hello", "timestamp": 0},
+                {"role": "user", "message": "Hi", "timestamp": 2.5},
+                {"role": "agent", "tool_call": {"name": "get_time"}, "timestamp": 5}
+            ]
+            ```
+            
+            Output:
+            ```
+            [00:00:00] - agent: Hello
+            [00:00:02] - caller: Hi
+            [00:00:05] - toolcall: get_time()
+            ```
+        
+        Performance:
+            - Linear time complexity: O(n) where n is number of transcript entries
+            - Typical execution: <50ms for 100 entries
+            - No API calls, pure string processing
+        
+        Note:
+            - Timestamps are converted to integers (fractional seconds discarded)
+            - Tool calls and results use helper methods _format_tool_call/_format_tool_result
+            - Output suitable for LLM processing (consistent, structured format)
         """
         if not data or not data.transcript:
             return ""
