@@ -30,6 +30,23 @@ DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 MAX_FALLBACK_REQUEST_LENGTH = 2000
 
 
+# Valid TopDesk categories (must match TopDesk instance configuration)
+VALID_TOPDESK_CATEGORIES = [
+    "Core applicaties",
+    "Werkplek hardware",
+    "Netwerk",
+    "Wachtwoord wijziging"
+]
+
+# Valid TopDesk priorities (must match TopDesk instance configuration)
+VALID_TOPDESK_PRIORITIES = [
+    "P1 (I&A)",  # Critical
+    "P2 (I&A)",  # High
+    "P3 (I&A)",  # Medium
+    "P4 (I&A)"   # Low
+]
+
+
 class TicketDataPayload(BaseModel):
     """Schema for TopDesk ticket creation from transcript."""
     brief_description: str = Field(description="Short summary of the issue (max 80 chars)")
@@ -38,8 +55,8 @@ class TicketDataPayload(BaseModel):
     caller_name: Optional[str] = Field(None, description="Caller's name if mentioned")
     caller_email: Optional[str] = Field(None, description="Caller's email if mentioned")
     caller_phone: Optional[str] = Field(None, description="Caller's phone number if mentioned")
-    category: Optional[str] = Field(None, description="Issue category (e.g., 'Hardware', 'Software', 'Network')")
-    priority: Optional[str] = Field(None, description="Priority level if determinable from urgency")
+    category: Optional[str] = Field(None, description=f"Issue category. Must be one of: {', '.join(VALID_TOPDESK_CATEGORIES)}")
+    priority: Optional[str] = Field(None, description=f"Priority level. Must be one of: {', '.join(VALID_TOPDESK_PRIORITIES)}")
 
 
 class TranscriptionHandler:
@@ -385,6 +402,7 @@ class TranscriptionHandler:
         - Temperature 0 for consistent, deterministic output
         - Pydantic parser ensures valid TicketDataPayload structure
         - Extracts: brief description, request details, caller info, category, priority
+        - Fetches valid categories and priorities from TopDesk API dynamically
         
         **Fallback Extraction (When OpenAI unavailable):**
         - Uses first caller message as brief description
@@ -395,8 +413,8 @@ class TranscriptionHandler:
         - Brief description: max 80 chars, main issue summary
         - Request: detailed explanation of caller's needs
         - Caller info: name, email, phone (if mentioned in conversation)
-        - Category: Hardware, Software, Network, Account, etc.
-        - Priority: High, Medium, Low (based on urgency indicators)
+        - Category: Fetched from TopDesk API (e.g., "Core applicaties", "Werkplek hardware")
+        - Priority: Fetched from TopDesk API (e.g., "P1 (I&A)", "P2 (I&A)")
         
         Args:
             transcript: Human-readable formatted transcript with timestamps and speaker labels.
@@ -421,6 +439,7 @@ class TranscriptionHandler:
         Side Effects:
             - May make OpenAI API call (costs ~$0.005-$0.01 per call)
             - Initializes self._llm on first call (cached for subsequent calls)
+            - Fetches categories/priorities from TopDesk on first call (cached)
             - Logs warnings/errors for failures
         
         Performance:
@@ -433,7 +452,7 @@ class TranscriptionHandler:
             >>> print(data.brief_description)
             "Laptop boot failure"
             >>> print(data.category)
-            "Hardware"
+            "Werkplek hardware"
         """
         # Check if OpenAI API key is configured
         api_key = os.getenv("OPENAI_API_KEY")
@@ -456,10 +475,30 @@ class TranscriptionHandler:
                     api_key=api_key
                 )
             
+            # Initialize TopDesk client if needed to fetch categories/priorities
+            if not self.topdesk_client:
+                self.topdesk_client = TopDeskClient()
+            
+            # Fetch valid categories and priorities from TopDesk API
+            valid_categories = await self.topdesk_client.get_categories()
+            valid_priorities = await self.topdesk_client.get_priorities()
+            
+            # Use fallback lists if API fetch failed
+            if not valid_categories:
+                logger.warning("Using fallback category list (TopDesk API unavailable)")
+                valid_categories = VALID_TOPDESK_CATEGORIES
+            if not valid_priorities:
+                logger.warning("Using fallback priority list (TopDesk API unavailable)")
+                valid_priorities = VALID_TOPDESK_PRIORITIES
+            
             parser = PydanticOutputParser(pydantic_object=TicketDataPayload)
             
+            # Build prompt with valid TopDesk categories and priorities
+            categories_list = "\n".join([f"  - {cat}" for cat in valid_categories])
+            priorities_list = "\n".join([f"  - {pri}" for pri in valid_priorities])
+            
             prompt = ChatPromptTemplate.from_messages([
-                ("system", """You are an AI assistant that extracts ticket information from call transcripts.
+                ("system", f"""You are an AI assistant that extracts ticket information from call transcripts.
 Analyze the conversation and extract:
 - A brief description (max 80 characters) summarizing the main issue
 - Detailed request description explaining what the caller needs
@@ -478,10 +517,26 @@ Analyze the conversation and extract:
 [Planned actions, follow-ups, or what should happen next]
 
 - Caller information if mentioned (name, email, phone)
-- Issue category if determinable (e.g., 'Hardware', 'Software', 'Network', 'Account')
-- Priority level if determinable from urgency (e.g., 'High', 'Medium', 'Low')
+- Issue category - MUST be one of these exact values:
+{categories_list}
+  Choose the most appropriate category based on the issue type. Use "{valid_categories[0]}" if unsure.
 
-{format_instructions}"""),
+- Priority level - Classify the ticket's priority using the following matrix. Priority shall be detected in any case.
+  Priority Matrix:
+  • If urgency is "Kan niet werken" (cannot work):
+    • Impact on "Organisatie", "Vestiging", or "Afdeling" → Priority: "P1 (I&A)"
+    • Impact on "Persoon" → Priority: "P2 (I&A)"
+  • If urgency is "Kan deels werken" (can partly work):
+    • Impact on "Organisatie", "Vestiging", or "Afdeling" → Priority: "P2 (I&A)"
+    • Impact on "Persoon" → Priority: "P3 (I&A)"
+  • If urgency is "Kan werken" (can work):
+    • Impact on "Organisatie", "Vestiging", or "Afdeling" → Priority: "P3 (I&A)"
+    • Impact on "Persoon" → Priority: "P4 (I&A)"
+  
+  Valid priority values: {', '.join(valid_priorities)}
+  Assess the urgency and impact from the conversation context to determine the correct priority.
+
+{{format_instructions}}"""),
                 ("human", "Call transcript:\n\n{transcript}")
             ])
             

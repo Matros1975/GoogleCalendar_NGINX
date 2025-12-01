@@ -323,6 +323,13 @@ services:
       - ENABLE_TRANSCRIPT_STORAGE=${ENABLE_TRANSCRIPT_STORAGE:-true}
       - AUDIO_STORAGE_PATH=/app/storage/audio
       - TRANSCRIPT_STORAGE_PATH=/app/storage/transcripts
+      # TopDesk Integration
+      - TOPDESK_URL=${TOPDESK_URL}
+      - TOPDESK_USERNAME=${TOPDESK_USERNAME}
+      - TOPDESK_PASSWORD=${TOPDESK_PASSWORD}
+      # OpenAI Integration
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-https://api.openai.com/v1}
     
     # Persistent storage for audio/transcripts and logs
     volumes:

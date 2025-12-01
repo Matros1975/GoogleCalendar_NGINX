@@ -28,6 +28,10 @@ class TopDeskClient:
         self.username = os.getenv("TOPDESK_USERNAME", "")
         self.password = os.getenv("TOPDESK_PASSWORD", "")
         
+        # Log configuration for debugging
+        logger.info(f"TopDeskClient initialized with base_url: {self.base_url}")
+        logger.info(f"TopDeskClient username: {self.username}")
+        
         # Create Basic Auth header
         if self.username and self.password:
             auth_string = f"{self.username}:{self.password}"
@@ -38,6 +42,8 @@ class TopDeskClient:
             self.auth_header = ""
         
         self._client: Optional[httpx.AsyncClient] = None
+        self._categories_cache: Optional[list] = None
+        self._priorities_cache: Optional[list] = None
     
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create async HTTP client."""
@@ -56,6 +62,74 @@ class TopDeskClient:
         """Close the HTTP client."""
         if self._client and not self._client.is_closed:
             await self._client.aclose()
+    
+    async def get_categories(self) -> list[str]:
+        """
+        Fetch available incident categories from TopDesk.
+        
+        Results are cached to avoid repeated API calls.
+        
+        Returns:
+            List of category names (e.g., ["Core applicaties", "Werkplek hardware"])
+            Empty list if API call fails or not configured.
+        """
+        if self._categories_cache is not None:
+            return self._categories_cache
+        
+        if not self.base_url or not self.auth_header:
+            logger.warning("TopDesk not configured, cannot fetch categories")
+            return []
+        
+        try:
+            client = await self._get_client()
+            response = await client.get(f"{self.base_url}/incidents/categories")
+            
+            if response.status_code == 200:
+                categories = response.json()
+                # Extract category names
+                self._categories_cache = [cat.get("name", "") for cat in categories if cat.get("name")]
+                logger.info(f"Fetched {len(self._categories_cache)} categories from TopDesk")
+                return self._categories_cache
+            else:
+                logger.error(f"Failed to fetch categories: HTTP {response.status_code}")
+                return []
+        except Exception as e:
+            logger.error(f"Error fetching categories from TopDesk: {e}")
+            return []
+    
+    async def get_priorities(self) -> list[str]:
+        """
+        Fetch available incident priorities from TopDesk.
+        
+        Results are cached to avoid repeated API calls.
+        
+        Returns:
+            List of priority names (e.g., ["P1 (I&A)", "P2 (I&A)"])
+            Empty list if API call fails or not configured.
+        """
+        if self._priorities_cache is not None:
+            return self._priorities_cache
+        
+        if not self.base_url or not self.auth_header:
+            logger.warning("TopDesk not configured, cannot fetch priorities")
+            return []
+        
+        try:
+            client = await self._get_client()
+            response = await client.get(f"{self.base_url}/incidents/priorities")
+            
+            if response.status_code == 200:
+                priorities = response.json()
+                # Extract priority names
+                self._priorities_cache = [pri.get("name", "") for pri in priorities if pri.get("name")]
+                logger.info(f"Fetched {len(self._priorities_cache)} priorities from TopDesk")
+                return self._priorities_cache
+            else:
+                logger.error(f"Failed to fetch priorities: HTTP {response.status_code}")
+                return []
+        except Exception as e:
+            logger.error(f"Error fetching priorities from TopDesk: {e}")
+            return []
     
     def _format_ticket_number(self, number: str) -> str:
         """
@@ -116,26 +190,67 @@ class TopDeskClient:
                 "error": "TopDesk credentials not configured (TOPDESK_USERNAME, TOPDESK_PASSWORD)"
             }
         
-        # Build payload
+        # Build payload - caller is REQUIRED for TopDesk
+        # Use default caller ID if no email provided
+        DEFAULT_CALLER_ID = "d34b277f-e6a2-534c-a96b-23bf383cb4a1"  # Jacob Aalbregt
+        
+        # Valid TopDesk categories (from your instance)
+        VALID_CATEGORIES = [
+            "Core applicaties",
+            "Werkplek hardware",
+            "Netwerk",
+            "Wachtwoord wijziging"
+        ]
+        
+        # Valid TopDesk priorities (from your instance)
+        VALID_PRIORITIES = [
+            "P1 (I&A)",
+            "P2 (I&A)",
+            "P3 (I&A)",
+            "P4 (I&A)"
+        ]
+        
         payload: Dict[str, Any] = {
             "briefDescription": brief_description[:80] if brief_description else "Call transcript",
-            "request": f"ElevenLabs Conversation ID: {conversation_id}\n\n{request}"
+            "request": f"ElevenLabs Conversation ID: {conversation_id}\n\n{request}",
+            "caller": {
+                "id": DEFAULT_CALLER_ID
+            }
         }
         
-        # Add optional fields
-        if category:
+        # Add optional fields only if they match valid TopDesk values
+        if category and category in VALID_CATEGORIES:
             payload["category"] = {"name": category}
-        if priority:
+            logger.debug(f"Using category: {category}")
+        else:
+            if category:
+                logger.warning(f"Invalid category '{category}', omitting from payload")
+            # Use default category
+            payload["category"] = {"name": "Core applicaties"}
+            logger.debug("Using default category: Core applicaties")
+            
+        if priority and priority in VALID_PRIORITIES:
             payload["priority"] = {"name": priority}
-        if caller_email:
-            payload["callerLookup"] = {"email": caller_email}
+            logger.debug(f"Using priority: {priority}")
+        else:
+            if priority:
+                logger.warning(f"Invalid priority '{priority}', omitting from payload")
+            # Use default priority
+            payload["priority"] = {"name": "P3 (I&A)"}
+            logger.debug("Using default priority: P3 (I&A)")
+            
+        # Note: callerLookup by email can be used to override caller, but requires exact match
+        # For now, we always use the default caller ID to ensure ticket creation succeeds
         
         try:
             client = await self._get_client()
+            url = f"{self.base_url}/incidents"
             logger.info(f"Creating TopDesk incident for conversation {conversation_id}")
+            logger.info(f"POST URL: {url}")
+            logger.debug(f"Payload: {payload}")
             
             response = await client.post(
-                f"{self.base_url}/tas/api/incidents",
+                url,
                 json=payload
             )
             
@@ -192,21 +307,26 @@ class TopDeskClient:
             logger.error("No ticket ID provided for action")
             return False
         
+        # TopDesk requires PATCH to incidents endpoint with action field
         payload = {
-            "memoText": f"Call Transcript:\n\n{transcript}",
-            "invisibleForCaller": True
+            "action": f"Call Transcript:\n\n{transcript}",
+            "actionInvisibleForCaller": True
         }
         
         try:
             client = await self._get_client()
             logger.info(f"Adding invisible action to ticket {ticket_id}")
             
-            response = await client.post(
-                f"{self.base_url}/tas/api/incidents/id/{ticket_id}/actions",
+            url = f"{self.base_url}/incidents/id/{ticket_id}"
+            logger.debug(f"PATCH {url}")
+            logger.debug(f"Payload: {payload}")
+            
+            response = await client.patch(
+                url,
                 json=payload
             )
             
-            if response.status_code in [200, 201]:
+            if response.status_code in [200, 201, 204]:
                 logger.info(f"Transcript added to ticket {ticket_id}")
                 return True
             else:

@@ -6,6 +6,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "pytest",
+            "python": "${workspaceFolder}/.venv/bin/python",
             "args": [
                 "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/unit/test_transcription_handler.py::TestTranscriptionHandler::test_handle_valid_payload",
                 "-v",
@@ -25,6 +26,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "pytest",
+            "python": "${workspaceFolder}/.venv/bin/python",
             "args": [
                 "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/unit/test_transcription_handler.py::TestFormattedTranscript::test_formatted_transcript_basic",
                 "-v",
@@ -44,6 +46,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "pytest",
+            "python": "${workspaceFolder}/.venv/bin/python",
             "args": [
                 "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/unit/test_transcription_handler.py",
                 "-v",
@@ -62,6 +65,7 @@
             "name": "Debug Handler with Custom Payload",
             "type": "debugpy",
             "request": "launch",
+            "python": "${workspaceFolder}/.venv/bin/python",
             "program": "${workspaceFolder}/Servers/ElevenLabsWebhook/debug_handler.py",
             "console": "integratedTerminal",
             "justMyCode": false,
@@ -77,6 +81,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "pytest",
+            "python": "${workspaceFolder}/.venv/bin/python",
             "args": [
                 "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/unit/test_transcription_handler.py::${input:testName}",
                 "-v",
@@ -142,6 +147,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "pytest",
+            "python": "${workspaceFolder}/.venv/bin/python",
             "args": [
                 "${workspaceFolder}/Servers/ElevenLabsWebhook/tests/integration/test_topdesk_integration.py",
                 "-v",

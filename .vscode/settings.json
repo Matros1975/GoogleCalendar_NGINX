@@ -11,5 +11,6 @@
     "jupyter.widgetScriptSources": ["jsdelivr.com", "unpkg.com"],
     "notebook.defaultLanguage": "python",
     "jupyter.pythonExportMethod": "direct",
-    "jupyter.disableJupyterAutoStart": false
+    "jupyter.disableJupyterAutoStart": false,
+    "github.copilot.chat.enableSpeech": false
 }
