@@ -2,9 +2,9 @@ name: CI / Build / Deploy to Azure Container Apps
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    # deployment branch - only deploy when commits land on this branch
+    branches: [ azure-main ]
+  workflow_dispatch: {}
 
 jobs:
   build-and-test:
