@@ -397,6 +397,81 @@ class TopDeskAPIClient:
                 'error': str(e)
             }
     
+    def lookup_person_by_email(self, email: str) -> Dict[str, Any]:
+        """Look up a person by email address.
+        
+        Args:
+            email: Email address to search for
+            
+        Returns:
+            Dictionary with person details if found, or email_found=False
+            
+        Example Success Response:
+            {
+                'email_found': True,
+                'person': {
+                    'id': 'uuid',
+                    'dynamicName': 'John Doe',
+                    'email': 'john.doe@company.com',
+                    ...
+                }
+            }
+            
+        Example Not Found Response:
+            {
+                'email_found': False,
+                'message': 'No person registered with email: test@example.com'
+            }
+        """
+        try:
+            params = {
+                'email': email,
+                'page_size': 1
+            }
+            
+            logger.info(f"Looking up person by email: {email}")
+            response = requests.get(
+                f"{self.base_url}/persons",
+                headers=self.headers,
+                params=params,
+                timeout=30
+            )
+            
+            if response.status_code in [200, 206]:
+                persons = response.json()
+                
+                if persons and len(persons) > 0:
+                    # Email found - return person data
+                    return {
+                        'email_found': True,
+                        'person': persons[0]  # First match (should be only match)
+                    }
+                else:
+                    # Email not found
+                    return {
+                        'email_found': False,
+                        'message': f'No person registered with email: {email}'
+                    }
+            elif response.status_code == 204:
+                # No content - email not found
+                return {
+                    'email_found': False,
+                    'message': f'No person registered with email: {email}'
+                }
+            else:
+                # API error
+                return {
+                    'email_found': False,
+                    'error': f"HTTP {response.status_code}: {response.text}"
+                }
+                
+        except Exception as e:
+            logger.exception("Error looking up person by email")
+            return {
+                'email_found': False,
+                'error': str(e)
+            }
+    
     def get_categories(self) -> Dict[str, Any]:
         """Get list of incident categories.
         
