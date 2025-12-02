@@ -2,8 +2,19 @@
 
 import pytest
 from unittest.mock import Mock, patch
+
 from src.topdesk_client import TopDeskAPIClient
 from src.handlers.persons import PersonHandlers
+
+
+@pytest.fixture
+def topdesk_config():
+    """TopDesk configuration."""
+    return {
+        "base_url": "https://test.topdesk.net/tas/api",
+        "username": "test_user",
+        "password": "test_pass"
+    }
 
 
 class TestEmailLookupHandler:
@@ -122,15 +133,6 @@ class TestEmailLookupHandler:
 
 class TestEmailLookupClient:
     """Test cases for TopDeskAPIClient.lookup_person_by_email."""
-    
-    @pytest.fixture
-    def topdesk_config(self):
-        """TopDesk configuration."""
-        return {
-            "base_url": "https://test.topdesk.net/tas/api",
-            "username": "test_user",
-            "password": "test_pass"
-        }
     
     @patch('src.topdesk_client.requests.get')
     def test_lookup_person_found(self, mock_get, topdesk_config):
@@ -256,3 +258,4 @@ class TestEmailLookupClient:
         # Assert
         assert result['email_found'] is True
         assert result['person']['email'] == 'jane.doe@company.com'
+
