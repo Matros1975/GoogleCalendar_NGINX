@@ -8,7 +8,7 @@ Prereqs
 - GitHub repo cloned
 - A Service Principal for GitHub Actions (store its JSON in the AZURE_CREDENTIALS secret)
 
-Quick command summary (PowerShell):
+Quick command summary (PowerShell): 
 
 ```powershell
 # create resource group
