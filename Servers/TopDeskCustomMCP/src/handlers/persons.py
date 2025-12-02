@@ -55,3 +55,32 @@ class PersonHandlers:
         
         result = self.client.search_persons(query=query, limit=limit)
         return result
+    
+    async def lookup_person_by_email(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Look up a person by email address.
+        
+        Args:
+            args: Tool arguments with email
+            
+        Returns:
+            Person details if found, or email_found=False
+        """
+        email = args.get("email")
+        
+        if not email:
+            return {
+                "email_found": False,
+                "error": "Missing required parameter: email"
+            }
+        
+        # Basic email validation
+        if '@' not in email or '.' not in email.split('@')[-1]:
+            return {
+                "email_found": False,
+                "error": f"Invalid email format: {email}"
+            }
+        
+        logger.info(f"Looking up person by email: {email}")
+        
+        result = self.client.lookup_person_by_email(email)
+        return result

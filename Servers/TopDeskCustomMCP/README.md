@@ -110,6 +110,50 @@ Search for persons by query.
 - `query` (required): Search query string
 - `limit` (optional): Maximum number of results (default: 10)
 
+#### `topdesk_lookup_person_by_email`
+Look up a person by email address.
+
+**Parameters:**
+- `email` (required): Email address to search for in TopDesk
+
+**Returns:**
+- `email_found`: Boolean indicating if email was found
+- `person`: Full person object if found (includes id, name, department, etc.)
+- `message`: Explanation if not found
+- `error`: Error message if lookup failed
+
+**Example:**
+```json
+{
+  "email": "john.doe@company.com"
+}
+```
+
+**Success Response:**
+```json
+{
+  "email_found": true,
+  "person": {
+    "id": "d34b277f-e6a2-534c-a96b-23bf383cb4a1",
+    "dynamicName": "John Doe",
+    "email": "john.doe@company.com",
+    "department": {
+      "name": "IT Department"
+    }
+  }
+}
+```
+
+**Not Found Response:**
+```json
+{
+  "email_found": false,
+  "message": "No person registered with email: john.doe@company.com"
+}
+```
+
+**Use Case:** This tool is useful for validating email addresses extracted from conversation transcripts before creating incidents. If email is found, use the returned `person.id` as the `caller_id` when creating incidents.
+
 ### Status Operations
 
 #### `topdesk_get_categories`
