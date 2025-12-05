@@ -1,25 +1,25 @@
 """
-Storage utilities for conversation data and audio files.
+Storage utilities for conversation data and audio files using Azure Blob Storage.
 """
 
 import os
 import json
 import base64
 import logging
-from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any
+from azure.storage.blob import BlobServiceClient, ContentSettings
 
 logger = logging.getLogger(__name__)
 
 
 class StorageManager:
-    """Manages storage of conversation transcripts and audio files."""
+    """Manages storage of conversation transcripts and audio files in Azure Blob Storage."""
     
     def __init__(
         self,
-        audio_path: Optional[str] = None,
-        transcript_path: Optional[str] = None,
+        connection_string: str,
+        container_name: str,
         enable_audio: bool = False,
         enable_transcript: bool = True
     ):
@@ -27,36 +27,46 @@ class StorageManager:
         Initialize storage manager.
         
         Args:
-            audio_path: Path for audio file storage
-            transcript_path: Path for transcript storage
+            connection_string: Azure Storage connection string
+            container_name: Blob container name
             enable_audio: Whether to store audio files
             enable_transcript: Whether to store transcripts
         """
-        self.audio_path = Path(audio_path) if audio_path else None
-        self.transcript_path = Path(transcript_path) if transcript_path else None
+        self.connection_string = connection_string
+        self.container_name = container_name
         self.enable_audio = enable_audio
         self.enable_transcript = enable_transcript
+        self.blob_service_client = None
+        self.container_client = None
         
-        # Create directories if needed
-        if self.enable_audio and self.audio_path:
-            self.audio_path.mkdir(parents=True, exist_ok=True)
-            logger.info(f"Audio storage enabled at: {self.audio_path}")
-        
-        if self.enable_transcript and self.transcript_path:
-            self.transcript_path.mkdir(parents=True, exist_ok=True)
-            logger.info(f"Transcript storage enabled at: {self.transcript_path}")
+        if self.connection_string and self.container_name:
+            try:
+                self.blob_service_client = BlobServiceClient.from_connection_string(self.connection_string)
+                self.container_client = self.blob_service_client.get_container_client(self.container_name)
+                if not self.container_client.exists():
+                    self.container_client.create_container()
+                    logger.info(f"Created blob container: {self.container_name}")
+            except Exception as e:
+                logger.error(f"Failed to initialize Blob Storage: {e}")
     
     @classmethod
     def from_env(cls) -> "StorageManager":
         """Create StorageManager from environment variables."""
-        audio_path = os.getenv("AUDIO_STORAGE_PATH")
-        transcript_path = os.getenv("TRANSCRIPT_STORAGE_PATH")
+        # Try different common env vars for connection string
+        connection_string = os.getenv("AzureWebJobsStorage_elevenlabswebhook") or \
+                           os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+        
+        container_name = os.getenv("BLOB_CONTAINER_NAME", "webhook-data")
+        
         enable_audio = os.getenv("ENABLE_AUDIO_STORAGE", "false").lower() == "true"
         enable_transcript = os.getenv("ENABLE_TRANSCRIPT_STORAGE", "true").lower() == "true"
         
+        if not connection_string:
+            logger.warning("No Azure Storage connection string found (AzureWebJobsStorage_elevenlabswebhook or AZURE_STORAGE_CONNECTION_STRING)")
+        
         return cls(
-            audio_path=audio_path,
-            transcript_path=transcript_path,
+            connection_string=connection_string,
+            container_name=container_name,
             enable_audio=enable_audio,
             enable_transcript=enable_transcript
         )
@@ -68,7 +78,7 @@ class StorageManager:
         data: Dict[str, Any]
     ) -> Optional[str]:
         """
-        Save conversation transcript to storage.
+        Save conversation transcript to blob storage.
         
         Args:
             conversation_id: Unique conversation identifier
@@ -76,17 +86,16 @@ class StorageManager:
             data: Transcript data to save
             
         Returns:
-            Path to saved file or None if storage disabled
+            Blob URL or path if successful, None otherwise
         """
-        if not self.enable_transcript or not self.transcript_path:
-            logger.debug("Transcript storage disabled, skipping save")
+        if not self.enable_transcript or not self.container_client:
+            logger.debug("Transcript storage disabled or not initialized, skipping save")
             return None
         
         try:
             # Generate filename with timestamp
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-            filename = f"{conversation_id}_{timestamp}.json"
-            filepath = self.transcript_path / filename
+            blob_name = f"transcripts/{conversation_id}_{timestamp}.json"
             
             # Add metadata to the data
             save_data = {
@@ -96,15 +105,21 @@ class StorageManager:
                 "data": data
             }
             
-            # Write to file
-            with open(filepath, "w", encoding="utf-8") as f:
-                json.dump(save_data, f, indent=2, default=str)
+            # Upload to blob
+            blob_client = self.container_client.get_blob_client(blob_name)
+            json_data = json.dumps(save_data, indent=2, default=str)
             
-            logger.info(f"Transcript saved: {filepath}")
-            return str(filepath)
+            blob_client.upload_blob(
+                json_data,
+                overwrite=True,
+                content_settings=ContentSettings(content_type="application/json")
+            )
+            
+            logger.info(f"Transcript saved to blob: {blob_name}")
+            return blob_client.url
             
         except Exception as e:
-            logger.error(f"Failed to save transcript: {e}")
+            logger.error(f"Failed to save transcript to blob: {e}")
             return None
     
     def save_audio(
@@ -115,7 +130,7 @@ class StorageManager:
         audio_format: str = "mp3"
     ) -> Optional[str]:
         """
-        Save audio file to storage.
+        Save audio file to blob storage.
         
         Args:
             conversation_id: Unique conversation identifier
@@ -124,10 +139,10 @@ class StorageManager:
             audio_format: Audio format (default: mp3)
             
         Returns:
-            Path to saved file or None if storage disabled
+            Blob URL or path if successful, None otherwise
         """
-        if not self.enable_audio or not self.audio_path:
-            logger.debug("Audio storage disabled, skipping save")
+        if not self.enable_audio or not self.container_client:
+            logger.debug("Audio storage disabled or not initialized, skipping save")
             return None
         
         try:
@@ -136,23 +151,31 @@ class StorageManager:
             
             # Generate filename with timestamp
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-            filename = f"{conversation_id}_{timestamp}.{audio_format}"
-            filepath = self.audio_path / filename
+            blob_name = f"audio/{conversation_id}_{timestamp}.{audio_format}"
             
-            # Write to file
-            with open(filepath, "wb") as f:
-                f.write(audio_data)
+            # Upload to blob
+            blob_client = self.container_client.get_blob_client(blob_name)
             
-            logger.info(f"Audio saved: {filepath} ({len(audio_data)} bytes)")
-            return str(filepath)
+            content_type = f"audio/{audio_format}"
+            if audio_format == "mp3":
+                content_type = "audio/mpeg"
+            
+            blob_client.upload_blob(
+                audio_data,
+                overwrite=True,
+                content_settings=ContentSettings(content_type=content_type)
+            )
+            
+            logger.info(f"Audio saved to blob: {blob_name} ({len(audio_data)} bytes)")
+            return blob_client.url
             
         except Exception as e:
-            logger.error(f"Failed to save audio: {e}")
+            logger.error(f"Failed to save audio to blob: {e}")
             return None
     
     def get_transcript(self, conversation_id: str) -> Optional[Dict[str, Any]]:
         """
-        Retrieve a transcript by conversation ID.
+        Retrieve a transcript by conversation ID from blob storage.
         
         Args:
             conversation_id: Conversation ID to look up
@@ -160,23 +183,26 @@ class StorageManager:
         Returns:
             Transcript data or None if not found
         """
-        if not self.transcript_path:
+        if not self.container_client:
             return None
         
         try:
-            # Find matching files
-            pattern = f"{conversation_id}_*.json"
-            matches = list(self.transcript_path.glob(pattern))
+            # List blobs matching the conversation ID prefix in transcripts folder
+            prefix = f"transcripts/{conversation_id}_"
+            blobs = list(self.container_client.list_blobs(name_starts_with=prefix))
             
-            if not matches:
+            if not blobs:
                 return None
             
-            # Return most recent
-            latest = max(matches, key=lambda p: p.stat().st_mtime)
+            # Return most recent (sort by name which includes timestamp)
+            latest_blob = max(blobs, key=lambda b: b.name)
             
-            with open(latest, "r", encoding="utf-8") as f:
-                return json.load(f)
+            blob_client = self.container_client.get_blob_client(latest_blob.name)
+            download_stream = blob_client.download_blob()
+            json_content = download_stream.readall()
+            
+            return json.loads(json_content)
                 
         except Exception as e:
-            logger.error(f"Failed to retrieve transcript: {e}")
+            logger.error(f"Failed to retrieve transcript from blob: {e}")
             return None
