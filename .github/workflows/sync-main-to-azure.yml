@@ -1,0 +1,73 @@
+name: Sync selected folders from main -> azure-main
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'Servers/**'
+      - 'scripts/**'
+      - 'nginx/**'
+      - 'instructions/**'
+      - 'future_features/**'
+      - 'docs/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-main-to-azure-main
+  cancel-in-progress: true
+
+env:
+  AZURE_BRANCH: 'azure-main'
+  SYNC_PATHS: Servers scripts nginx instructions future_features docs
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (fetch all history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Ensure target branch exists
+        run: |
+          if git ls-remote --exit-code origin refs/heads/${AZURE_BRANCH}; then
+            git fetch origin ${AZURE_BRANCH}:${AZURE_BRANCH}
+          else
+            git checkout -b ${AZURE_BRANCH} origin/main || git checkout -b ${AZURE_BRANCH}
+            git push origin ${AZURE_BRANCH}
+          fi
+
+      - name: Checkout target branch
+        run: git checkout ${AZURE_BRANCH}
+
+      - name: Copy selected paths from main into target branch
+        run: |
+          # Reset any working changes
+          git reset --hard
+          # Copy files from main (origin/main)
+          git checkout origin/main -- ${SYNC_PATHS} || true
+          # Stage only these directories (safety)
+          git add ${SYNC_PATHS} || true
+
+      - name: Commit and push changes if any
+        id: commit
+        run: |
+          if git status --porcelain | grep -q '.'; then
+            git commit -m "chore(sync): update ${AZURE_BRANCH} from main — selected folders"
+            git push origin ${AZURE_BRANCH}
+            echo "pushed=true" >> $GITHUB_OUTPUT
+          else
+            echo "pushed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Exit if nothing changed
+        if: steps.commit.outputs.pushed == 'false'
+        run: echo "No changes to sync."
