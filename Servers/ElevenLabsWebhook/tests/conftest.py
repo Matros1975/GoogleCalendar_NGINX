@@ -28,25 +28,6 @@ def webhook_secret():
 
 
 @pytest.fixture
-def webhook_url():
-    """
-    Provide webhook URL for integration tests.
-
-    If WEBHOOK_URL is not set (e.g. in CI),
-    integration tests are skipped instead of failing.
-    """
-    url = os.getenv("WEBHOOK_URL")
-
-    if not url:
-        pytest.skip(
-            "WEBHOOK_URL environment variable is not set. "
-            "Skipping integration tests that require a live webhook."
-        )
-
-    return url
-
-
-@pytest.fixture
 def sample_transcription_payload():
     """Provide sample transcription webhook payload."""
     return {
