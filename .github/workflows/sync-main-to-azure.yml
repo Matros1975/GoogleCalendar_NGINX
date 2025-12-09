@@ -48,14 +48,22 @@ jobs:
       - name: Checkout target branch
         run: git checkout ${AZURE_BRANCH}
 
-      - name: Copy selected paths from main into target branch
+      - name: Copy selected paths from main into target branch (with exclusions)
         run: |
           # Reset any working changes
           git reset --hard
-          # Copy files from main (origin/main)
+
+          # Copy selected folders from main
           git checkout origin/main -- ${SYNC_PATHS} || true
-          # Stage only these directories (safety)
+
+          # Restore excluded files back from azure-main
+          git restore --source=HEAD -- \
+            Servers/ElevenLabsWebhook/src/utils/logger.py \
+            Servers/ElevenLabsWebhook/src/utils/storage.py || true
+
+          # Stage only synced paths
           git add ${SYNC_PATHS} || true
+
 
       - name: Commit and push changes if any
         id: commit
