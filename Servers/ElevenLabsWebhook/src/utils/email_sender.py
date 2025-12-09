@@ -2,7 +2,7 @@
 Email notification sender for error cases.
 
 Sends email notifications via Gmail SMTP when ticket creation fails.
-# testing #3
+# testing #4
 """
 
 import os
