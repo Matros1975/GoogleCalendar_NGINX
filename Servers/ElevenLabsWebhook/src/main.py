@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    logger.info("ElevenLabs Webhook Service shutting down")
+    logger.info("ElevenLabs Webhook Service shutting down...")
 
 
 # Initialize FastAPI app with lifespan handler
