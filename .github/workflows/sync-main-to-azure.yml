@@ -2,7 +2,7 @@ name: Sync selected folders from main -> azure-main
 
 on:
   push:
-    branches: [ main ]
+    branches: [ azure-main ]
     paths:
       - 'Servers/**'
       - 'scripts/**'
@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  AZURE_BRANCH: 'azure-main'
+  AZURE_BRANCH: 'azure-main_test'
   SYNC_PATHS: Servers scripts nginx instructions future_features docs
 
 jobs:
