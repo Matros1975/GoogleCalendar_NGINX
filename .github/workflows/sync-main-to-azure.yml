@@ -64,7 +64,6 @@ jobs:
           # Stage only synced paths
           git add ${SYNC_PATHS} || true
 
-
       - name: Commit and push changes if any
         id: commit
         run: |
