@@ -58,6 +58,16 @@ def mock_topdesk_client():
         'count': 1
     }
     
+    # Mock successful email lookup
+    client.lookup_person_by_email.return_value = {
+        'email_found': True,
+        'person': {
+            'id': 'test-person-id',
+            'dynamicName': 'Test User',
+            'email': 'test@example.com'
+        }
+    }
+    
     # Mock successful categories
     client.get_categories.return_value = {
         'success': True,

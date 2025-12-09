@@ -233,6 +233,22 @@ def main():
             handler=person_handlers.search_persons
         )
         
+        server.register_tool(
+            name="topdesk_lookup_person_by_email",
+            description="Look up a TopDesk person by email address. Returns person details if email is registered, or email_found=false if not found.",
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "description": "Email address to lookup in TopDesk database"
+                    }
+                },
+                "required": ["email"]
+            },
+            handler=person_handlers.lookup_person_by_email
+        )
+        
         # Register status tools
         server.register_tool(
             name="topdesk_get_categories",
