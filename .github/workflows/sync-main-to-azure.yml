@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  AZURE_BRANCH: 'azure-main_test'
+  AZURE_BRANCH: 'added-azure-infra'
   SYNC_PATHS: Servers scripts nginx instructions future_features docs
 
 jobs:
