@@ -38,4 +38,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
     CMD curl -f http://localhost:3004/health || exit 1
 
 # Run the webhook service
-CMD ["python", "-m", "src.main"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "3004"]
