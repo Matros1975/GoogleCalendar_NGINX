@@ -457,6 +457,11 @@ services:
       - /tmp:rw,noexec,nosuid,nodev,size=100m
       - /app/logs:rw,noexec,nosuid,nodev,size=50m
     
+    # Depends on shared PostgreSQL
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
     # Health check
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
@@ -464,6 +469,73 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+
+  # Shared PostgreSQL Database Server
+  # Serves multiple services with separate databases
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-shared
+    restart: unless-stopped
+    
+    # Load centralized environment configuration
+    env_file:
+      - .env
+    
+    # Internal network only
+    networks:
+      - mcp-internal
+    
+    # Environment configuration
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_MULTIPLE_DATABASES=voice_clones,google_calendar,threecx_calls
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      # Performance tuning for small scale (10 concurrent calls)
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=en_US.UTF-8
+    
+    # Persistent data storage
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
+    
+    # Resource limits (optimized for 10 concurrent calls)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.5"
+    
+    # Enhanced Security Configuration
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
+    
+    # Drop unnecessary capabilities
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    
+    # Temporary filesystems
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=100m
+      - /run/postgresql:rw,noexec,nosuid,nodev,size=10m
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d voice_clones"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # DuckDNS IP updater service
   duckdns-updater:
@@ -657,4 +729,6 @@ volumes:
   elevenlabs-storage:
     driver: local
   voiceclone-voices:
+    driver: local
+  postgres-data:
     driver: local
