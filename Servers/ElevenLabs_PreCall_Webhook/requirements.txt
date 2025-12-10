@@ -1,11 +1,11 @@
 # ElevenLabs Pre-Call Webhook Service Dependencies
 
 # Web Framework
-fastapi==0.104.1
+fastapi==0.109.1       # Security: Fixed ReDoS vulnerability (CVE-2024-24762)
 uvicorn[standard]==0.24.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
-python-multipart==0.0.6
+python-multipart==0.0.18  # Security: Fixed DoS and ReDoS vulnerabilities
 
 # HTTP Client
 httpx==0.25.2
@@ -16,7 +16,7 @@ pydub==0.25.1          # Audio file manipulation
 soundfile==0.12.1      # Audio metadata extraction
 
 # Security
-cryptography==41.0.7
+cryptography==42.0.4   # Security: Fixed NULL pointer dereference and Bleichenbacher timing oracle
 
 # Logging
 python-json-logger==2.0.7
