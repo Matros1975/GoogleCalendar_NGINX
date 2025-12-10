@@ -337,7 +337,7 @@ class DatabaseService:
     async def log_call_initiated(
         self,
         call_id: str,
-        threecx_call_id: str,
+        call_sid: str,
         caller_id: str,
         cloned_voice_id: str,
     ) -> CallLog:
@@ -345,8 +345,8 @@ class DatabaseService:
         Log call initiation.
         
         Args:
-            call_id: ElevenLabs call ID
-            threecx_call_id: 3CX call ID
+            call_id: ElevenLabs call ID or Twilio call SID
+            call_sid: Twilio call SID
             caller_id: Caller phone number
             cloned_voice_id: Voice ID used
             
@@ -357,7 +357,7 @@ class DatabaseService:
             async with await self.get_session() as session:
                 call_log = CallLog(
                     call_id=call_id,
-                    threecx_call_id=threecx_call_id,
+                    call_sid=call_sid,
                     caller_id=caller_id,
                     cloned_voice_id=cloned_voice_id,
                     status="initiated",
@@ -615,3 +615,124 @@ class DatabaseService:
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
             return False
+    
+    # Twilio-specific methods
+    
+    async def save_call_record(
+        self,
+        call_sid: str,
+        caller_number: str,
+        twilio_number: str,
+        status: str = "processing",
+    ) -> None:
+        """
+        Save initial call record for Twilio call.
+        
+        Args:
+            call_sid: Twilio call SID
+            caller_number: Caller phone number
+            twilio_number: Twilio number called
+            status: Initial status (processing, completed, failed)
+        """
+        try:
+            async with await self.get_session() as session:
+                call_log = CallLog(
+                    call_id=call_sid,
+                    call_sid=call_sid,
+                    caller_id=caller_number,
+                    cloned_voice_id="pending",
+                    status=status,
+                    call_started_at=datetime.utcnow(),
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow(),
+                )
+                
+                session.add(call_log)
+                await session.commit()
+                
+                logger.info(f"Saved call record for {call_sid}")
+                
+        except SQLAlchemyError as e:
+            logger.error(f"Database error saving call record: {e}")
+            raise DatabaseException(f"Failed to save call record: {str(e)}")
+    
+    async def update_clone_status(
+        self,
+        call_sid: str,
+        status: str,
+        voice_clone_id: Optional[str] = None,
+        clone_duration_ms: Optional[int] = None,
+        error: Optional[str] = None,
+    ) -> None:
+        """
+        Update clone status for a call.
+        
+        Args:
+            call_sid: Twilio call SID
+            status: New status (processing, completed, failed)
+            voice_clone_id: Cloned voice ID (if completed)
+            clone_duration_ms: Clone duration in milliseconds
+            error: Error message (if failed)
+        """
+        try:
+            async with await self.get_session() as session:
+                stmt = (
+                    update(CallLog)
+                    .where(CallLog.call_id == call_sid)
+                    .values(
+                        status=status,
+                        updated_at=datetime.utcnow(),
+                    )
+                )
+                
+                # Add optional fields if provided
+                if voice_clone_id:
+                    stmt = stmt.values(cloned_voice_id=voice_clone_id)
+                
+                if error:
+                    stmt = stmt.values(
+                        metadata=func.jsonb_set(
+                            CallLog.metadata,
+                            '{error}',
+                            f'"{error}"',
+                            True
+                        )
+                    )
+                
+                await session.execute(stmt)
+                await session.commit()
+                
+                logger.info(f"Updated clone status for {call_sid}: {status}")
+                
+        except SQLAlchemyError as e:
+            logger.error(f"Database error updating clone status: {e}")
+            raise DatabaseException(f"Failed to update clone status: {str(e)}")
+    
+    async def get_clone_status(self, call_sid: str) -> Optional[Dict[str, Any]]:
+        """
+        Get clone status for a call.
+        
+        Args:
+            call_sid: Twilio call SID
+            
+        Returns:
+            Dictionary with status, voice_clone_id, error
+        """
+        try:
+            async with await self.get_session() as session:
+                stmt = select(CallLog).where(CallLog.call_id == call_sid)
+                result = await session.execute(stmt)
+                call_log = result.scalar_one_or_none()
+                
+                if not call_log:
+                    return None
+                
+                return {
+                    "status": call_log.status,
+                    "voice_clone_id": call_log.cloned_voice_id,
+                    "error": call_log.metadata.get("error") if call_log.metadata else None,
+                }
+                
+        except SQLAlchemyError as e:
+            logger.error(f"Database error getting clone status: {e}")
+            return None

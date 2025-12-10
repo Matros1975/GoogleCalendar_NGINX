@@ -7,9 +7,28 @@ from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
+class TwilioWebhookPayload(BaseModel):
+    """
+    Incoming Call Webhook from Twilio.
+    
+    Represents the payload received when Twilio sends a webhook notification.
+    """
+    
+    CallSid: str = Field(..., description="Twilio call SID (unique identifier)")
+    AccountSid: str = Field(..., description="Twilio account SID")
+    From: str = Field(..., alias="From", description="Caller phone number (E.164 format)")
+    To: str = Field(..., alias="To", description="Twilio number that was called")
+    CallStatus: str = Field(..., description="Call status: ringing, in-progress, completed")
+    Direction: str = Field(default="inbound", description="Call direction")
+    ApiVersion: str = Field(default="2010-04-01", description="Twilio API version")
+    
+    class Config:
+        populate_by_name = True
+
+
 class ThreeCXWebhookPayload(BaseModel):
     """
-    Incoming Call Webhook from 3CX PBX.
+    Incoming Call Webhook from 3CX PBX (DEPRECATED - kept for backwards compatibility).
     
     Represents the payload received when 3CX sends a webhook notification.
     """

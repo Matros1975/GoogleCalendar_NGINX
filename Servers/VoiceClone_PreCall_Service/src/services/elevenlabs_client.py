@@ -28,7 +28,6 @@ class ElevenLabsService:
         self.base_url = self.settings.elevenlabs_api_base
         self.api_key = self.settings.elevenlabs_api_key
         self.agent_id = self.settings.elevenlabs_agent_id
-        self.phone_number_id = self.settings.elevenlabs_phone_number_id
         self.timeout = httpx.Timeout(30.0)
         self.max_retries = 3
     
@@ -157,64 +156,6 @@ class ElevenLabsService:
         except Exception as e:
             logger.error(f"Error creating voice clone: {e}")
             raise VoiceCloneAPIException(f"Failed to create voice clone: {str(e)}")
-    
-    async def trigger_voice_agent_call(
-        self,
-        phone_number: str,
-        voice_id: str,
-        custom_variables: Optional[Dict[str, Any]] = None,
-    ) -> str:
-        """
-        Trigger ElevenLabs Voice Agent to make a call.
-        
-        Args:
-            phone_number: Caller phone number (E.164 format)
-            voice_id: ID of voice to use (cloned or preset)
-            custom_variables: Context data for agent
-        
-        Returns:
-            call_id: ElevenLabs call ID
-        
-        Raises:
-            VoiceAgentAPIException: If agent call fails
-        """
-        try:
-            # Build payload
-            payload = {
-                "phone_number_id": self.phone_number_id,
-                "to_number": phone_number,
-                "voice_settings": {
-                    "voice_id": voice_id,
-                },
-            }
-            
-            if custom_variables:
-                payload["custom_variables"] = custom_variables
-            
-            # Trigger call
-            url = f"{self.base_url}/convai/conversation"
-            
-            response = await self._retry_request(
-                "POST",
-                url,
-                headers=self._get_headers(),
-                json=payload
-            )
-            
-            result = response.json()
-            call_id = result.get("conversation_id") or result.get("call_id")
-            
-            if not call_id:
-                raise VoiceAgentAPIException("No call_id in API response")
-            
-            logger.info(f"Voice agent call triggered: {call_id}")
-            return call_id
-            
-        except APIException:
-            raise VoiceAgentAPIException("Failed to trigger voice agent call")
-        except Exception as e:
-            logger.error(f"Error triggering voice agent call: {e}")
-            raise VoiceAgentAPIException(f"Failed to trigger call: {str(e)}")
     
     async def get_voice_details(self, voice_id: str) -> Dict[str, Any]:
         """

@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import get_settings
 from src.auth.hmac_validator import HMACValidator
-from src.handlers.threecx_handler import ThreeCXHandler
+from src.handlers import twilio_handler
 from src.handlers.postcall_handler import PostCallHandler
 from src.services.database_service import DatabaseService
 from src.services.elevenlabs_client import ElevenLabsService
@@ -23,7 +23,6 @@ from src.services.storage_service import StorageService
 from src.services.voice_clone_service import VoiceCloneService
 from src.services.voice_clone_async_service import VoiceCloneAsyncService
 from src.models.webhook_models import (
-    ThreeCXWebhookPayload,
     PostCallWebhookPayload,
     HealthCheckResponse,
     CacheInvalidationRequest,
@@ -41,7 +40,6 @@ elevenlabs_service: ElevenLabsService = None
 storage_service: StorageService = None
 voice_clone_service: VoiceCloneService = None
 async_service: VoiceCloneAsyncService = None
-threecx_handler: ThreeCXHandler = None
 postcall_handler: PostCallHandler = None
 hmac_validator: HMACValidator = None
 
@@ -51,7 +49,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown."""
     global db_service, elevenlabs_service, storage_service
     global voice_clone_service, async_service
-    global threecx_handler, postcall_handler, hmac_validator
+    global postcall_handler, hmac_validator
     
     # Startup
     logger.info("Starting VoiceClone Pre-Call Service...")
@@ -78,11 +76,11 @@ async def lifespan(app: FastAPI):
     )
     
     # Initialize handlers
-    threecx_handler = ThreeCXHandler(async_service=async_service)
+    twilio_handler.init_handler(async_service, db_service)
     postcall_handler = PostCallHandler(db_service=db_service)
     
-    # Initialize HMAC validator for 3CX webhooks
-    hmac_validator = HMACValidator(secret=settings.threecx_webhook_secret)
+    # Initialize HMAC validator for ElevenLabs webhooks
+    hmac_validator = HMACValidator(secret=settings.webhook_secret)
     
     logger.info("VoiceClone Pre-Call Service started successfully")
     logger.info(f"Environment: {settings.environment}")
@@ -101,8 +99,8 @@ async def lifespan(app: FastAPI):
 # Initialize FastAPI app
 app = FastAPI(
     title="VoiceClone Pre-Call Service",
-    version="1.0.0",
-    description="3CX to ElevenLabs voice cloning integration with async greeting workflow",
+    version="2.0.0",
+    description="Twilio → ElevenLabs voice cloning integration with async TwiML workflow",
     lifespan=lifespan
 )
 
@@ -119,6 +117,10 @@ if cors_origins:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+
+# Include routers
+app.include_router(twilio_handler.router)
 
 
 @app.get("/health")
@@ -159,62 +161,6 @@ async def health_check() -> HealthCheckResponse:
             elevenlabs="error",
             timestamp=datetime.utcnow()
         )
-
-
-@app.post("/webhook/3cx")
-async def threecx_webhook(
-    request: Request,
-    x_3cx_signature: str = Header(None, alias="X-3CX-Signature")
-):
-    """
-    3CX incoming call webhook endpoint.
-    
-    Handles incoming call notifications from 3CX PBX.
-    
-    Returns:
-        200 OK for successful processing
-        400 Bad Request for invalid payloads
-        401 Unauthorized for invalid signatures
-        500 Internal Server Error for processing failures
-    """
-    try:
-        # Read request body
-        body = await request.body()
-        
-        # Validate HMAC signature (optional - configure via settings)
-        if x_3cx_signature:
-            is_valid, error_message = hmac_validator.validate(x_3cx_signature, body)
-            if not is_valid:
-                logger.warning(f"3CX HMAC validation failed: {error_message}")
-                raise HTTPException(status_code=401, detail=error_message)
-        
-        # Parse JSON payload
-        try:
-            payload_dict = json.loads(body.decode("utf-8"))
-            payload = ThreeCXWebhookPayload(**payload_dict)
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON payload: {e}")
-            raise HTTPException(status_code=400, detail="Invalid JSON payload")
-        except Exception as e:
-            logger.error(f"Invalid payload format: {e}")
-            raise HTTPException(status_code=400, detail=f"Invalid payload: {str(e)}")
-        
-        # Route to appropriate handler
-        if payload.event_type == "IncomingCall":
-            result = await threecx_handler.handle_incoming_call(payload)
-            return JSONResponse(content=result.dict(), status_code=200)
-        elif payload.event_type == "CallEnded":
-            result = await threecx_handler.handle_call_ended(payload)
-            return JSONResponse(content=result, status_code=200)
-        else:
-            logger.info(f"Ignoring 3CX event type: {payload.event_type}")
-            return JSONResponse(content={"status": "ignored"}, status_code=200)
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception(f"3CX webhook processing error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/webhook/elevenlabs/postcall")
