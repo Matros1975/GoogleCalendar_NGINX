@@ -1,26 +1,21 @@
-name: Sync ElevenLabsWebhook changes to added-azure-infra
+name: Sync ElevenLabsWebhook from main to azure-main (exclude logger & storage)
 
 on:
   push:
-    branches: [ azure-main ]
+    branches: [ main ]
     paths:
       - 'Servers/ElevenLabsWebhook/**'
-      - 'scripts/**'
-      - 'nginx/**'
-      - 'instructions/**'
-      - 'future_features/**'
-      - 'docs/**'
 
 permissions:
   contents: write
 
 concurrency:
-  group: sync-azure-main-to-added-azure-infra
+  group: sync-main-to-azure-main
   cancel-in-progress: true
 
 env:
-  AZURE_BRANCH: 'added-azure-infra'
-  SYNC_PATHS: Servers/ElevenLabsWebhook scripts nginx instructions future_features docs
+  AZURE_BRANCH: 'azure-main'
+  SYNC_PATH: Servers/ElevenLabsWebhook
 
 jobs:
   sync:
@@ -42,34 +37,36 @@ jobs:
           if git ls-remote --exit-code origin refs/heads/${AZURE_BRANCH}; then
             git fetch origin ${AZURE_BRANCH}:${AZURE_BRANCH}
           else
-            git checkout -b ${AZURE_BRANCH} origin/azure-main || git checkout -b ${AZURE_BRANCH}
+            git checkout -b ${AZURE_BRANCH} origin/main || git checkout -b ${AZURE_BRANCH}
             git push origin ${AZURE_BRANCH}
           fi
 
       - name: Checkout target branch
         run: git checkout ${AZURE_BRANCH}
 
-      - name: Copy selected paths from azure-main into target branch (with exclusions)
+      - name: Sync ElevenLabsWebhook (with exclusions)
         run: |
-          # Reset working tree
+          # Clean working tree
           git reset --hard
 
-          # Copy ONLY ElevenLabsWebhook and explicitly allowed folders
-          git checkout origin/azure-main -- ${SYNC_PATHS} || true
+          # Copy ONLY ElevenLabsWebhook from main
+          git checkout origin/main -- ${SYNC_PATH} || true
 
-          # Restore environment-specific files (do not sync these)
+          # Restore excluded Azure-specific files
           git restore --source=HEAD -- \
             Servers/ElevenLabsWebhook/src/utils/logger.py \
-            Servers/ElevenLabsWebhook/src/utils/storage.py || true
+            Servers/ElevenLabsWebhook/src/utils/storage.py \
+            Servers/ElevenLabsWebhook/requirements.txt \
+            Servers/ElevenLabsWebhook/tests/integration/** || true
 
-          # Stage only allowed paths
-          git add ${SYNC_PATHS} || true
+          # Stage only ElevenLabsWebhook
+          git add ${SYNC_PATH} || true
 
       - name: Commit and push changes if any
         id: commit
         run: |
           if git status --porcelain | grep -q '.'; then
-            git commit -m "chore(sync): sync ElevenLabsWebhook from azure-main"
+            git commit -m "chore(sync): sync ElevenLabsWebhook from main (exclude logger/storage)"
             git push origin ${AZURE_BRANCH}
             echo "pushed=true" >> $GITHUB_OUTPUT
           else
