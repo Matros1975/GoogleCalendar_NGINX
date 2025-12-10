@@ -11,7 +11,7 @@ on:
 
 # Define environment variables used throughout the workflow
 env:
-  SERVICE_NAME: azure-elevenlabswebhook
+  SERVICE_NAME: elevenlabswebhook
   RESOURCE_GROUP: rg-elevenlabs
   AZURE_REGION: westeurope
   DOCKERFILE_PATH: Servers/ElevenLabsWebhook/Dockerfile
