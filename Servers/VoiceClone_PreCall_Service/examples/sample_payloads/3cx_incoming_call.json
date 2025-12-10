@@ -1,0 +1,10 @@
+{
+  "event_type": "IncomingCall",
+  "call_id": "abc123-def456-ghi789",
+  "caller_id": "+31612345678",
+  "called_number": "+31201234567",
+  "timestamp": "2025-12-10T12:00:00Z",
+  "direction": "In",
+  "duration": null,
+  "recording_url": null
+}

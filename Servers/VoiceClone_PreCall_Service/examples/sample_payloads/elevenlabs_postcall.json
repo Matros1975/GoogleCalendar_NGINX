@@ -1,0 +1,13 @@
+{
+  "call_id": "elevenlabs_call_123abc",
+  "agent_id": "agent_def456",
+  "transcript": "Agent: Hello, how can I help you today?\nUser: I need help with my account.\nAgent: I'd be happy to help with that. Can you provide your account number?",
+  "duration_seconds": 185,
+  "status": "completed",
+  "custom_variables": {
+    "caller_id": "+31612345678",
+    "threecx_call_id": "abc123-def456-ghi789",
+    "cloned_voice_id": "voice_789xyz"
+  },
+  "timestamp": "2025-12-10T12:03:05Z"
+}

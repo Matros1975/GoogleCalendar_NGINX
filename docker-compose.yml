@@ -371,6 +371,91 @@ services:
       retries: 3
       start_period: 10s
 
+  # Voice Clone Pre-Call Service
+  voiceclone-precall:
+    build: ./Servers/VoiceClone_PreCall_Service
+    container_name: voiceclone-precall
+    restart: unless-stopped
+    
+    # Load centralized environment configuration
+    env_file:
+      - .env
+    
+    # Internal network only
+    networks:
+      - mcp-internal
+    
+    # Environment configuration
+    environment:
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - ELEVENLABS_AGENT_ID=${ELEVENLABS_AGENT_ID}
+      - ELEVENLABS_PHONE_NUMBER_ID=${ELEVENLABS_PHONE_NUMBER_ID}
+      - ELEVENLABS_API_BASE=${ELEVENLABS_API_BASE:-https://api.elevenlabs.io/v1}
+      - GREETING_VOICE_ID=${GREETING_VOICE_ID:-default_greeting_voice}
+      - GREETING_MESSAGE=${GREETING_MESSAGE:-Hello thanks for calling. Please hold while we prepare your personalized experience.}
+      - GREETING_MUSIC_ENABLED=${GREETING_MUSIC_ENABLED:-true}
+      - GREETING_MUSIC_URL=${GREETING_MUSIC_URL}
+      - CLONE_MAX_WAIT_SECONDS=${CLONE_MAX_WAIT_SECONDS:-35}
+      - AUTO_TRANSITION_ENABLED=${AUTO_TRANSITION_ENABLED:-true}
+      - DATABASE_URL=${VOICECLONE_DATABASE_URL:-postgresql+asyncpg://voiceclone:voiceclone@localhost:5432/voiceclone_db}
+      - REDIS_URL=${REDIS_URL:-redis://localhost:6379/0}
+      - CACHE_TTL=${CACHE_TTL:-86400}
+      - VOICE_CLONE_TIMEOUT=${VOICE_CLONE_TIMEOUT:-30}
+      - VOICE_SAMPLE_STORAGE=${VOICE_SAMPLE_STORAGE:-local}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_REGION=${S3_REGION:-eu-west-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - LOCAL_VOICE_SAMPLES_PATH=/app/data/voices
+      - 3CX_WEBHOOK_SECRET=${3CX_WEBHOOK_SECRET}
+      - 3CX_TRUSTED_IPS=${3CX_TRUSTED_IPS:-127.0.0.1,10.0.0.0/8}
+      - HOST=0.0.0.0
+      - PORT=3006
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - WEBHOOK_SECRET=${VOICECLONE_WEBHOOK_SECRET}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["*"]}
+    
+    # Persistent storage for voice samples and logs
+    volumes:
+      - voiceclone-data:/app/data
+      - ./logs:/var/log/mcp-services
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.5"
+    
+    # Enhanced Security Configuration
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
+    
+    # Read-only root filesystem for security
+    read_only: true
+    
+    # Drop all capabilities
+    cap_drop:
+      - ALL
+    
+    # Temporary filesystems for writes
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=100m
+      - /app/logs:rw,noexec,nosuid,nodev,size=50m
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3006/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
   # DuckDNS IP updater service
   duckdns-updater:
     build:
@@ -561,4 +646,6 @@ volumes:
   duckdns-logs:
     driver: local
   elevenlabs-storage:
+    driver: local
+  voiceclone-data:
     driver: local
