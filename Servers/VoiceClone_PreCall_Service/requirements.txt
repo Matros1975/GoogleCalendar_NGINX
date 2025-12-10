@@ -9,6 +9,9 @@ pydantic-settings>=2.1.0
 # HTTP client
 httpx>=0.25.0
 
+# Twilio SDK for TwiML and signature validation
+twilio>=8.10.0
+
 # Database
 sqlalchemy[asyncio]>=2.0.23
 asyncpg>=0.29.0

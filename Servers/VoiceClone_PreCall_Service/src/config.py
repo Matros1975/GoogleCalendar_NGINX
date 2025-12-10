@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     # ElevenLabs Configuration
     elevenlabs_api_key: str = Field(..., description="ElevenLabs API key")
     elevenlabs_agent_id: str = Field(..., description="ElevenLabs Voice Agent ID")
-    elevenlabs_phone_number_id: str = Field(..., description="ElevenLabs registered phone number ID")
     elevenlabs_api_base: str = Field(
         default="https://api.elevenlabs.io/v1",
         description="ElevenLabs API base URL"
@@ -97,14 +96,28 @@ class Settings(BaseSettings):
         description="Local path for voice samples"
     )
     
-    # 3CX Configuration
-    threecx_webhook_secret: str = Field(
-        ...,
-        description="3CX webhook secret for signature verification"
+    # Twilio Configuration
+    twilio_account_sid: str = Field(
+        default="",
+        description="Twilio Account SID"
     )
-    threecx_trusted_ips: str = Field(
-        default="127.0.0.1,10.0.0.0/8",
-        description="Comma-separated list of trusted IP addresses/ranges"
+    twilio_auth_token: str = Field(
+        default="",
+        description="Twilio Auth Token for webhook signature validation"
+    )
+    twilio_phone_number: str = Field(
+        default="",
+        description="Twilio phone number (E.164 format)"
+    )
+    twilio_webhook_url: str = Field(
+        default="",
+        description="Twilio webhook URL for inbound calls"
+    )
+    
+    # Testing Mode
+    skip_webhook_signature_validation: bool = Field(
+        default=False,
+        description="Skip Twilio signature validation for local testing"
     )
     
     # Server Configuration
@@ -116,7 +129,7 @@ class Settings(BaseSettings):
     # Security
     webhook_secret: str = Field(..., description="Webhook signature verification secret")
     cors_origins: str = Field(
-        default='["https://your-3cx.com"]',
+        default='["*"]',
         description="CORS allowed origins (JSON array as string)"
     )
     
@@ -155,10 +168,6 @@ class Settings(BaseSettings):
             return json.loads(self.cors_origins)
         except json.JSONDecodeError:
             return []
-    
-    def get_trusted_ips_list(self) -> List[str]:
-        """Parse trusted IPs from comma-separated string."""
-        return [ip.strip() for ip in self.threecx_trusted_ips.split(",") if ip.strip()]
     
     class Config:
         """Pydantic config."""
