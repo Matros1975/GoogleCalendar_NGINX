@@ -1,0 +1,117 @@
+name: Deploy ElevenLabsWebhook to Azure Container Apps
+
+# Trigger workflow on push to azure-main branch
+# Only when files in the ElevenLabsWebhook service folder change
+on:
+  push:
+    branches:
+      - azure-main
+    paths:
+      - 'Servers/ElevenLabsWebhook/**'
+
+# Define environment variables used throughout the workflow
+env:
+  SERVICE_NAME: elevenlabswebhook
+  RESOURCE_GROUP: rg-elevenlabs
+  AZURE_REGION: westeurope
+  DOCKERFILE_PATH: Servers/ElevenLabsWebhook/Dockerfile
+  BUILD_CONTEXT: Servers/ElevenLabsWebhook
+
+# Ensure only one deployment runs at a time for this workflow
+concurrency:
+  group: deploy-elevenlabs-webhook
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to Azure Container Apps
+    runs-on: ubuntu-latest
+    
+    # Required permissions for OIDC authentication
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      # Step 2: Authenticate to Azure using OIDC (OpenID Connect)
+      # This uses federated credentials instead of service principal secrets
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      # Step 3: Login to Azure Container Registry
+      # Uses the authenticated Azure session from the previous step
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
+      
+      # Step 4: Extract metadata for Docker image tagging
+      # Creates tags based on git commit SHA and 'latest'
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.SERVICE_NAME }}
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest
+      
+      # Step 5: Set up Docker Buildx for advanced build features
+      # Enables multi-platform builds and improved caching
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      # Step 6: Build and push Docker image to ACR
+      # Uses the Dockerfile in the ElevenLabsWebhook folder
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.BUILD_CONTEXT }}
+          file: ${{ env.DOCKERFILE_PATH }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.SERVICE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/${{ env.SERVICE_NAME }}:buildcache,mode=max
+      
+      # Step 7: Deploy the new image to Azure Container App
+      # Updates the existing container app with the newly built image
+      - name: Deploy to Azure Container Apps
+        run: |
+          # Extract the image tag (commit SHA)
+          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | grep -v latest | head -n 1)
+          
+          # Update the container app with the new image
+          az containerapp update \
+            --name ${{ env.SERVICE_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${IMAGE_TAG} \
+            --output table
+      
+      # Step 8: Verify deployment success
+      # Checks that the container app is running and accessible
+      - name: Verify deployment
+        run: |
+          echo "Deployment completed successfully!"
+          echo "Service URL: https://elevenlabswebhook.kindriver-c1a923f6.westeurope.azurecontainerapps.io"
+          
+          # Get the container app status
+          az containerapp show \
+            --name ${{ env.SERVICE_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "properties.runningStatus" \
+            --output tsv
+      
+      # Step 9: Logout from Azure
+      # Clean up the Azure session
+      - name: Azure Logout
+        if: always()
+        run: |
+          az logout
