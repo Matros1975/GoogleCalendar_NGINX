@@ -1,0 +1,17 @@
+{
+  "type": "pre_call",
+  "event_timestamp": 1702425485,
+  "conversation_id": "conv_abc123xyz",
+  "agent_id": "agent_def456uvw",
+  "caller_metadata": {
+    "name": "Ivan",
+    "date_of_birth": "11.12.2007",
+    "phone_number": "+31612345678"
+  },
+  "voice_sample": {
+    "format": "base64",
+    "data": "UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=",
+    "duration_seconds": 5.2,
+    "sample_rate": 44100
+  }
+}
