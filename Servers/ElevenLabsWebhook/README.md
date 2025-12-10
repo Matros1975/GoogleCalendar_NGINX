@@ -2,6 +2,12 @@
 
 A Python-based microservice to handle ElevenLabs post-call webhooks. This service follows existing infrastructure patterns and is designed to run as a containerized service behind NGINX proxy.
 
+## Deployment
+
+**Azure Container Apps**: Deployed to West Europe  
+**Service URL**: https://elevenlabswebhook.kindriver-c1a923f6.westeurope.azurecontainerapps.io  
+**Auto-deployment**: Enabled via GitHub Actions on push to `azure-main` branch
+
 ## Overview
 
 This service receives and processes webhook events from ElevenLabs voice agents, including:
