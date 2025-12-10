@@ -2,9 +2,9 @@
 Main entry point for ElevenLabs Webhook Service.
 
 This service handles post-call webhooks from ElevenLabs including:
-- post_call_transcription: Full conversation data with transcripts.
-- post_call_audio: Base64-encoded MP3 audio.
-- call_initiation_failure: Failed call metadata.
+- post_call_transcription: Full conversation data with transcripts
+- post_call_audio: Base64-encoded MP3 audio
+- call_initiation_failure: Failed call metadata
 """
 
 import json
