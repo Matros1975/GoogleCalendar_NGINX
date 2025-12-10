@@ -371,6 +371,100 @@ services:
       retries: 3
       start_period: 10s
 
+  # VoiceClone Pre-Call Service
+  voiceclone-precall:
+    build: ./Servers/VoiceClone_PreCall_Service
+    container_name: voiceclone-precall
+    restart: unless-stopped
+    
+    # Load centralized environment configuration
+    env_file:
+      - .env
+    
+    # Internal network only
+    networks:
+      - mcp-internal
+    
+    # Environment configuration
+    environment:
+      # ElevenLabs Configuration
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - ELEVENLABS_AGENT_ID=${ELEVENLABS_AGENT_ID}
+      - ELEVENLABS_PHONE_NUMBER_ID=${ELEVENLABS_PHONE_NUMBER_ID}
+      - ELEVENLABS_API_BASE=${ELEVENLABS_API_BASE:-https://api.elevenlabs.io/v1}
+      # Greeting Configuration
+      - GREETING_VOICE_ID=${GREETING_VOICE_ID:-default_greeting_voice}
+      - GREETING_MESSAGE=${GREETING_MESSAGE:-Hello thanks for calling. Please hold while we prepare your personalized experience.}
+      - GREETING_MUSIC_ENABLED=${GREETING_MUSIC_ENABLED:-true}
+      - GREETING_MUSIC_URL=${GREETING_MUSIC_URL}
+      - CLONE_MAX_WAIT_SECONDS=${CLONE_MAX_WAIT_SECONDS:-35}
+      - AUTO_TRANSITION_ENABLED=${AUTO_TRANSITION_ENABLED:-true}
+      # Database Configuration (connects to shared postgres container)
+      - DATABASE_URL=${VOICECLONE_DATABASE_URL:-postgresql+asyncpg://voiceagent:password@postgres:5432/voice_clones}
+      - CACHE_TTL=${VOICE_CLONE_CACHE_TTL:-86400}
+      # Voice Clone Configuration
+      - VOICE_CLONE_TIMEOUT=${VOICE_CLONE_TIMEOUT:-30}
+      - VOICE_SAMPLE_STORAGE=${VOICE_SAMPLE_STORAGE:-local}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_REGION=${S3_REGION:-eu-west-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - LOCAL_VOICE_SAMPLES_PATH=/app/data/voices
+      # 3CX Configuration
+      - THREECX_WEBHOOK_SECRET=${THREECX_WEBHOOK_SECRET}
+      - THREECX_TRUSTED_IPS=${THREECX_TRUSTED_IPS:-127.0.0.1,10.0.0.0/8}
+      # Server Configuration
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-text}
+      - LOG_DIR=/var/log/mcp-services
+      - LOG_FILENAME=voiceclone.log
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      # Security
+      - WEBHOOK_SECRET=${ELEVENLABS_WEBHOOK_SECRET}
+      - CORS_ORIGINS=${VOICECLONE_CORS_ORIGINS:-["*"]}
+    
+    # Persistent storage for voice samples and logs
+    volumes:
+      - voiceclone-voices:/app/data/voices
+      - ./logs:/var/log/mcp-services
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.5"
+    
+    # Enhanced Security Configuration
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
+    
+    # Read-only root filesystem for security
+    read_only: true
+    
+    # Drop all capabilities (port 8000 doesn't need NET_BIND_SERVICE)
+    cap_drop:
+      - ALL
+    
+    # Temporary filesystems for writes
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=100m
+      - /app/logs:rw,noexec,nosuid,nodev,size=50m
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
   # DuckDNS IP updater service
   duckdns-updater:
     build:
@@ -561,4 +655,6 @@ volumes:
   duckdns-logs:
     driver: local
   elevenlabs-storage:
+    driver: local
+  voiceclone-voices:
     driver: local
