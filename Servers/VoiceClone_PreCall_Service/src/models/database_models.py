@@ -206,14 +206,14 @@ class CallLog(Base):
         unique=True,
         nullable=False,
         index=True,
-        comment="ElevenLabs call ID"
+        comment="ElevenLabs call ID or Twilio call SID"
     )
     
-    threecx_call_id: Mapped[str] = mapped_column(
+    call_sid: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
         index=True,
-        comment="3CX call ID"
+        comment="Twilio call SID (replaces 3CX call ID)"
     )
     
     caller_id: Mapped[str] = mapped_column(
@@ -287,12 +287,12 @@ class CallLog(Base):
     
     __table_args__ = (
         Index('ix_call_log_call_id', 'call_id', unique=True),
-        Index('ix_call_log_threecx_call_id', 'threecx_call_id'),
+        Index('ix_call_log_call_sid', 'call_sid'),
         Index('ix_call_log_caller_id', 'caller_id'),
         Index('ix_call_log_status', 'status'),
         Index('ix_call_log_created_at', 'created_at'),
         CheckConstraint(
-            "status IN ('initiated', 'completed', 'failed')",
+            "status IN ('initiated', 'completed', 'failed', 'processing')",
             name='call_log_status_check'
         ),
     )

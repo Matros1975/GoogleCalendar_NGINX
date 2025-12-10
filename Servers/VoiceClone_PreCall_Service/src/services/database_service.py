@@ -337,7 +337,7 @@ class DatabaseService:
     async def log_call_initiated(
         self,
         call_id: str,
-        threecx_call_id: str,
+        call_sid: str,
         caller_id: str,
         cloned_voice_id: str,
     ) -> CallLog:
@@ -345,8 +345,8 @@ class DatabaseService:
         Log call initiation.
         
         Args:
-            call_id: ElevenLabs call ID
-            threecx_call_id: 3CX call ID
+            call_id: ElevenLabs call ID or Twilio call SID
+            call_sid: Twilio call SID
             caller_id: Caller phone number
             cloned_voice_id: Voice ID used
             
@@ -357,7 +357,7 @@ class DatabaseService:
             async with await self.get_session() as session:
                 call_log = CallLog(
                     call_id=call_id,
-                    threecx_call_id=threecx_call_id,
+                    call_sid=call_sid,
                     caller_id=caller_id,
                     cloned_voice_id=cloned_voice_id,
                     status="initiated",
@@ -638,7 +638,7 @@ class DatabaseService:
             async with await self.get_session() as session:
                 call_log = CallLog(
                     call_id=call_sid,
-                    threecx_call_id=call_sid,  # Using call_sid for both during migration
+                    call_sid=call_sid,
                     caller_id=caller_number,
                     cloned_voice_id="pending",
                     status=status,
