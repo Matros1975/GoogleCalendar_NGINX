@@ -81,15 +81,21 @@ jobs:
       # Step 7: Deploy the new image to Azure Container App
       - name: Deploy to Azure Container Apps
         run: |
-          # Extract the image tag (commit SHA)
-          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | grep -v latest | head -n 1)
+          echo "Docker tags:"
+          echo "${{ steps.meta.outputs.tags }}"
 
-          # Update the container app with the new image
+          # Pick the non-latest tag safely
+          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | tr ' ' '\n' | grep -v latest | head -n 1)
+
+          echo "Deploying image: $IMAGE_TAG"
+
           az containerapp update \
             --name ${{ env.SERVICE_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${IMAGE_TAG} \
+            --container-name ${{ env.SERVICE_NAME }} \
+            --image $IMAGE_TAG \
             --output table
+
 
       # Step 8: Verify deployment success (URL FIXED)
       - name: Verify deployment
