@@ -1,37 +1,39 @@
 # VoiceClone Pre-Call Service
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Port:** 3006  
 **Status:** Production Ready
 
 ## Overview
 
-The VoiceClone Pre-Call Service integrates 3CX PBX with ElevenLabs Voice Agent API to dynamically clone voices before initiating calls. This service implements an innovative asynchronous greeting workflow that eliminates awkward silence during voice cloning.
+The VoiceClone Pre-Call Service integrates Twilio with ElevenLabs Voice Agent API to dynamically clone voices before initiating calls. This service implements an innovative asynchronous voice cloning workflow using TwiML-based call control that eliminates awkward silence during voice cloning.
 
 ### Key Features
 
-- **Instant Response**: Triggers prerecorded greeting within 100ms
+- **Instant TwiML Response**: Returns greeting within 100ms using Twilio TwiML
 - **Async Voice Cloning**: Clones voice in background while greeting plays
-- **Automatic Transition**: Seamlessly switches to cloned voice when ready
+- **Automatic Transition**: Seamlessly connects to ElevenLabs via WebSocket when ready
 - **Zero Perceived Wait**: Professional, uninterrupted conversation experience
 - **Voice Clone Caching**: Performance optimization with 24-hour TTL
 - **Comprehensive Logging**: Full audit trail for calls and clones
+- **Twilio Native**: Uses TwiML and WebSocket streaming for direct integration
 
 ## Architecture
 
 ```
-3CX PBX → Webhook → VoiceClone Service → ElevenLabs API
-                          ↓
-                    PostgreSQL (voice_clones DB)
+Twilio Phone → Webhook → VoiceClone Service → ElevenLabs WebSocket
+                              ↓
+                        PostgreSQL (voice_clones DB)
 ```
 
 ### Workflow
 
-1. **Incoming Call**: 3CX sends webhook notification
-2. **Immediate Greeting**: Service triggers prerecorded greeting (100ms)
+1. **Incoming Call**: Twilio sends webhook notification to `/webhooks/inbound`
+2. **Immediate TwiML Response**: Service returns TwiML with greeting (100ms)
 3. **Background Clone**: Voice cloning happens asynchronously (5-30s)
-4. **Auto Transition**: Voice Agent takes over when clone ready
-5. **Call Logging**: Full transcript and metrics stored
+4. **Status Polling**: Twilio polls `/webhooks/status-callback` to check completion
+5. **WebSocket Connection**: When ready, TwiML connects to ElevenLabs via WebSocket
+6. **Call Logging**: Full transcript and metrics stored
 
 ## Technology Stack
 
@@ -42,6 +44,8 @@ The VoiceClone Pre-Call Service integrates 3CX PBX with ElevenLabs Voice Agent A
 - **Python**: 3.11
 - **ORM**: SQLAlchemy (async)
 - **Migrations**: Alembic
+- **Telephony**: Twilio (TwiML + WebSocket)
+- **Voice AI**: ElevenLabs (WebSocket streaming)
 
 ## Quick Start
 
@@ -50,7 +54,8 @@ The VoiceClone Pre-Call Service integrates 3CX PBX with ElevenLabs Voice Agent A
 - Python 3.11+
 - PostgreSQL 15+
 - ElevenLabs API account
-- 3CX PBX webhook configuration
+- Twilio account with phone number
+- Public webhook URL (use ngrok for local testing)
 
 ### Installation
 
@@ -89,6 +94,12 @@ See `.env.example` for all configuration options. Key variables:
 ELEVENLABS_API_KEY=your-api-key
 ELEVENLABS_AGENT_ID=your-agent-id
 
+# Twilio
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_twilio_auth_token_here
+TWILIO_PHONE_NUMBER=+1234567890
+SKIP_WEBHOOK_SIGNATURE_VALIDATION=false  # Set to true for local testing
+
 # Database
 DATABASE_URL=postgresql+asyncpg://user:pass@postgres:5432/voice_clones
 
@@ -96,6 +107,7 @@ DATABASE_URL=postgresql+asyncpg://user:pass@postgres:5432/voice_clones
 GREETING_VOICE_ID=default_greeting_voice
 GREETING_MESSAGE="Hello, thanks for calling..."
 GREETING_MUSIC_ENABLED=true
+GREETING_MUSIC_URL=https://your-domain.com/hold-music.mp3
 ```
 
 ## API Endpoints
@@ -105,9 +117,10 @@ GREETING_MUSIC_ENABLED=true
 GET /health
 ```
 
-### 3CX Incoming Call Webhook
+### Twilio Webhooks
 ```http
-POST /webhook/3cx
+POST /webhooks/inbound          # Incoming call from Twilio
+POST /webhooks/status-callback  # Status polling (clone completion check)
 ```
 
 ### ElevenLabs POST-Call Webhook
@@ -121,13 +134,36 @@ DELETE /api/v1/cache/{caller_id}
 GET /api/v1/statistics
 ```
 
+## Twilio Configuration
+
+### 1. Configure Phone Number Webhook
+
+In Twilio Console → Phone Numbers → Manage → Active numbers:
+
+**Voice & Fax → A CALL COMES IN:**
+- Webhook: `https://your-domain.com/webhooks/inbound`
+- HTTP Method: `POST`
+
+### 2. Test Locally with ngrok
+
+```bash
+# Start ngrok
+ngrok http 8000
+
+# Set webhook URL in Twilio to:
+# https://your-ngrok-url.ngrok.io/webhooks/inbound
+
+# Or use test script:
+SKIP_WEBHOOK_SIGNATURE_VALIDATION=true ./test-twilio-webhook.sh
+```
+
 ## Database Schema
 
 ### Tables
 
 1. **caller_voice_mapping** - Maps caller IDs to voice samples
 2. **voice_clone_cache** - Caches cloned voices (24h TTL)
-3. **call_log** - Call records and transcripts
+3. **call_log** - Call records and transcripts (updated: uses `call_sid` instead of `threecx_call_id`)
 4. **voice_clone_log** - Clone creation audit trail
 5. **clone_ready_events** - Clone completion tracking
 6. **clone_failed_events** - Clone failure tracking
@@ -138,6 +174,9 @@ See `docs/DATABASE.md` for complete schema documentation.
 ## Testing
 
 ```bash
+# Test Twilio webhooks locally
+./test-twilio-webhook.sh
+
 # Run all tests
 pytest
 
