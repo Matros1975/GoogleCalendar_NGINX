@@ -40,3 +40,9 @@ python-dotenv>=1.0.0
 
 # Utilities
 python-multipart>=0.0.6
+
+# SIP support (optional - comment out if not using SIP)
+# Note: pjsua2 requires system package libpjproject-dev
+# Install with: apt-get install -y python3-pjsua2 libpjproject-dev
+# pjsua2>=2.13
+websockets>=12.0

@@ -424,6 +424,21 @@ services:
       # Security
       - WEBHOOK_SECRET=${ELEVENLABS_WEBHOOK_SECRET}
       - CORS_ORIGINS=${VOICECLONE_CORS_ORIGINS:-["*"]}
+      # Twilio Configuration
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - SKIP_WEBHOOK_SIGNATURE_VALIDATION=${SKIP_WEBHOOK_SIGNATURE_VALIDATION:-false}
+      # SIP Configuration (optional - for native SIP support)
+      - ENABLE_SIP_HANDLER=${ENABLE_SIP_HANDLER:-false}
+      - SIP_HOST=${SIP_HOST:-0.0.0.0}
+      - SIP_PORT=${SIP_PORT:-5060}
+    
+    # Port mappings (uncomment if SIP is enabled and needs external access)
+    # ports:
+    #   - "8000:8000"  # HTTP API
+    #   - "5060:5060/udp"  # SIP signaling
+    #   - "16384-32768:16384-32768/udp"  # RTP media
     
     # Persistent storage for voice samples and logs
     volumes:

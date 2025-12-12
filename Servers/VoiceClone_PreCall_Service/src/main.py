@@ -22,6 +22,8 @@ from src.services.elevenlabs_client import ElevenLabsService
 from src.services.storage_service import StorageService
 from src.services.voice_clone_service import VoiceCloneService
 from src.services.voice_clone_async_service import VoiceCloneAsyncService
+from src.services.call_controller import CallController
+from src.services.audio_service import AudioService
 from src.models.webhook_models import (
     PostCallWebhookPayload,
     HealthCheckResponse,
@@ -40,6 +42,9 @@ elevenlabs_service: ElevenLabsService = None
 storage_service: StorageService = None
 voice_clone_service: VoiceCloneService = None
 async_service: VoiceCloneAsyncService = None
+call_controller: CallController = None
+audio_service: AudioService = None
+sip_server = None
 postcall_handler: PostCallHandler = None
 hmac_validator: HMACValidator = None
 
@@ -48,8 +53,8 @@ hmac_validator: HMACValidator = None
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown."""
     global db_service, elevenlabs_service, storage_service
-    global voice_clone_service, async_service
-    global postcall_handler, hmac_validator
+    global voice_clone_service, async_service, call_controller, audio_service
+    global postcall_handler, hmac_validator, sip_server
     
     # Startup
     logger.info("Starting VoiceClone Pre-Call Service...")
@@ -62,6 +67,7 @@ async def lifespan(app: FastAPI):
     
     elevenlabs_service = ElevenLabsService()
     storage_service = StorageService()
+    audio_service = AudioService()
     
     voice_clone_service = VoiceCloneService(
         db_service=db_service,
@@ -75,12 +81,40 @@ async def lifespan(app: FastAPI):
         db_service=db_service,
     )
     
+    # Initialize call controller
+    call_controller = CallController(
+        voice_clone_service=async_service,
+        database_service=db_service,
+    )
+    
     # Initialize handlers
-    twilio_handler.init_handler(async_service, db_service)
+    twilio_handler.init_handler(call_controller)
     postcall_handler = PostCallHandler(db_service=db_service)
     
     # Initialize HMAC validator for ElevenLabs webhooks
     hmac_validator = HMACValidator(secret=settings.webhook_secret)
+    
+    # Initialize SIP server (if enabled)
+    if settings.enable_sip_handler:
+        try:
+            from src.handlers.sip_handler import SIPServer
+            logger.info("SIP handler enabled - starting SIP server...")
+            sip_server = SIPServer(
+                call_controller=call_controller,
+                audio_service=audio_service,
+                host=settings.sip_host,
+                port=settings.sip_port
+            )
+            await sip_server.start()
+            logger.info(f"✅ SIP server started on {settings.sip_host}:{settings.sip_port}")
+        except ImportError as e:
+            logger.warning(f"⚠️  SIP handler enabled but dependencies not available: {e}")
+            logger.warning("   Install PJSUA2 to enable SIP support")
+        except Exception as e:
+            logger.error(f"❌ Failed to start SIP server: {e}")
+            raise
+    else:
+        logger.info("SIP handler disabled (set ENABLE_SIP_HANDLER=true to enable)")
     
     logger.info("VoiceClone Pre-Call Service started successfully")
     logger.info(f"Environment: {settings.environment}")
@@ -92,6 +126,19 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("VoiceClone Pre-Call Service shutting down...")
+    
+    if sip_server:
+        try:
+            await sip_server.stop()
+        except Exception as e:
+            logger.error(f"Error stopping SIP server: {e}")
+    
+    if audio_service:
+        try:
+            await audio_service.close()
+        except Exception as e:
+            logger.error(f"Error closing audio service: {e}")
+    
     if db_service:
         await db_service.close()
 

@@ -4,7 +4,6 @@ Twilio webhook handler for incoming call notifications.
 Implements TwiML-based call control for Twilio integration.
 """
 
-import asyncio
 from typing import Dict, Any
 
 from fastapi import APIRouter, Request, HTTPException, Form
@@ -13,30 +12,81 @@ from twilio.twiml.voice_response import VoiceResponse, Connect, Stream
 from twilio.request_validator import RequestValidator
 
 from src.config import get_settings
-from src.services.voice_clone_async_service import VoiceCloneAsyncService
-from src.services.database_service import DatabaseService
+from src.models.call_context import CallContext
+from src.models.call_instructions import CallInstructions
+from src.services.call_controller import CallController
 from src.utils.logger import get_logger, set_call_context
 from src.utils.exceptions import ValidationException
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/webhooks", tags=["twilio"])
 
-# Global service instances (injected on startup)
-async_service: VoiceCloneAsyncService = None
-db_service: DatabaseService = None
+# Global service instance (injected on startup)
+call_controller: CallController = None
 
 
-def init_handler(voice_clone_async_service: VoiceCloneAsyncService, database_service: DatabaseService):
+def init_handler(controller: CallController):
     """
-    Initialize handler with service dependencies.
+    Initialize handler with call controller.
     
     Args:
-        voice_clone_async_service: Async voice cloning service
-        database_service: Database service
+        controller: Call controller for business logic
     """
-    global async_service, db_service
-    async_service = voice_clone_async_service
-    db_service = database_service
+    global call_controller
+    call_controller = controller
+
+
+def _convert_to_twiml(instructions: CallInstructions) -> VoiceResponse:
+    """
+    Convert protocol-agnostic CallInstructions to Twilio TwiML.
+    
+    Args:
+        instructions: Call instructions from business logic
+        
+    Returns:
+        TwiML VoiceResponse object
+    """
+    response = VoiceResponse()
+    
+    # Add greeting if present
+    if instructions.greeting_audio:
+        response.say(
+            instructions.greeting_audio.text,
+            voice=instructions.greeting_audio.voice,
+            language=instructions.greeting_audio.language
+        )
+    
+    # Add hold music if present
+    if instructions.hold_audio:
+        response.play(instructions.hold_audio.url, loop=instructions.hold_audio.loop)
+    
+    # Handle status polling
+    if instructions.status_poll:
+        response.redirect(
+            url=instructions.status_poll.poll_url,
+            method="POST"
+        )
+    
+    # Handle WebSocket connection (completed state)
+    if instructions.websocket:
+        connect = Connect()
+        stream = Stream(
+            url=instructions.websocket.url,
+            track=instructions.websocket.track
+        )
+        stream.parameter(name="voice_id", value=instructions.websocket.voice_id)
+        stream.parameter(name="api_key", value=instructions.websocket.api_key)
+        connect.append(stream)
+        response.append(connect)
+    
+    # Handle error/hangup
+    if instructions.error_message:
+        response.say(instructions.error_message, voice="alice")
+    
+    if instructions.should_hangup:
+        response.hangup()
+    
+    return response
 
 
 async def validate_twilio_signature(request: Request) -> bool:
@@ -95,10 +145,9 @@ async def handle_inbound_call(
     
     Flow:
     1. Validate Twilio signature
-    2. Extract caller information
-    3. Start async voice cloning
-    4. Return TwiML with greeting + music
-    5. Redirect to status-callback for completion check
+    2. Create call context
+    3. Get instructions from call controller
+    4. Convert to TwiML and return
     
     Args:
         request: FastAPI request object
@@ -119,42 +168,24 @@ async def handle_inbound_call(
         
         logger.info(f"📞 Inbound call: {CallSid} from {From} to {To} (status: {CallStatus})")
         
-        # Start async voice cloning workflow
-        asyncio.create_task(
-            async_service.start_clone_async(
-                call_sid=CallSid,
-                caller_number=From,
-                twilio_number=To
-            )
+        # Create call context
+        context = CallContext(
+            call_id=CallSid,
+            caller_number=From,
+            recipient_number=To,
+            status="in-progress" if CallStatus == "in-progress" else "initiated",
+            protocol="twilio"
         )
         
-        # Generate TwiML response with greeting
-        settings = get_settings()
-        response = VoiceResponse()
+        # Get instructions from controller
+        instructions = await call_controller.handle_inbound_call(context)
         
-        # Play greeting message
-        response.say(
-            settings.greeting_message,
-            voice="alice",
-            language="en-US"
-        )
-        
-        # Play hold music while cloning (if enabled)
-        if settings.greeting_music_enabled and settings.greeting_music_url:
-            response.play(settings.greeting_music_url, loop=10)
-        else:
-            # Fallback: pause for max wait time
-            response.pause(length=settings.clone_max_wait_seconds)
-        
-        # Redirect to status callback to check if clone is ready
-        response.redirect(
-            url=f"/webhooks/status-callback?call_sid={CallSid}",
-            method="POST"
-        )
+        # Convert to TwiML
+        twiml_response = _convert_to_twiml(instructions)
         
         logger.info(f"✅ TwiML response sent for {CallSid} (greeting initiated)")
         
-        return Response(content=str(response), media_type="application/xml")
+        return Response(content=str(twiml_response), media_type="application/xml")
         
     except HTTPException:
         raise
@@ -199,56 +230,13 @@ async def handle_status_callback(
         
         logger.info(f"🔍 Status callback for {sid}")
         
-        # Check clone status
-        clone_status = await db_service.get_clone_status(sid)
+        # Get instructions from controller
+        instructions = await call_controller.check_clone_status(sid)
         
-        response = VoiceResponse()
-        settings = get_settings()
+        # Convert to TwiML
+        twiml_response = _convert_to_twiml(instructions)
         
-        if clone_status and clone_status["status"] == "completed":
-            logger.info(f"✅ Clone ready for {sid}, connecting to ElevenLabs")
-            
-            # Connect to ElevenLabs WebSocket
-            connect = Connect()
-            stream = Stream(
-                url=f"wss://api.elevenlabs.io/v1/convai/conversation?agent_id={settings.elevenlabs_agent_id}",
-                track="inbound_track"
-            )
-            
-            # Pass voice clone ID to ElevenLabs
-            stream.parameter(name="voice_id", value=clone_status["voice_clone_id"])
-            stream.parameter(name="api_key", value=settings.elevenlabs_api_key)
-            
-            connect.append(stream)
-            response.append(connect)
-            
-        elif clone_status and clone_status["status"] == "processing":
-            logger.info(f"⏳ Clone still processing for {sid}, continuing to wait")
-            
-            # Continue playing music/waiting
-            if settings.greeting_music_enabled and settings.greeting_music_url:
-                response.play(settings.greeting_music_url, loop=5)
-            else:
-                response.pause(length=10)
-            
-            # Redirect back to check again
-            response.redirect(
-                url=f"/webhooks/status-callback?call_sid={sid}",
-                method="POST"
-            )
-            
-        else:  # failed, timeout, or not found
-            error_msg = clone_status.get("error", "Unknown error") if clone_status else "Clone not found"
-            logger.error(f"❌ Clone failed for {sid}: {error_msg}")
-            
-            # Error message and hangup
-            response.say(
-                "We're sorry, we encountered an error preparing your call. Please try again later.",
-                voice="alice"
-            )
-            response.hangup()
-        
-        return Response(content=str(response), media_type="application/xml")
+        return Response(content=str(twiml_response), media_type="application/xml")
         
     except HTTPException:
         raise

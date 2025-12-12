@@ -6,34 +6,63 @@
 
 ## Overview
 
-The VoiceClone Pre-Call Service integrates Twilio with ElevenLabs Voice Agent API to dynamically clone voices before initiating calls. This service implements an innovative asynchronous voice cloning workflow using TwiML-based call control that eliminates awkward silence during voice cloning.
+The VoiceClone Pre-Call Service integrates telephony systems (Twilio and native SIP) with ElevenLabs Voice Agent API to dynamically clone voices before initiating calls. This service implements an innovative asynchronous voice cloning workflow that eliminates awkward silence during voice cloning.
 
 ### Key Features
 
-- **Instant TwiML Response**: Returns greeting within 100ms using Twilio TwiML
+- **Dual Protocol Support**: Works with both Twilio (TwiML) and native SIP
+- **Instant Response**: Returns greeting within 100ms
 - **Async Voice Cloning**: Clones voice in background while greeting plays
 - **Automatic Transition**: Seamlessly connects to ElevenLabs via WebSocket when ready
 - **Zero Perceived Wait**: Professional, uninterrupted conversation experience
 - **Voice Clone Caching**: Performance optimization with 24-hour TTL
 - **Comprehensive Logging**: Full audit trail for calls and clones
-- **Twilio Native**: Uses TwiML and WebSocket streaming for direct integration
+- **Protocol-Agnostic**: Business logic separated from protocol handling
 
 ## Architecture
 
+### Dual Protocol Design
+
 ```
-Twilio Phone → Webhook → VoiceClone Service → ElevenLabs WebSocket
-                              ↓
-                        PostgreSQL (voice_clones DB)
+┌─────────────────────────────────────────────────────────────┐
+│                    Protocol Handlers                         │
+│  ┌─────────────────┐           ┌────────────────────┐       │
+│  │ Twilio Handler  │           │  SIP Handler       │       │
+│  │  (TwiML)        │           │  (PJSUA2)         │       │
+│  └────────┬────────┘           └─────────┬──────────┘       │
+└───────────┼──────────────────────────────┼──────────────────┘
+            │                              │
+            └──────────────┬───────────────┘
+                           │
+            ┌──────────────▼───────────────────┐
+            │      CallController              │
+            │  (Protocol-Agnostic Logic)       │
+            └──────────────┬───────────────────┘
+                           │
+            ┌──────────────▼───────────────────┐
+            │  Services (Voice Clone, DB, etc) │
+            └──────────────┬───────────────────┘
+                           │
+            ┌──────────────▼───────────────────┐
+            │  ElevenLabs WebSocket + PostgreSQL│
+            └──────────────────────────────────┘
 ```
 
 ### Workflow
 
-1. **Incoming Call**: Twilio sends webhook notification to `/webhooks/inbound`
-2. **Immediate TwiML Response**: Service returns TwiML with greeting (100ms)
+#### Twilio Protocol
+1. **Incoming Call**: Twilio sends webhook to `/webhooks/inbound`
+2. **Immediate TwiML Response**: Returns greeting TwiML (100ms)
 3. **Background Clone**: Voice cloning happens asynchronously (5-30s)
-4. **Status Polling**: Twilio polls `/webhooks/status-callback` to check completion
-5. **WebSocket Connection**: When ready, TwiML connects to ElevenLabs via WebSocket
-6. **Call Logging**: Full transcript and metrics stored
+4. **Status Polling**: Twilio polls `/webhooks/status-callback`
+5. **WebSocket Connection**: TwiML connects to ElevenLabs when ready
+
+#### SIP Protocol (Optional)
+1. **Incoming Call**: SIP server receives INVITE
+2. **Answer Call**: Immediately answer and play greeting
+3. **Background Clone**: Voice cloning happens asynchronously
+4. **Internal Polling**: Handler polls clone status internally
+5. **WebSocket Connection**: Bridges RTP audio to ElevenLabs (future)
 
 ## Technology Stack
 
@@ -44,8 +73,11 @@ Twilio Phone → Webhook → VoiceClone Service → ElevenLabs WebSocket
 - **Python**: 3.11
 - **ORM**: SQLAlchemy (async)
 - **Migrations**: Alembic
-- **Telephony**: Twilio (TwiML + WebSocket)
+- **Telephony**: 
+  - Twilio (TwiML + WebSocket) - Primary
+  - PJSUA2 (Native SIP) - Optional
 - **Voice AI**: ElevenLabs (WebSocket streaming)
+- **Audio**: aiofiles, websockets
 
 ## Quick Start
 
@@ -54,8 +86,8 @@ Twilio Phone → Webhook → VoiceClone Service → ElevenLabs WebSocket
 - Python 3.11+
 - PostgreSQL 15+
 - ElevenLabs API account
-- Twilio account with phone number
-- Public webhook URL (use ngrok for local testing)
+- **For Twilio**: Twilio account with phone number + public webhook URL
+- **For SIP** (optional): PJSUA2 library (`python3-pjsua2`, `libpjproject-dev`)
 
 ### Installation
 
@@ -108,6 +140,11 @@ GREETING_VOICE_ID=default_greeting_voice
 GREETING_MESSAGE="Hello, thanks for calling..."
 GREETING_MUSIC_ENABLED=true
 GREETING_MUSIC_URL=https://your-domain.com/hold-music.mp3
+
+# SIP Configuration (Optional - for native SIP support)
+ENABLE_SIP_HANDLER=false
+SIP_HOST=0.0.0.0
+SIP_PORT=5060
 ```
 
 ## API Endpoints
@@ -173,22 +210,39 @@ See `docs/DATABASE.md` for complete schema documentation.
 
 ## Testing
 
-```bash
-# Test Twilio webhooks locally
-./test-twilio-webhook.sh
+### Unit and Integration Tests
 
-# Run all tests
-pytest
+```bash
+# Run all tests (21 total: 7 Twilio integration + 14 CallController unit)
+pytest -v
 
 # Run with coverage
 pytest --cov=src --cov-report=term-missing
 
 # Run only unit tests
-pytest tests/unit/
+pytest tests/unit/ -v
 
-# Run only integration tests
-pytest tests/integration/ -m integration
+# Test Twilio webhooks
+pytest tests/test_twilio_webhook_debug.py -v
 ```
+
+### Protocol-Specific Testing
+
+#### Twilio Testing
+```bash
+# Test Twilio webhooks locally
+./test-twilio-webhook.sh
+
+# Or with ngrok
+ngrok http 8000
+# Update Twilio webhook URL to ngrok URL
+```
+
+#### SIP Testing
+See [SIP Testing Guide](docs/SIP_TESTING_GUIDE.md) for:
+- Linphone softphone setup
+- SIPp load testing
+- Docker testing with SIP ports
 
 ## Monitoring
 
@@ -223,6 +277,8 @@ Logs are written to `/var/log/mcp-services/voiceclone.log` with rotation.
 - [Database Schema](docs/DATABASE.md)
 - [Deployment Guide](docs/DEPLOYMENT.md)
 - [Architecture Overview](docs/ARCHITECTURE.md)
+- [SIP Testing Guide](docs/SIP_TESTING_GUIDE.md) - **NEW**
+- [Migration Guide](docs/MIGRATION_GUIDE.md) - **NEW**
 
 ## Troubleshooting
 
