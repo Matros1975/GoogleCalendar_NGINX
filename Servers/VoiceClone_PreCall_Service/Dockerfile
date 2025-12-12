@@ -3,9 +3,13 @@
 
 FROM python:3.11-slim
 
-# Install curl for health checks
+# Install dependencies (curl for health checks, PJSUA2 for optional SIP support)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        build-essential \
+        libpjproject-dev \
+        python3-pjsua2 && \
     rm -rf /var/lib/apt/lists/*
 
 # Create app user for security (non-root)
@@ -31,8 +35,10 @@ RUN mkdir -p /app/logs /app/data/voices /var/log/mcp-services && \
 # Switch to non-root user
 USER voicecloneuser
 
-# Expose port 8000
+# Expose ports (8000 for HTTP, 5060 for SIP, RTP port range for media)
 EXPOSE 8000
+EXPOSE 5060/udp
+EXPOSE 16384-32768/udp
 
 # Health check - verify HTTP endpoint responds
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \

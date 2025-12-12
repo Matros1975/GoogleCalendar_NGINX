@@ -120,6 +120,22 @@ class Settings(BaseSettings):
         description="Skip Twilio signature validation for local testing"
     )
     
+    # SIP Configuration (optional)
+    enable_sip_handler: bool = Field(
+        default=False,
+        description="Enable SIP handler for native SIP support"
+    )
+    sip_host: str = Field(
+        default="0.0.0.0",
+        description="SIP server bind address"
+    )
+    sip_port: int = Field(
+        default=5060,
+        ge=1,
+        le=65535,
+        description="SIP server port"
+    )
+    
     # Server Configuration
     host: str = Field(default="0.0.0.0", description="Server host")
     port: int = Field(default=8000, ge=1, le=65535, description="Server port")
