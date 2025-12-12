@@ -3,13 +3,11 @@
 
 FROM python:3.11-slim
 
-# Install dependencies (curl for health checks, PJSUA2 for optional SIP support)
+# Install dependencies (curl for health checks)
+# Note: SIP support (PJSUA2) requires manual installation if needed:
+#   apt-get install -y libpjproject-dev python3-pjsua2
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        curl \
-        build-essential \
-        libpjproject-dev \
-        python3-pjsua2 && \
+    apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Create app user for security (non-root)
