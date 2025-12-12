@@ -22,6 +22,7 @@ from src.services.elevenlabs_client import ElevenLabsService
 from src.services.storage_service import StorageService
 from src.services.voice_clone_service import VoiceCloneService
 from src.services.voice_clone_async_service import VoiceCloneAsyncService
+from src.services.call_controller import CallController
 from src.models.webhook_models import (
     PostCallWebhookPayload,
     HealthCheckResponse,
@@ -40,6 +41,7 @@ elevenlabs_service: ElevenLabsService = None
 storage_service: StorageService = None
 voice_clone_service: VoiceCloneService = None
 async_service: VoiceCloneAsyncService = None
+call_controller: CallController = None
 postcall_handler: PostCallHandler = None
 hmac_validator: HMACValidator = None
 
@@ -48,7 +50,7 @@ hmac_validator: HMACValidator = None
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown."""
     global db_service, elevenlabs_service, storage_service
-    global voice_clone_service, async_service
+    global voice_clone_service, async_service, call_controller
     global postcall_handler, hmac_validator
     
     # Startup
@@ -75,8 +77,14 @@ async def lifespan(app: FastAPI):
         db_service=db_service,
     )
     
+    # Initialize call controller
+    call_controller = CallController(
+        voice_clone_service=async_service,
+        database_service=db_service,
+    )
+    
     # Initialize handlers
-    twilio_handler.init_handler(async_service, db_service)
+    twilio_handler.init_handler(call_controller)
     postcall_handler = PostCallHandler(db_service=db_service)
     
     # Initialize HMAC validator for ElevenLabs webhooks

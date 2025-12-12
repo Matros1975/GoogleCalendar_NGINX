@@ -691,8 +691,8 @@ class DatabaseService:
                 
                 if error:
                     stmt = stmt.values(
-                        metadata=func.jsonb_set(
-                            CallLog.metadata,
+                        extra_data=func.jsonb_set(
+                            CallLog.extra_data,
                             '{error}',
                             f'"{error}"',
                             True
@@ -730,7 +730,7 @@ class DatabaseService:
                 return {
                     "status": call_log.status,
                     "voice_clone_id": call_log.cloned_voice_id,
-                    "error": call_log.metadata.get("error") if call_log.metadata else None,
+                    "error": call_log.extra_data.get("error") if call_log.extra_data else None,
                 }
                 
         except SQLAlchemyError as e:

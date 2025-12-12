@@ -263,8 +263,9 @@ class CallLog(Base):
         comment="Call status: initiated, completed, failed"
     )
     
-    # Additional metadata
-    metadata: Mapped[Optional[dict]] = mapped_column(
+    # Additional metadata (renamed from 'metadata' to avoid SQLAlchemy conflict)
+    extra_data: Mapped[Optional[dict]] = mapped_column(
+        "metadata",  # Column name in database remains 'metadata'
         JSON,
         nullable=True,
         comment="Extra call metadata (JSON)"
