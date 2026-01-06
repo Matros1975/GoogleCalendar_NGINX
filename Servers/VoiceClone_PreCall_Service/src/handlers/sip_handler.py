@@ -377,6 +377,54 @@ class VoiceCloneCall(pj.Call if PJSUA2_AVAILABLE else object):
             return uri
 
 
+class VoiceCloneAccount(pj.Account if PJSUA2_AVAILABLE else object):
+    """
+    SIP account that handles incoming calls.
+    """
+    
+    def __init__(self):
+        """
+        Initialize account - callbacks will be set by pjsua2.
+        """
+        if not PJSUA2_AVAILABLE:
+            raise RuntimeError("pjsua2 library not available")
+        
+        super().__init__()
+        self.controller = None
+        self.audio_service = None
+        self.active_calls = {}
+    
+    def set_services(self, call_controller: CallController, audio_service: AudioService):
+        """
+        Set services after account creation.
+        
+        Args:
+            call_controller: Business logic controller
+            audio_service: Audio file service
+        """
+        self.controller = call_controller
+        self.audio_service = audio_service
+    
+    def onIncomingCall(self, prm):
+        """
+        Handle incoming call - create VoiceCloneCall instance.
+        
+        Args:
+            prm: PJSUA2 OnIncomingCallParam
+        """
+        try:
+            logger.info(f"📞 Incoming SIP call detected (call_id={prm.callId})")
+            
+            # Create call handler
+            call = VoiceCloneCall(self, self.controller, self.audio_service, prm.callId)
+            self.active_calls[prm.callId] = call
+            
+            logger.info(f"Created call handler for call_id={prm.callId}")
+            
+        except Exception as e:
+            logger.exception(f"Error handling incoming call: {e}")
+
+
 class SIPServer:
     """
     SIP server for handling incoming calls.
@@ -431,9 +479,11 @@ class SIPServer:
             self.endpoint.libStart()
             
             # Create account for incoming calls
+            self.account = VoiceCloneAccount()
+            self.account.set_services(self.controller, self.audio_service)
+            
             acc_cfg = pj.AccountConfig()
             acc_cfg.idUri = f"sip:{self.host}:{self.port}"
-            self.account = pj.Account()
             self.account.create(acc_cfg)
             
             logger.info(f"✅ SIP server started on {self.host}:{self.port}")

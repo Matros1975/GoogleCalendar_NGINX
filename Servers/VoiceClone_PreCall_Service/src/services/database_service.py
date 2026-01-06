@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 
-from sqlalchemy import select, update, delete, func
+from sqlalchemy import select, update, delete, func, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -59,9 +59,19 @@ class DatabaseService:
                 expire_on_commit=False
             )
             
-            # Create all tables
-            async with self.engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
+            # Create all tables with checkfirst=True to handle existing objects
+            try:
+                async with self.engine.begin() as conn:
+                    await conn.run_sync(lambda sync_conn: Base.metadata.create_all(sync_conn, checkfirst=True))
+            except Exception as create_error:
+                # If tables/indexes already exist, that's fine - just verify connection works
+                if "already exists" in str(create_error).lower():
+                    logger.info("Database schema already exists, skipping creation")
+                    # Test connection
+                    async with self.engine.connect() as conn:
+                        await conn.execute(text("SELECT 1"))
+                else:
+                    raise
             
             logger.info("Database initialized successfully")
             

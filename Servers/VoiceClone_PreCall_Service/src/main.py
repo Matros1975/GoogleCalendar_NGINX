@@ -94,24 +94,34 @@ async def lifespan(app: FastAPI):
     # Initialize HMAC validator for ElevenLabs webhooks
     hmac_validator = HMACValidator(secret=settings.webhook_secret)
     
-    # Initialize SIP server (if enabled)
+    # Initialize Asterisk ARI handler (if enabled)
     if settings.enable_sip_handler:
         try:
-            from src.handlers.sip_handler import SIPServer
-            logger.info("SIP handler enabled - starting SIP server...")
-            sip_server = SIPServer(
+            from src.handlers.asterisk_ari_handler import AsteriskARIHandler
+            logger.info("SIP handler enabled - connecting to Asterisk ARI...")
+            
+            ari_host = os.getenv("ASTERISK_ARI_HOST", "127.0.0.1")
+            ari_port = int(os.getenv("ASTERISK_ARI_PORT", "8088"))
+            ari_user = os.getenv("ASTERISK_ARI_USERNAME", "voiceclone")
+            ari_pass = os.getenv("ASTERISK_ARI_PASSWORD", "voiceclone_secret_2024")
+            ari_app = os.getenv("ASTERISK_ARI_APP", "voiceclone-app")
+            
+            sip_server = AsteriskARIHandler(
+                host=ari_host,
+                port=ari_port,
+                username=ari_user,
+                password=ari_pass,
+                app_name=ari_app,
                 call_controller=call_controller,
                 audio_service=audio_service,
-                host=settings.sip_host,
-                port=settings.sip_port
             )
             await sip_server.start()
-            logger.info(f"✅ SIP server started on {settings.sip_host}:{settings.sip_port}")
+            logger.info(f"✅ Connected to Asterisk ARI at {ari_host}:{ari_port}")
         except ImportError as e:
             logger.warning(f"⚠️  SIP handler enabled but dependencies not available: {e}")
-            logger.warning("   Install PJSUA2 to enable SIP support")
+            logger.warning("   Install aiohttp to enable Asterisk ARI support")
         except Exception as e:
-            logger.error(f"❌ Failed to start SIP server: {e}")
+            logger.error(f"❌ Failed to connect to Asterisk ARI: {e}")
             raise
     else:
         logger.info("SIP handler disabled (set ENABLE_SIP_HANDLER=true to enable)")

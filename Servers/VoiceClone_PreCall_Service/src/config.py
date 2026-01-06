@@ -123,17 +123,41 @@ class Settings(BaseSettings):
     # SIP Configuration (optional)
     enable_sip_handler: bool = Field(
         default=False,
-        description="Enable SIP handler for native SIP support"
+        description="Enable SIP handler for native SIP support (via Asterisk ARI)"
     )
     sip_host: str = Field(
         default="0.0.0.0",
-        description="SIP server bind address"
+        description="SIP server bind address (deprecated - use Asterisk)"
     )
     sip_port: int = Field(
         default=5060,
         ge=1,
         le=65535,
-        description="SIP server port"
+        description="SIP server port (deprecated - use Asterisk)"
+    )
+    
+    # Asterisk ARI Configuration
+    asterisk_ari_host: str = Field(
+        default="asterisk",
+        description="Asterisk ARI hostname"
+    )
+    asterisk_ari_port: int = Field(
+        default=8088,
+        ge=1,
+        le=65535,
+        description="Asterisk ARI HTTP port"
+    )
+    asterisk_ari_username: str = Field(
+        default="voiceclone",
+        description="Asterisk ARI username"
+    )
+    asterisk_ari_password: str = Field(
+        default="",
+        description="Asterisk ARI password"
+    )
+    asterisk_ari_app: str = Field(
+        default="voiceclone-app",
+        description="Asterisk ARI Stasis application name"
     )
     
     # Server Configuration
