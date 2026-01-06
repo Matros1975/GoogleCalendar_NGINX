@@ -2,6 +2,13 @@
 # Refactored structure supporting multiple MCP servers behind NGINX
 # Each MCP server is in its own subdirectory under Servers/
 
+# Default logging configuration for all services
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 networks:
   # Internal network for MCP services
   mcp-internal:
@@ -25,6 +32,7 @@ services:
     build: ./Servers/GoogleCalendarMCP
     container_name: calendar-mcp
     restart: unless-stopped
+    logging: *default-logging
     
     # Load centralized environment configuration
     env_file:
@@ -99,6 +107,7 @@ services:
     build: ./Servers/GmailMCP
     container_name: gmail-mcp
     restart: unless-stopped
+    logging: *default-logging
     
     # Load centralized environment configuration
     env_file:
@@ -240,6 +249,7 @@ services:
     build: ./Servers/TopDeskCustomMCP
     container_name: topdesk-custom-mcp
     restart: unless-stopped
+    logging: *default-logging
     
     # Load centralized environment configuration
     env_file:
@@ -301,6 +311,7 @@ services:
     build: ./Servers/ElevenLabsWebhook
     container_name: elevenlabs-webhook
     restart: unless-stopped
+    logging: *default-logging
     
     # Load centralized environment configuration
     env_file:
@@ -376,6 +387,7 @@ services:
     build: ./Servers/VoiceClone_PreCall_Service
     container_name: voiceclone-precall
     restart: unless-stopped
+    logging: *default-logging
     
     # Load centralized environment configuration
     env_file:
@@ -491,6 +503,7 @@ services:
     image: postgres:15-alpine
     container_name: postgres-shared
     restart: unless-stopped
+    logging: *default-logging
     
     # Load centralized environment configuration
     env_file:
@@ -559,6 +572,7 @@ services:
       dockerfile: Dockerfile.duckdns
     container_name: duckdns-updater
     restart: unless-stopped
+    logging: *default-logging
     read_only: true
     tmpfs:
       - /tmp
@@ -607,6 +621,7 @@ services:
     build: ./nginx/ssl-renewer
     container_name: ssl-renewer
     restart: unless-stopped
+    logging: *default-logging
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=100m
@@ -662,6 +677,7 @@ services:
     image: nginx:alpine
     container_name: nginx-proxy
     restart: unless-stopped
+    logging: *default-logging
     
     networks:
       - mcp-internal

@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  asterisk:
+    build:
+      context: .
+      dockerfile: docker/asterisk/Dockerfile
+    container_name: asterisk-voiceclone
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "5060:5060/udp"
+      - "8088:8088/tcp"
+      - "16384-16484:16384-16484/udp"
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./docker/asterisk/configs:/etc/asterisk
+      - asterisk-logs:/var/log/asterisk
+      - asterisk-spool:/var/spool/asterisk
+    environment:
+      - TZ=UTC
+    healthcheck:
+      test: ["CMD", "asterisk", "-rx", "core show version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  voiceclone-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voiceclone-service
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - default
+      - postgres
+    ports:
+      - "8000:8000/tcp"
+    depends_on:
+      asterisk:
+        condition: service_healthy
+    volumes:
+      - ./data/voices:/app/data/voices
+      - ./.env:/app/.env:ro
+    environment:
+      - ASTERISK_ARI_HOST=asterisk
+      - ASTERISK_ARI_PORT=8088
+      - ASTERISK_ARI_USERNAME=voiceclone
+      - ASTERISK_ARI_PASSWORD=voiceclone_secret_2024
+      - ASTERISK_ARI_APP=voiceclone-app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  default:
+  postgres:
+    external: true
+    name: googlecalendar_nginx_mcp-internal
+
+volumes:
+  asterisk-logs:
+    driver: local
+  asterisk-spool:
+    driver: local
