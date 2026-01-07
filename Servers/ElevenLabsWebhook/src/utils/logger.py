@@ -6,158 +6,147 @@ import os
 import sys
 import logging
 import json
-import uuid
 from datetime import datetime
 from typing import Any, Dict
 from contextvars import ContextVar
-import traceback
+from uuid import uuid4
 from azure.storage.blob import BlobServiceClient
 
-# --------- NEW: RUN ID (unique for each execution) ----------
-RUN_ID = str(int(datetime.utcnow().timestamp()))   # e.g., 1764940268
+# ==========================================================
+# CONTEXT VARIABLES (REQUEST SCOPED)
+# ==========================================================
+conversation_context: ContextVar[str] = ContextVar(
+    "conversation_id",
+    default="SYSTEM"
+)
 
-# Context variable to store conversation_id across async calls
-conversation_context: ContextVar[str] = ContextVar('conversation_id', default='N/A')
+invocation_context: ContextVar[str] = ContextVar(
+    "invocation_id",
+    default=None
+)
 
-
+# ==========================================================
+# FILTER
+# ==========================================================
 class ConversationFilter(logging.Filter):
-    """Add conversation_id to all log records from context."""
-    
     def filter(self, record: logging.LogRecord) -> bool:
         record.conversation_id = conversation_context.get()
+        record.invocation_id = invocation_context.get()
         return True
 
-
+# ==========================================================
+# FORMATTERS
+# ==========================================================
 class JSONFormatter(logging.Formatter):
-    """JSON log formatter for structured logging."""
-    
     def format(self, record: logging.LogRecord) -> str:
         log_obj: Dict[str, Any] = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "level": record.levelname,
             "logger": record.name,
+            "conversation_id": record.conversation_id,
+            "invocation_id": record.invocation_id,
             "message": record.getMessage(),
         }
-        
         if record.exc_info:
             log_obj["exception"] = self.formatException(record.exc_info)
-        
-        for key, value in record.__dict__.items():
-            if key not in (
-                "name", "msg", "args", "created", "filename", "funcName",
-                "levelname", "levelno", "lineno", "module", "msecs",
-                "pathname", "process", "processName", "relativeCreated",
-                "stack_info", "exc_info", "exc_text", "thread", "threadName",
-                "taskName", "message"
-            ):
-                log_obj[key] = value
-        
         return json.dumps(log_obj)
 
-
 class StandardFormatter(logging.Formatter):
-    """Standard text formatter for human-readable logs with conversation_id."""
-    
     def __init__(self):
         super().__init__(
-            fmt="%(asctime)s - [%(conversation_id)s] - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
+            "%(asctime)s - [%(conversation_id)s] - %(levelname)s - %(message)s",
+            "%Y-%m-%d %H:%M:%S",
         )
 
+# ==========================================================
+# AZURE BLOB INIT
+# ==========================================================
+connect_str = (
+    os.getenv("AzureWebJobsStorage_elevenlabswebhook")
+    or os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+)
 
-# ---------------------- AZURE BLOB STORAGE SETUP ----------------------
-connect_str = os.getenv("AzureWebJobsStorage_elevenlabswebhook") or os.getenv("AZURE_STORAGE_CONNECTION_STRING")
 blob_container = os.getenv("BLOB_CONTAINER_NAME", "webhook-logs")
 blob_service_client = None
 
 if connect_str:
-    try:
-        blob_service_client = BlobServiceClient.from_connection_string(connect_str)
-    except Exception as e:
-        print("Blob init error:", e)
+    blob_service_client = BlobServiceClient.from_connection_string(connect_str)
 
-
+# ==========================================================
+# BLOB HANDLER (ONE FILE PER INVOCATION)
+# ==========================================================
 class BlobUploadHandler(logging.Handler):
-    """Uploads log records into ONE file for the entire execution run."""
-
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         try:
-            if not blob_service_client or not blob_container:
+            if not blob_service_client:
                 return
 
-            msg = self.format(record)
+            invocation_id = record.invocation_id
+            if not invocation_id:
+                return
+
+            msg = self.format(record) + "\n"
             now = datetime.utcnow()
 
-            # Folder: logs/YYYY/MM/DD/
             folder = f"logs/{now.year}/{now.month:02d}/{now.day:02d}"
+            blob_name = f"{folder}/webhook_{invocation_id}.log"
 
-            # ------------ UPDATED: ONE FILE PER EXECUTION RUN ----------------
-            blob_name = f"{folder}/webhook_run_{RUN_ID}.log"
+            container = blob_service_client.get_container_client(blob_container)
+            if not container.exists():
+                container.create_container()
 
-            container_client = blob_service_client.get_container_client(blob_container)
-            if not container_client.exists():
-                container_client.create_container()
+            blob = container.get_blob_client(blob_name)
+            if not blob.exists():
+                blob.create_append_blob()
 
-            blob_client = container_client.get_blob_client(blob_name)
-
-            # Append content
-            try:
-                old_content = blob_client.download_blob().readall().decode("utf-8")
-            except Exception:
-                old_content = ""
-
-            new_content = old_content + msg + "\n"
-            blob_client.upload_blob(new_content, overwrite=True)
+            blob.append_block(msg.encode("utf-8"))
 
         except Exception:
-            print("Blob upload failed:", record.getMessage())
+            pass  # logging must never break the app
 
-
-# -------------------------------------------------------------------
-
-
+# ==========================================================
+# LOGGER SETUP
+# ==========================================================
 def setup_logger(
     name: str = None,
     level: str = None,
-    log_format: str = None
+    log_format: str = None,
+    **kwargs
 ) -> logging.Logger:
-
-    level = level or os.getenv("LOG_LEVEL", "INFO").upper()
-    log_format = log_format or os.getenv("LOG_FORMAT", "text").lower()
 
     logger = logging.getLogger(name)
 
-    # Avoid duplicate handlers
     if logger.handlers:
         return logger
-    
-    logger.setLevel(getattr(logging, level, logging.INFO))
-    
-    formatter = JSONFormatter() if log_format == "json" else StandardFormatter()
-    conversation_filter = ConversationFilter()
-    
-    # Console Handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(getattr(logging, level, logging.INFO))
-    console_handler.addFilter(conversation_filter)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-    
-    # Blob Handler
+
+    logger.setLevel(logging.INFO)
+
+    formatter = StandardFormatter()
+    filter_ = ConversationFilter()
+
+    console = logging.StreamHandler(sys.stdout)
+    console.setFormatter(formatter)
+    console.addFilter(filter_)
+    logger.addHandler(console)
+
     if blob_service_client:
-        try:
-            blob_handler = BlobUploadHandler()
-            blob_handler.setLevel(getattr(logging, level, logging.INFO))
-            blob_handler.setFormatter(formatter)
-            blob_handler.addFilter(conversation_filter)
-            logger.addHandler(blob_handler)
-        except Exception as e:
-            logger.warning(f"Failed to setup blob logging: {e}")
+        blob_handler = BlobUploadHandler()
+        blob_handler.setFormatter(formatter)
+        blob_handler.addFilter(filter_)
+        logger.addHandler(blob_handler)
 
     logger.propagate = False
-    
     return logger
 
+# ==========================================================
+# INVOCATION HELPERS (CALL ONCE PER REQUEST)
+# ==========================================================
+def start_invocation(conversation_id: str | None = None) -> None:
+    invocation_context.set(
+        datetime.utcnow().strftime("%Y%m%d_%H%M%S") + "_" + uuid4().hex[:6]
+    )
+    if conversation_id:
+        conversation_context.set(conversation_id)
 
-def get_logger(name: str) -> logging.Logger:
-    return logging.getLogger(name)
+def end_invocation() -> None:
+    invocation_context.set(None)

@@ -20,7 +20,8 @@ from src.auth.hmac_validator import HMACValidator
 from src.handlers.transcription_handler import TranscriptionHandler
 from src.handlers.audio_handler import AudioHandler
 from src.handlers.call_failure_handler import CallFailureHandler
-from src.utils.logger import setup_logger
+from src.utils.logger import setup_logger, start_invocation, end_invocation
+
 
 # Setup logging
 logger = setup_logger()
@@ -89,10 +90,14 @@ async def webhook_endpoint(
         401 Unauthorized for invalid signatures
         500 Internal Server Error for processing failures
     """
+
+    # Start invocation (temporary, before we know conversation_id)
+    start_invocation()
+
     try:
         # Read request body
         body = await request.body()
-        
+
         # Validate HMAC signature
         is_valid, error_message = hmac_validator.validate(elevenlabs_signature, body)
         if not is_valid:
@@ -100,17 +105,19 @@ async def webhook_endpoint(
             if "expired" in error_message.lower():
                 raise HTTPException(status_code=400, detail=error_message)
             raise HTTPException(status_code=401, detail=error_message)
-        
+
         # Parse JSON payload
         try:
             payload = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON payload: {e}")
             raise HTTPException(status_code=400, detail="Invalid JSON payload")
-        
+
+        # Update invocation with conversation_id (same file, not a new one)
+        start_invocation(payload.get("conversation_id"))
+
         # Route to appropriate handler based on type
         webhook_type = payload.get("type")
-        
         if webhook_type == "post_call_transcription":
             result = await transcription_handler.handle(payload)
         elif webhook_type == "post_call_audio":
@@ -119,17 +126,25 @@ async def webhook_endpoint(
             result = await call_failure_handler.handle(payload)
         else:
             logger.error(f"Unknown webhook type: {webhook_type}")
-            raise HTTPException(status_code=400, detail=f"Unknown webhook type: {webhook_type}")
-        
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown webhook type: {webhook_type}"
+            )
+
         logger.info(f"Successfully processed {webhook_type} webhook")
         return JSONResponse(content={"status": "received"}, status_code=200)
-        
+
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
         logger.exception(f"Webhook processing error: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+    finally:
+        # Ensure invocation is always closed (success or failure)
+        end_invocation()
+
 
 
 def main():
