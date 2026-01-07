@@ -138,7 +138,7 @@ def test_storage_direct():
 def test_logging_direct():
     print_header("TEST 2: Direct Logging Integration")
     
-    conn_str = os.getenv("AzureWebJobsStorage_ticketcategorizer") or os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+    conn_str = os.getenv("AzureWebJobsStorage_elevenlabswebhook") or os.getenv("AZURE_STORAGE_CONNECTION_STRING")
     container_name = os.getenv("BLOB_CONTAINER_NAME", "webhook-logs")
     
     if not conn_str:
