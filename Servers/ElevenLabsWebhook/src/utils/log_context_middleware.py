@@ -1,6 +1,8 @@
 from datetime import datetime
 from uuid import uuid4
+
 from fastapi import Request
+
 from src.utils.log_context import request_log_buffer
 from src.utils.blob_writer import write_logs_to_blob
 

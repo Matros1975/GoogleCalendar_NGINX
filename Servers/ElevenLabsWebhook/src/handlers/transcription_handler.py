@@ -21,7 +21,6 @@ from src.models.webhook_models import TranscriptionPayload, ConversationData, Tr
 from src.utils.storage import StorageManager
 from src.utils.topdesk_client import TopDeskClient
 from src.utils.email_sender import EmailSender
-from src.utils.logger import conversation_context  # Import conversation context
 
 logger = logging.getLogger(__name__)
 
@@ -191,9 +190,6 @@ class TranscriptionHandler:
         try:
             # Parse payload into typed model
             transcription = TranscriptionPayload.from_dict(payload)
-            
-            # Set conversation context for all subsequent log entries
-            conversation_context.set(transcription.conversation_id)
             
             logger.info(
                 f"Transcription received - "

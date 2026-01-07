@@ -4,11 +4,15 @@ from src.utils.log_context import request_log_buffer
 
 class RequestBufferLogHandler(logging.Handler):
     def emit(self, record):
-        buffer = request_log_buffer.get()
-        if buffer is None:
-            return
+        try:
+            buffer = request_log_buffer.get()
+            if buffer is None:
+                return
 
-        buffer.append(self.format(record))
+            buffer.append(self.format(record))
+        except Exception:
+            # Logging must NEVER crash the app
+            pass
 
 
 def setup_logger() -> logging.Logger:
