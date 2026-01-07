@@ -21,8 +21,9 @@ from src.models.webhook_models import TranscriptionPayload, ConversationData, Tr
 from src.utils.storage import StorageManager
 from src.utils.topdesk_client import TopDeskClient
 from src.utils.email_sender import EmailSender
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger()
 
 # Configuration constants
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"

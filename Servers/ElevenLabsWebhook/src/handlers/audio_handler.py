@@ -14,9 +14,9 @@ from typing import Dict, Any, Optional
 
 from src.models.webhook_models import AudioPayload
 from src.utils.storage import StorageManager
-from src.utils.logger import conversation_context
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger()
 
 
 class AudioHandler:
@@ -46,9 +46,6 @@ class AudioHandler:
         try:
             # Parse payload into typed model
             audio = AudioPayload.from_dict(payload)
-            
-            # Set conversation context for all subsequent log entries
-            conversation_context.set(audio.conversation_id)
             
             # Calculate audio size
             audio_size = self._calculate_audio_size(audio.audio_base64)
