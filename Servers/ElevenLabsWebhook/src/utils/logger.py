@@ -20,7 +20,7 @@ conversation_context: ContextVar[str] = ContextVar(
     default="SYSTEM"
 )
 
-invocation_context: ContextVar[str] = ContextVar(
+invocation_context: ContextVar[str | None] = ContextVar(
     "invocation_id",
     default=None
 )
@@ -51,6 +51,7 @@ class JSONFormatter(logging.Formatter):
             log_obj["exception"] = self.formatException(record.exc_info)
         return json.dumps(log_obj)
 
+
 class StandardFormatter(logging.Formatter):
     def __init__(self):
         super().__init__(
@@ -70,7 +71,10 @@ blob_container = os.getenv("BLOB_CONTAINER_NAME", "webhook-logs")
 blob_service_client = None
 
 if connect_str:
-    blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+    try:
+        blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+    except Exception as e:
+        print("Blob init error:", e)
 
 # ==========================================================
 # BLOB HANDLER (ONE FILE PER INVOCATION)
@@ -83,7 +87,7 @@ class BlobUploadHandler(logging.Handler):
 
             invocation_id = record.invocation_id
             if not invocation_id:
-                return
+                return  # skip logs outside request scope
 
             msg = self.format(record) + "\n"
             now = datetime.utcnow()
@@ -96,26 +100,30 @@ class BlobUploadHandler(logging.Handler):
                 container.create_container()
 
             blob = container.get_blob_client(blob_name)
+
+            # Create append blob once
             if not blob.exists():
                 blob.create_append_blob()
 
             blob.append_block(msg.encode("utf-8"))
 
         except Exception:
-            pass  # logging must never break the app
+            # Logging must NEVER break the app
+            pass
 
 # ==========================================================
 # LOGGER SETUP
 # ==========================================================
 def setup_logger(
-    name: str = None,
-    level: str = None,
-    log_format: str = None,
+    name: str | None = None,
+    level: str | None = None,
+    log_format: str | None = None,
     **kwargs
 ) -> logging.Logger:
 
     logger = logging.getLogger(name)
 
+    # Prevent duplicate handlers
     if logger.handlers:
         return logger
 
@@ -124,11 +132,13 @@ def setup_logger(
     formatter = StandardFormatter()
     filter_ = ConversationFilter()
 
+    # Console logging
     console = logging.StreamHandler(sys.stdout)
     console.setFormatter(formatter)
     console.addFilter(filter_)
     logger.addHandler(console)
 
+    # Blob logging
     if blob_service_client:
         blob_handler = BlobUploadHandler()
         blob_handler.setFormatter(formatter)
@@ -139,14 +149,27 @@ def setup_logger(
     return logger
 
 # ==========================================================
-# INVOCATION HELPERS (CALL ONCE PER REQUEST)
+# INVOCATION HELPERS (SAFE WITH EXISTING main.py)
 # ==========================================================
 def start_invocation(conversation_id: str | None = None) -> None:
-    invocation_context.set(
-        datetime.utcnow().strftime("%Y%m%d_%H%M%S") + "_" + uuid4().hex[:6]
-    )
+    """
+    Safe to call multiple times per request.
+    - invocation_id is created ONLY ONCE
+    - conversation_id may be updated later
+    """
+
+    # Create invocation only once
+    if invocation_context.get() is None:
+        invocation_context.set(
+            datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            + "_"
+            + uuid4().hex[:6]
+        )
+
+    # Conversation ID may arrive after payload parsing
     if conversation_id:
         conversation_context.set(conversation_id)
+
 
 def end_invocation() -> None:
     invocation_context.set(None)
