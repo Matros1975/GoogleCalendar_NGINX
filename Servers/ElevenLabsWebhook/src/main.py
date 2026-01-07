@@ -21,10 +21,13 @@ from src.handlers.transcription_handler import TranscriptionHandler
 from src.handlers.audio_handler import AudioHandler
 from src.handlers.call_failure_handler import CallFailureHandler
 from src.utils.logger import setup_logger
+from src.utils.log_context_middleware import log_context_middleware
 
 
-# Setup logging
 logger = setup_logger()
+
+app = FastAPI()
+app.middleware("http")(log_context_middleware)
 
 # Initialize components (will be configured on startup)
 hmac_validator: HMACValidator = None
