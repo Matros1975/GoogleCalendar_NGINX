@@ -1,0 +1,61 @@
+{
+  "type": "post_call_transcription",
+  "event_timestamp": 1764501123,
+  "data": {
+    "agent_id": "agent_77ab9d1xqwe90plmnb45",
+    "conversation_id": "conv_a91bc72dxxpplm334",
+    "status": "done",
+    "user_id": null,
+    "branch_id": null,
+    "transcript": [
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_77ab9d1xqwe90plmnb45",
+          "branch_id": null,
+          "workflow_node_id": null
+        },
+        "message": "Goedemorgen, je spreekt met Lisa van IT Support. Waarmee kan ik je helpen?",
+        "time_in_call_secs": 0,
+        "interrupted": false
+      },
+      {
+        "role": "user",
+        "message": "Mijn laptop start niet meer op.",
+        "time_in_call_secs": 6,
+        "source_medium": "audio",
+        "interrupted": false
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_77ab9d1xqwe90plmnb45"
+        },
+        "message": "Dat is vervelend. Kun je me vertellen wat je precies ziet op het scherm?",
+        "time_in_call_secs": 11,
+        "interrupted": false
+      }
+    ],
+    "metadata": {
+      "start_time_unix_secs": 1764501010,
+      "accepted_time_unix_secs": 1764501010,
+      "call_duration_secs": 58,
+      "cost": 420,
+      "authorization_method": "signed_url",
+      "phone_call": {
+        "direction": "inbound",
+        "agent_number": "+319700000001",
+        "external_number": "+31611112222",
+        "type": "twilio",
+        "call_sid": "CA111aaa222bbb"
+      },
+      "termination_reason": "Call ended by remote party",
+      "main_language": "nl"
+    },
+    "analysis": {
+      "call_successful": "success",
+      "transcript_summary": "User reports laptop not booting. Initial troubleshooting started.",
+      "call_summary_title": "Laptop boot issue"
+    }
+  }
+}
