@@ -33,9 +33,15 @@ except ImportError as e:
 # -----------------------------------------------------
 # LOGGER INITIALIZATION
 # -----------------------------------------------------
-logger = setup_logger("system_test", level="INFO")
+logger = setup_logger("system_test")
+
+# Ensure INFO level for tests (logger.py unchanged)
+logger.setLevel(logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
+
 conversation_context.set("SYSTEM_TEST")
 logger.info("🚀 System Test Suite Started")
+
 
 class Colors:
     GREEN = '\033[92m'
@@ -89,46 +95,46 @@ def test_storage_direct():
         return False
 
 
-# # =====================================================
-# # TEST 2: Logging Direct
-# # =====================================================
-# def test_logging_direct():
-#     print_header("TEST 2: Logging Integration")
+# =====================================================
+# TEST 2: Logging Direct
+# =====================================================
+def test_logging_direct():
+    print_header("TEST 2: Logging Integration")
 
-#     conn_str = os.getenv("AzureWebJobsStorage_elevenlabswebhook")
-#     container_name = os.getenv("BLOB_CONTAINER_NAME", "webhook-logs")
+    conn_str = os.getenv("AzureWebJobsStorage_elevenlabswebhook")
+    container_name = os.getenv("BLOB_CONTAINER_NAME", "webhook-logs")
 
-#     logger.info(f"Testing log upload → container={container_name}")
+    logger.info(f"Testing log upload → container={container_name}")
 
-#     if not conn_str:
-#         logger.error("Missing Azure storage connection string — cannot test logging.")
-#         return False
+    if not conn_str:
+        logger.error("Missing Azure storage connection string — cannot test logging.")
+        return False
 
-#     test_msg = f"TEST_LOG_{uuid.uuid4()}"
-#     logger.info(f"Generated test log message: {test_msg}")
+    test_msg = f"TEST_LOG_{uuid.uuid4()}"
+    logger.info(f"Generated test log message: {test_msg}")
 
-#     time.sleep(3)
+    time.sleep(3)
 
-#     try:
-#         blob_service = BlobServiceClient.from_connection_string(conn_str)
-#         container = blob_service.get_container_client(container_name)
+    try:
+        blob_service = BlobServiceClient.from_connection_string(conn_str)
+        container = blob_service.get_container_client(container_name)
 
-#         logger.info("Listing latest blobs...")
-#         blobs = sorted(container.list_blobs(), key=lambda b: b.creation_time, reverse=True)
+        logger.info("Listing latest blobs...")
+        blobs = sorted(container.list_blobs(), key=lambda b: b.creation_time, reverse=True)
 
-#         for blob in blobs[:15]:
-#             logger.debug(f"Checking blob: {blob.name}")
-#             content = container.get_blob_client(blob).download_blob().readall().decode()
-#             if test_msg in content:
-#                 logger.info(f"SUCCESS: Found test log in blob: {blob.name}")
-#                 return True
+        for blob in blobs[:15]:
+            logger.debug(f"Checking blob: {blob.name}")
+            content = container.get_blob_client(blob).download_blob().readall().decode()
+            if test_msg in content:
+                logger.info(f"SUCCESS: Found test log in blob: {blob.name}")
+                return True
 
-#         logger.error("Could not find test log in blob storage.")
-#         return False
+        logger.error("Could not find test log in blob storage.")
+        return False
 
-#     except Exception as e:
-#         logger.exception(f"Logging Test Failed: {e}")
-#         return False
+    except Exception as e:
+        logger.exception(f"Logging Test Failed: {e}")
+        return False
 
 
 # =====================================================
