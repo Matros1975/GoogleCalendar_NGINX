@@ -22,6 +22,5 @@ post-refactor-results.txt
 docker-compose.yml.backup
 
 # Testing files
-playground.ipynb
 test_external.py
 **/test_external.py

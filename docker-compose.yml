@@ -2,13 +2,6 @@
 # Refactored structure supporting multiple MCP servers behind NGINX
 # Each MCP server is in its own subdirectory under Servers/
 
-# Default logging configuration for all services
-x-logging: &default-logging
-  driver: "json-file"
-  options:
-    max-size: "10m"
-    max-file: "3"
-
 networks:
   # Internal network for MCP services
   mcp-internal:
@@ -32,7 +25,13 @@ services:
     build: ./Servers/GoogleCalendarMCP
     container_name: calendar-mcp
     restart: unless-stopped
-    logging: *default-logging
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     
     # Load centralized environment configuration
     env_file:
@@ -107,7 +106,13 @@ services:
     build: ./Servers/GmailMCP
     container_name: gmail-mcp
     restart: unless-stopped
-    logging: *default-logging
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     
     # Load centralized environment configuration
     env_file:
@@ -249,7 +254,13 @@ services:
     build: ./Servers/TopDeskCustomMCP
     container_name: topdesk-custom-mcp
     restart: unless-stopped
-    logging: *default-logging
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     
     # Load centralized environment configuration
     env_file:
@@ -311,7 +322,13 @@ services:
     build: ./Servers/ElevenLabsWebhook
     container_name: elevenlabs-webhook
     restart: unless-stopped
-    logging: *default-logging
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     
     # Load centralized environment configuration
     env_file:
@@ -382,189 +399,6 @@ services:
       retries: 3
       start_period: 10s
 
-  # VoiceClone Pre-Call Service
-  voiceclone-precall:
-    build: ./Servers/VoiceClone_PreCall_Service
-    container_name: voiceclone-precall
-    restart: unless-stopped
-    logging: *default-logging
-    
-    # Load centralized environment configuration
-    env_file:
-      - .env
-    
-    # Internal network only
-    networks:
-      - mcp-internal
-    
-    # Environment configuration
-    environment:
-      # ElevenLabs Configuration
-      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
-      - ELEVENLABS_AGENT_ID=${ELEVENLABS_AGENT_ID}
-      - ELEVENLABS_PHONE_NUMBER_ID=${ELEVENLABS_PHONE_NUMBER_ID}
-      - ELEVENLABS_API_BASE=${ELEVENLABS_API_BASE:-https://api.elevenlabs.io/v1}
-      # Greeting Configuration
-      - GREETING_VOICE_ID=${GREETING_VOICE_ID:-default_greeting_voice}
-      - GREETING_MESSAGE=${GREETING_MESSAGE:-Hello thanks for calling. Please hold while we prepare your personalized experience.}
-      - GREETING_MUSIC_ENABLED=${GREETING_MUSIC_ENABLED:-true}
-      - GREETING_MUSIC_URL=${GREETING_MUSIC_URL}
-      - CLONE_MAX_WAIT_SECONDS=${CLONE_MAX_WAIT_SECONDS:-35}
-      - AUTO_TRANSITION_ENABLED=${AUTO_TRANSITION_ENABLED:-true}
-      # Database Configuration (connects to shared postgres container)
-      - DATABASE_URL=${VOICECLONE_DATABASE_URL:-postgresql+asyncpg://voiceagent:password@postgres:5432/voice_clones}
-      - CACHE_TTL=${VOICE_CLONE_CACHE_TTL:-86400}
-      # Voice Clone Configuration
-      - VOICE_CLONE_TIMEOUT=${VOICE_CLONE_TIMEOUT:-30}
-      - VOICE_SAMPLE_STORAGE=${VOICE_SAMPLE_STORAGE:-local}
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
-      - S3_REGION=${S3_REGION:-eu-west-1}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - LOCAL_VOICE_SAMPLES_PATH=/app/data/voices
-      # 3CX Configuration
-      - THREECX_WEBHOOK_SECRET=${THREECX_WEBHOOK_SECRET}
-      - THREECX_TRUSTED_IPS=${THREECX_TRUSTED_IPS:-127.0.0.1,10.0.0.0/8}
-      # Server Configuration
-      - HOST=0.0.0.0
-      - PORT=8000
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - LOG_FORMAT=${LOG_FORMAT:-text}
-      - LOG_DIR=/var/log/mcp-services
-      - LOG_FILENAME=voiceclone.log
-      - ENVIRONMENT=${ENVIRONMENT:-production}
-      # Security
-      - WEBHOOK_SECRET=${ELEVENLABS_WEBHOOK_SECRET}
-      - CORS_ORIGINS=${VOICECLONE_CORS_ORIGINS:-["*"]}
-      # Twilio Configuration
-      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
-      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
-      - SKIP_WEBHOOK_SIGNATURE_VALIDATION=${SKIP_WEBHOOK_SIGNATURE_VALIDATION:-false}
-      # SIP Configuration (optional - for native SIP support)
-      - ENABLE_SIP_HANDLER=${ENABLE_SIP_HANDLER:-false}
-      - SIP_HOST=${SIP_HOST:-0.0.0.0}
-      - SIP_PORT=${SIP_PORT:-5060}
-    
-    # Port mappings (uncomment if SIP is enabled and needs external access)
-    # ports:
-    #   - "8000:8000"  # HTTP API
-    #   - "5060:5060/udp"  # SIP signaling
-    #   - "16384-32768:16384-32768/udp"  # RTP media
-    
-    # Persistent storage for voice samples and logs
-    volumes:
-      - voiceclone-voices:/app/data/voices
-      - ./logs:/var/log/mcp-services
-    
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "1.0"
-        reservations:
-          memory: 256M
-          cpus: "0.5"
-    
-    # Enhanced Security Configuration
-    security_opt:
-      - no-new-privileges:true
-      - apparmor:unconfined
-    
-    # Read-only root filesystem for security
-    read_only: true
-    
-    # Drop all capabilities (port 8000 doesn't need NET_BIND_SERVICE)
-    cap_drop:
-      - ALL
-    
-    # Temporary filesystems for writes
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,nodev,size=100m
-      - /app/logs:rw,noexec,nosuid,nodev,size=50m
-    
-    # Depends on shared PostgreSQL
-    depends_on:
-      postgres:
-        condition: service_healthy
-    
-    # Health check
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-
-  # Shared PostgreSQL Database Server
-  # Serves multiple services with separate databases
-  postgres:
-    image: postgres:15-alpine
-    container_name: postgres-shared
-    restart: unless-stopped
-    logging: *default-logging
-    
-    # Load centralized environment configuration
-    env_file:
-      - .env
-    
-    # Internal network only
-    networks:
-      - mcp-internal
-    
-    # Environment configuration
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
-      - POSTGRES_MULTIPLE_DATABASES=voice_clones,google_calendar,threecx_calls
-      - PGDATA=/var/lib/postgresql/data/pgdata
-      # Performance tuning for small scale (10 concurrent calls)
-      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=en_US.UTF-8
-    
-    # Persistent data storage
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./scripts/init-multiple-databases.sh:/docker-entrypoint-initdb.d/init-multiple-databases.sh:ro
-    
-    # Resource limits (optimized for 10 concurrent calls)
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "1.0"
-        reservations:
-          memory: 256M
-          cpus: "0.5"
-    
-    # Enhanced Security Configuration
-    security_opt:
-      - no-new-privileges:true
-      - apparmor:unconfined
-    
-    # Drop unnecessary capabilities
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - FOWNER
-      - SETGID
-      - SETUID
-    
-    # Temporary filesystems
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,nodev,size=100m
-      - /run/postgresql:rw,noexec,nosuid,nodev,size=10m
-    
-    # Health check
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d voice_clones"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
   # DuckDNS IP updater service
   duckdns-updater:
     build:
@@ -572,7 +406,13 @@ services:
       dockerfile: Dockerfile.duckdns
     container_name: duckdns-updater
     restart: unless-stopped
-    logging: *default-logging
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
     read_only: true
     tmpfs:
       - /tmp
@@ -621,7 +461,13 @@ services:
     build: ./nginx/ssl-renewer
     container_name: ssl-renewer
     restart: unless-stopped
-    logging: *default-logging
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=100m
@@ -677,7 +523,13 @@ services:
     image: nginx:alpine
     container_name: nginx-proxy
     restart: unless-stopped
-    logging: *default-logging
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     
     networks:
       - mcp-internal
@@ -758,8 +610,4 @@ volumes:
   duckdns-logs:
     driver: local
   elevenlabs-storage:
-    driver: local
-  voiceclone-voices:
-    driver: local
-  postgres-data:
     driver: local
