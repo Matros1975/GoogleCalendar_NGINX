@@ -26,9 +26,6 @@ from src.utils.log_context_middleware import log_context_middleware
 
 logger = setup_logger()
 
-app = FastAPI()
-app.middleware("http")(log_context_middleware)
-
 # Initialize components (will be configured on startup)
 hmac_validator: HMACValidator = None
 transcription_handler: TranscriptionHandler = None
@@ -66,6 +63,9 @@ app = FastAPI(
     description="Webhook receiver for ElevenLabs post-call events",
     lifespan=lifespan
 )
+
+# Attach request log context middleware to the final app instance
+app.middleware("http")(log_context_middleware)
 
 
 @app.get("/health")

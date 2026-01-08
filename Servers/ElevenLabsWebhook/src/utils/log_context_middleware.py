@@ -1,29 +1,44 @@
-from datetime import datetime
-from uuid import uuid4
+import uuid
+import logging
+from typing import Optional
 
 from fastapi import Request
+from starlette.responses import Response
 
-from src.utils.log_context import request_log_buffer
-from src.utils.blob_writer import write_logs_to_blob
+from src.utils.logger import request_log_buffer, flush_logs
+
+logger = logging.getLogger(__name__)
 
 
-async def log_context_middleware(request: Request, call_next):
-    buffer: list[str] = []
-    token = request_log_buffer.set(buffer)
+async def log_context_middleware(request: Request, call_next) -> Response:
+    """
+    FastAPI HTTP middleware that:
+    - Initializes request_log_buffer ContextVar at request start
+    - Extracts conversation id from header `x-conversation-id`, or generates a UUID
+    - Calls `flush_logs(conversation_id)` in the finally block
+    - Resets ContextVars safely
 
-    now = datetime.utcnow()
-    request_id = uuid4().hex
+    Fail-silent: any errors during logging should not affect the request
+    """
+    conversation_id: Optional[str] = request.headers.get("x-conversation-id")
+    if not conversation_id:
+        conversation_id = str(uuid.uuid4())
 
-    blob_name = (
-        f"logs/{now.year}/{now.month:02d}/{now.day:02d}/"
-        f"webhook_{now.strftime('%Y%m%d_%H%M%S')}_{request_id}.log"
-    )
+    # Initialize per-request buffer and keep token for reset
+    token = request_log_buffer.set([])
 
     try:
         response = await call_next(request)
         return response
     finally:
-        request_log_buffer.reset(token)
-
-        if buffer:
-            write_logs_to_blob(blob_name, buffer)
+        # Always attempt to flush logs, but swallow any errors
+        try:
+            flush_logs(conversation_id)
+        except Exception:
+            logger.exception("Failed to flush logs for conversation_id: %s", conversation_id)
+        # Reset ContextVar to previous state to avoid leaks across requests
+        try:
+            request_log_buffer.reset(token)
+        except Exception:
+            # As a last resort, set to None
+            request_log_buffer.set(None)
