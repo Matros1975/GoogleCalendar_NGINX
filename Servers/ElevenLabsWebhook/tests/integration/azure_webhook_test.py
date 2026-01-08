@@ -33,15 +33,9 @@ except ImportError as e:
 # -----------------------------------------------------
 # LOGGER INITIALIZATION
 # -----------------------------------------------------
-logger = setup_logger("system_test")
-
-# Ensure INFO level for tests (logger.py unchanged)
-logger.setLevel(logging.INFO)
-logging.getLogger().setLevel(logging.INFO)
-
+logger = setup_logger("system_test", level="INFO")
 conversation_context.set("SYSTEM_TEST")
 logger.info("🚀 System Test Suite Started")
-
 
 class Colors:
     GREEN = '\033[92m'
@@ -101,7 +95,7 @@ def test_storage_direct():
 def test_logging_direct():
     print_header("TEST 2: Logging Integration")
 
-    conn_str = os.getenv("AzureWebJobsStorage_elevenlabswebhook")
+    conn_str = os.getenv("AzureWebJobsStorage_ticketcategorizer")
     container_name = os.getenv("BLOB_CONTAINER_NAME", "webhook-logs")
 
     logger.info(f"Testing log upload → container={container_name}")
@@ -250,6 +244,7 @@ async def main():
 
     results = {
         "Storage": test_storage_direct(),
+        "Logging": test_logging_direct(),
         "Health": await test_health_endpoint(webhook_url),
         "Webhook": await test_webhook_endpoint(webhook_url, secret),
         "Security": await test_invalid_signature(webhook_url),

@@ -31,7 +31,3 @@ aiosmtplib>=3.0.0
 
 # Testing mocks
 pytest-mock>=3.11.0
-
-# Azure Storage
-azure-storage-blob>=12.19.0
-

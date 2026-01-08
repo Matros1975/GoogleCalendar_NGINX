@@ -307,9 +307,15 @@ class TopDeskClient:
             logger.error("No ticket ID provided for action")
             return False
         
+        # Add line breaks before each timestamp for better readability
+        # Pattern: [HH:MM:SS] - speaker: message
+        # This makes each conversation turn start on a new line
+        import re
+        formatted_transcript = re.sub(r'(\[)', r'\n\1', transcript).strip()
+        
         # TopDesk requires PATCH to incidents endpoint with action field
         payload = {
-            "action": f"Call Transcript:\n\n{transcript}",
+            "action": f"Call Transcript:\n\n{formatted_transcript}",
             "actionInvisibleForCaller": True
         }
         
