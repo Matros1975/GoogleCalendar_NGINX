@@ -9,11 +9,11 @@ Implements signature validation following ElevenLabs specification:
 
 import hmac
 import time
-import logging
 from hashlib import sha256
 from typing import Tuple
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger()
 
 
 class HMACValidator:
