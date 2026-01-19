@@ -10,9 +10,9 @@ from email.message import EmailMessage
 from typing import Optional
 
 import aiosmtplib
+from src.utils.logger import setup_logger
 
-
-logger = logging.getLogger(__name__)
+logger = setup_logger()
 
 
 class EmailSender:

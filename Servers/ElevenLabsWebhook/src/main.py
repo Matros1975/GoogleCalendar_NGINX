@@ -23,7 +23,6 @@ from src.handlers.call_failure_handler import CallFailureHandler
 from src.utils.logger import setup_logger
 from src.utils.log_context_middleware import log_context_middleware
 
-# Setup logging
 logger = setup_logger()
 
 # Initialize components (will be configured on startup)
@@ -38,8 +37,10 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown."""
     global hmac_validator, transcription_handler, audio_handler, call_failure_handler
     
-    # Startup
-    secret = os.getenv("ELEVENLABS_WEBHOOK_SECRET", "")
+    secret = (
+    os.getenv("ELEVENLABS_WEBHOOK_SECRET")
+    or os.getenv("HMAC_SECRET")
+    or "")
     if not secret:
         logger.warning("ELEVENLABS_WEBHOOK_SECRET not set - HMAC validation will fail")
     

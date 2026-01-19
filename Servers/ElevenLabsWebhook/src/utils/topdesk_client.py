@@ -6,13 +6,12 @@ Implements async TopDesk API integration for the ElevenLabs webhook service.
 
 import os
 import base64
-import logging
 from typing import Dict, Any, Optional
 
 import httpx
+from src.utils.logger import setup_logger
 
-
-logger = logging.getLogger(__name__)
+logger = setup_logger()
 
 # TopDesk ticket number format constants
 TICKET_NUMBER_TOTAL_DIGITS = 7

@@ -8,7 +8,6 @@ Handles:
 - Provider-specific details extraction
 """
 
-import logging
 from typing import Dict, Any, Optional
 
 from src.models.webhook_models import CallFailurePayload
