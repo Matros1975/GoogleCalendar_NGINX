@@ -1,17 +1,17 @@
 """
 Storage utilities for conversation data and audio files using Azure Blob Storage.
-# testing #4
+
 """
 
 import os
 import json
 import base64
-import logging
 from datetime import datetime
 from typing import Optional, Dict, Any
 from azure.storage.blob import BlobServiceClient, ContentSettings
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger()
 
 
 class StorageManager:

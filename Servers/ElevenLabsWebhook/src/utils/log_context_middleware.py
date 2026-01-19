@@ -6,8 +6,9 @@ from fastapi import Request
 from starlette.responses import Response
 
 from src.utils.logger import request_log_buffer, flush_logs
+from src.utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
+logger = setup_logger()
 
 
 async def log_context_middleware(request: Request, call_next) -> Response:

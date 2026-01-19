@@ -2,7 +2,8 @@ import uuid
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from logger import request_log_buffer, flush_logs
+from src.utils.logger import request_log_buffer, flush_logs
+
 
 
 class RequestLogMiddleware(BaseHTTPMiddleware):
