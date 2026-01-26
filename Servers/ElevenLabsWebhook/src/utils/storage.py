@@ -60,7 +60,7 @@ class StorageManager:
         container_name = os.getenv("BLOB_CONTAINER_NAME", "webhook-data")
         
         enable_audio = os.getenv("ENABLE_AUDIO_STORAGE", "false").lower() == "true"
-        enable_transcript = os.getenv("ENABLE_TRANSCRIPT_STORAGE", "true").lower() == "true"
+        enable_transcript = os.getenv("ENABLE_TRANSCRIPT_STORAGE", "false").lower() == "true"
         
         if not connection_string:
             logger.warning("No Azure Storage connection string found (AzureWebJobsStorage_elevenlabswebhook or AZURE_STORAGE_CONNECTION_STRING)")
