@@ -5,13 +5,11 @@ Sends email notifications via Gmail SMTP when ticket creation fails.
 """
 
 import os
+import json
 from email.message import EmailMessage
 from typing import Optional
-import json
 import aiosmtplib
 from src.utils.logger import setup_logger
-from xml.etree.ElementTree import Element, tostring
-from xml.dom import minidom
 
 logger = setup_logger()
 
@@ -32,31 +30,6 @@ class EmailSender:
         """Check if email sender is properly configured."""
         return bool(self.username and self.password and self.from_address)
     
-    @staticmethod
-    def dict_to_xml(tag: str, data: dict) -> str:
-        """Convert a dictionary to pretty-printed XML string."""
-        root = Element(tag)
-
-        def build_xml(elem, value):
-            if isinstance(value, dict):
-                for k, v in value.items():
-                    child = Element(str(k))
-                    elem.append(child)
-                    build_xml(child, v)
-            elif isinstance(value, list):
-                for item in value:
-                    child = Element("item")
-                    elem.append(child)
-                    build_xml(child, item)
-            else:
-                elem.text = "" if value is None else str(value)
-
-        build_xml(root, data)
-
-        rough_string = tostring(root, "utf-8")
-        reparsed = minidom.parseString(rough_string)
-        return reparsed.toprettyxml(indent="  ")
-
     async def send_error_notification(
         self,
         conversation_id: str,
@@ -68,7 +41,6 @@ class EmailSender:
         call_time: Optional[str] = None,
         to_address: Optional[str] = None
     ) -> bool:
-
         """
         Send email notification when ticket creation fails.
         
@@ -76,6 +48,10 @@ class EmailSender:
             conversation_id: ElevenLabs conversation ID
             transcript: Call transcript
             error_message: Error details
+            ticket_data: Extracted ticket data
+            payload: Original webhook payload
+            call_number: Caller's phone number
+            call_time: Call timestamp
             to_address: Recipient email (defaults to SERVICEDESK_EMAIL)
             
         Returns:
@@ -114,23 +90,32 @@ class EmailSender:
         <p><strong style="font-size:14pt;">Call Transcript:</strong></p>
         <pre>{transcript}</pre>
 
-        <p><em>Full agent payload is attached as XML.</em></p>
+        <p><em>Full agent payload is attached as JSON.</em></p>
         """
 
         message.set_content("This is an automated notification. Please see the HTML version.")
         message.add_alternative(body, subtype="html")
 
-
-        # XML attachment
-        xml_payload = self.dict_to_xml("agent_payload", payload)
-        message.add_attachment(
-            xml_payload.encode("utf-8"),
-            maintype="application",
-            subtype="xml",
-            filename="agent_payload.xml"
-        )
-
-
+        # JSON attachment instead of XML
+        try:
+            # Pretty print JSON for readability
+            json_payload = json.dumps(payload, indent=2, ensure_ascii=False)
+            message.add_attachment(
+                json_payload.encode("utf-8"),
+                maintype="application",
+                subtype="json",
+                filename="agent_payload.json"
+            )
+        except Exception as json_error:
+            logger.error(f"Failed to create JSON attachment: {json_error}")
+            # Add a simple text attachment with error message
+            error_text = f"Failed to serialize payload to JSON: {json_error}\n\nOriginal error: {error_message}"
+            message.add_attachment(
+                error_text.encode("utf-8"),
+                maintype="text",
+                subtype="plain",
+                filename="error_details.txt"
+            )
         
         try:
             await aiosmtplib.send(
