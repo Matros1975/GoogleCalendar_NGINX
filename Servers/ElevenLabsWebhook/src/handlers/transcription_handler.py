@@ -316,7 +316,10 @@ class TranscriptionHandler:
                     priority=ticket_data.priority
                 )
                 
-                if ticket_response["success"]:
+                if not ticket_response or not isinstance(ticket_response, dict):
+                    raise Exception("TopDesk create_incident returned no response")
+
+                if ticket_response.get("success"):
                     result["ticket_created"] = True
                     result["ticket_number"] = ticket_response["ticket_number"]
                     result["ticket_id"] = ticket_response["ticket_id"]
