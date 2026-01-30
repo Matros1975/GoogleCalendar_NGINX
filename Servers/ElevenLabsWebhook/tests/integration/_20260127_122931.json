@@ -1,0 +1,2103 @@
+{
+  "type": "post_call_transcription",
+  "event_timestamp": 1764501123,
+  "conversation_id": "",
+  "agent_id": "",
+  "saved_at": "2026-01-27T12:29:30.387189Z",
+  "data": {
+    "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+    "agent_name": "Agent 1 Alex: Topdesk Data Collection",
+    "conversation_id": "conv_5501kfzpprq4fjq8dsx81a3ha0ya",
+    "status": "done",
+    "user_id": "1ox1RVRrTwZmtqdRLQUZMeQcMmh1",
+    "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+    "version_id": "agtvrsn_0001kfzpkhfgex79rv8yet3rzye1",
+    "transcript": [
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Hoi! Je spreekt met Alex. Waarmee kan ik helpen? ",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 0,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.492218455998227
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "...",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 8,
+        "conversation_turn_metrics": null,
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Hoi! Ik hoor dat je er bent. Waarmee kan ik je helpen?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 9,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.569587349993526
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.32164178299717605
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.5695455219974974
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.5273197829956189
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7298,
+                "price": 0.00054735
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 20,
+                "price": 6e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Hoi, ik heb een probleem met mijn printer. Hij doet niet.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 13,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.06152261899842415
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Hoi! Dat is vervelend. Laten we dit oplossen. Wat is je volledige naam?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 20,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.8514070749952225
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.6566170550067909
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.9721483920002356
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.49299872999836225
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7333,
+                "price": 0.0005499750000000001
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 24,
+                "price": 7.2e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Haagen van Geest Inge van",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 27,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.029766127991024405
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Dank je, Alberg. En wat is je personeelsnummer?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 31,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.7391718960134313
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.5401744480041089
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.739142462000018
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.5078141830017557
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7361,
+                "price": 0.000552075
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 16,
+                "price": 4.8e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "three two zero two two five five",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 35,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.053208562996587716
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Dank je. Voor welk bedrijf werk je?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 40,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.6472231589868898
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.47015110799111426
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.647190152987605
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.43662821799807716
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7386,
+                "price": 0.0005539499999999999
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 12,
+                "price": 3.6e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Private Bedrive.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 45,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.03992318800010253
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "En op welke afdeling werk je?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 48,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.6228646829986246
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.4659577019920107
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.6228460519923829
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.4173391329968581
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7402,
+                "price": 0.00055515
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 9,
+                "price": 2.6999999999999996e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Customer Service.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 52,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.07638725799915846
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Hhmmmm...yeah give me a second... Mag ik een bevestiging SMS sturen naar None? Dat is het nummer waarmee je nu belt.\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 56,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 1.161225269010174
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 1.1605008640035521
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 1.383703979998245
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.8331555789918639
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7414,
+                "price": 0.00055605
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 21,
+                "price": 6.3e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Nou.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 67,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.029553084008512087
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Geen probleem, naar welk nummer mag ik de SMS sturen?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 70,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.7401972290099366
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.5308029279985931
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.7401747609983431
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.5158329569967464
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7447,
+                "price": 0.0005585249999999999
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 16,
+                "price": 4.8e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Mijn naam is Niets Tuur, alsjeblieft.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 75,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.06050829400192015
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Geen probleem! Wat is je telefoonnummer?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 78,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.5448318530106917
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.5443216130079236
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.6585093769972445
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.34475087499595247
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7478,
+                "price": 0.00056085
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 11,
+                "price": 3.2999999999999997e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Skip this question.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 83,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.02994142399984412
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Ok\u00e9, wat is het probleem dat je ervaart?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 86,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.8264206399908289
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.6267249730008189
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.8264001529896632
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.4564045689912746
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7493,
+                "price": 0.000561975
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 14,
+                "price": 4.2000000000000004e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "De printer doet niet.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 90,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.03538288299751002
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Ok\u00e9, en sinds wanneer heb je dit probleem?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 93,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.811370531009743
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.7020508450077614
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.8113467010116437
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.4891773120034486
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7512,
+                "price": 0.0005633999999999999
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 12,
+                "price": 3.6e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Since history.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 96,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.02800169300462585
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Kan je nog werken of niet?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 98,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.6227059390075738
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.4783949800039409
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.6226867500081426
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.38031150998722296
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7527,
+                "price": 0.000564525
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 8,
+                "price": 2.4e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Niet.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 101,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.038351688999682665
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Zie je een foutmelding?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 103,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.8896496300003491
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.7426472619990818
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.889619424007833
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.39341194700682536
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7538,
+                "price": 0.00056535
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 7,
+                "price": 2.1000000000000002e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Nee, alleen de rode lampje blinkt.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 105,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.05019847799849231
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Welk gebouw/locatie?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 108,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.6410693960060598
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.4637579900008859
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.6410494650044711
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.3699055250035599
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7556,
+                "price": 0.0005667
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 9,
+                "price": 2.6999999999999996e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "H\u00e9, wie het zeggen.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 113,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.043933168999501504
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Ok\u00e9, laat me even samenvatten: Je naam is Niets Tuur, personeelsnummer is niet bekend, van Private Bedrive, Customer Service. Het probleem is dat de printer niet werkt en het rode lampje knippert. Dit probleem is al langer en je kan niet werken. Klopt dit allemaal?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 115,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.868905719005852
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.758542726005544
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 1.2425899050140288
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.4934222320007393
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7572,
+                "price": 0.0005679
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 67,
+                "price": 2.0099999999999997e-05
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Ja.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 130,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.031080279004527256
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Perfect! We hebben je melding genoteerd. Het systeem maakt nu automatisch een incident aan en je ontvangt binnen enkele minuten een SMS met je incident nummer. De juiste afdeling neemt contact met je op. Is er nog iets anders waarmee ik je kan helpen?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 134,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.7892894579999847
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.589593122000224
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 1.007363681012066
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.4551525679999031
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7641,
+                "price": 0.0005730749999999999
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 54,
+                "price": 1.62e-05
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Nee.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 148,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.03720520800561644
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Perfect! We hebben je melding genoteerd. Het systeem maakt nu automatisch een incident aan en je ontvangt binnen enkele minuten een SMS met je incident nummer. De juiste afdeling neemt contact met je op. Is er nog iets anders waarmee ik je kan helpen?\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 150,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.7377723889949266
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.552159197992296
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.967559110998991
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.4333578590012621
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7698,
+                "price": 0.00057735
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 54,
+                "price": 1.62e-05
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Nee.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 163,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_asr_trailing_service_latency": {
+              "elapsed_time": 0.031987301001208834
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+          "branch_id": "agtbrch_6501kfjhzbb5ea6ak34bhfs8bxdm",
+          "workflow_node_id": null
+        },
+        "message": "Ok\u00e9, dan wens ik je een fijne dag!\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 166,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.6648184160003439
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.615083783006412
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 0.6647979210101767
+            },
+            "convai_tts_service_ttfb": {
+              "elapsed_time": 0.6451922380074393
+            }
+          }
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.0-flash-lite": {
+              "input": {
+                "tokens": 7755,
+                "price": 0.000581625
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0.0
+              },
+              "output_total": {
+                "tokens": 14,
+                "price": 4.2000000000000004e-06
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      }
+    ],
+    "metadata": {
+      "start_time_unix_secs": 1769516786,
+      "accepted_time_unix_secs": 1769516786,
+      "call_duration_secs": 173,
+      "cost": 1113,
+      "deletion_settings": {
+        "deletion_time_unix_secs": null,
+        "deleted_logs_at_time_unix_secs": null,
+        "deleted_audio_at_time_unix_secs": null,
+        "deleted_transcript_at_time_unix_secs": null,
+        "delete_transcript_and_pii": false,
+        "delete_audio": false
+      },
+      "feedback": {
+        "type": null,
+        "overall_score": null,
+        "likes": 0,
+        "dislikes": 0,
+        "rating": null,
+        "comment": null
+      },
+      "authorization_method": "authorization_header",
+      "charging": {
+        "dev_discount": true,
+        "is_burst": false,
+        "tier": "enterprise",
+        "llm_usage": {
+          "irreversible_generation": {
+            "model_usage": {
+              "gemini-2.0-flash-lite": {
+                "input": {
+                  "tokens": 127411,
+                  "price": 0.009555825
+                },
+                "input_cache_read": {
+                  "tokens": 0,
+                  "price": 0.0
+                },
+                "input_cache_write": {
+                  "tokens": 0,
+                  "price": 0.0
+                },
+                "output_total": {
+                  "tokens": 368,
+                  "price": 0.0001104
+                }
+              }
+            }
+          },
+          "initiated_generation": {
+            "model_usage": {
+              "gemini-2.0-flash-lite": {
+                "input": {
+                  "tokens": 134771,
+                  "price": 0.010107825
+                },
+                "input_cache_read": {
+                  "tokens": 0,
+                  "price": 0.0
+                },
+                "input_cache_write": {
+                  "tokens": 0,
+                  "price": 0.0
+                },
+                "output_total": {
+                  "tokens": 384,
+                  "price": 0.00011519999999999998
+                }
+              }
+            }
+          }
+        },
+        "llm_price": 0.010223025,
+        "llm_charge": 102,
+        "call_charge": 1011,
+        "free_minutes_consumed": 0.0,
+        "free_llm_dollars_consumed": 0.0
+      },
+      "phone_call": null,
+      "batch_call": null,
+      "termination_reason": "Client disconnected: 1000",
+      "error": null,
+      "warnings": [
+        "Evaluation could not determine if conversation goals were met."
+      ],
+      "main_language": "nl",
+      "rag_usage": null,
+      "text_only": false,
+      "features_usage": {
+        "language_detection": {
+          "enabled": false,
+          "used": false
+        },
+        "transfer_to_agent": {
+          "enabled": false,
+          "used": false
+        },
+        "transfer_to_number": {
+          "enabled": false,
+          "used": false
+        },
+        "multivoice": {
+          "enabled": false,
+          "used": false
+        },
+        "dtmf_tones": {
+          "enabled": true,
+          "used": false
+        },
+        "external_mcp_servers": {
+          "enabled": false,
+          "used": false
+        },
+        "pii_zrm_workspace": false,
+        "pii_zrm_agent": false,
+        "tool_dynamic_variable_updates": {
+          "enabled": false,
+          "used": false
+        },
+        "is_livekit": false,
+        "voicemail_detection": {
+          "enabled": false,
+          "used": false
+        },
+        "workflow": {
+          "enabled": false,
+          "tool_node": {
+            "enabled": false,
+            "used": false
+          },
+          "standalone_agent_node": {
+            "enabled": false,
+            "used": false
+          },
+          "phone_number_node": {
+            "enabled": false,
+            "used": false
+          },
+          "end_node": {
+            "enabled": false,
+            "used": false
+          }
+        },
+        "agent_testing": {
+          "enabled": false,
+          "tests_ran_after_last_modification": false,
+          "tests_ran_in_last_7_days": false
+        },
+        "versioning": {
+          "enabled": true,
+          "used": false
+        }
+      },
+      "eleven_assistant": {
+        "is_eleven_assistant": false
+      },
+      "initiator_id": "1ox1RVRrTwZmtqdRLQUZMeQcMmh1",
+      "conversation_initiation_source": "react_sdk",
+      "conversation_initiation_source_version": "0.12.3",
+      "timezone": "Europe/Amsterdam",
+      "async_metadata": null,
+      "whatsapp": null,
+      "agent_created_from": "ui",
+      "agent_last_updated_from": "ui"
+    },
+    "analysis": {
+      "evaluation_criteria_results": {
+        "ticket_information_collected": {
+          "criteria_id": "ticket_information_collected",
+          "result": "success",
+          "rationale": "De agent heeft de volledige naam (Niets Tuur), personeelsnummer three two zero two two five five), bedrijf (Private Bedrive) en een duidelijke probleemomschrijving (De printer doet niet, rode lampje blinkt) verzameld. Hoewel de gebruiker eerst een andere naam gaf, corrigeerde hij dit later."
+        },
+        "customer_satisfied": {
+          "criteria_id": "customer_satisfied",
+          "result": "unknown",
+          "rationale": "De klant zegt 'nee' op de vraag of er nog iets anders is waarmee de agent kan helpen en de agent wenst de klant een fijne dag. Er is geen duidelijke indicatie van tevredenheid of ontevredenheid aan het einde van het gesprek."
+        },
+        "issue_resolution": {
+          "criteria_id": "issue_resolution",
+          "result": "success",
+          "rationale": "Het probleem is duidelijk begrepen (printer werkt niet, rode lampje knippert), de agent heeft een samenvatting gegeven en de klant heeft bevestigd dat de samenvatting correct is."
+        }
+      },
+      "data_collection_results": {
+        "full_name": {
+          "data_collection_id": "full_name",
+          "value": "Niets Tuur",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the customer's complete name as provided during the conversation",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The customer provides two names during the conversation. First, 'Haagen van Geest Inge van' at 2026-01-27T13:26:53+01:00 and later 'Niets Tuur' at 2026-01-27T13:27:41+01:00. The agent summarizes the information at 2026-01-27T13:28:21+01:00 and uses the name 'Niets Tuur', which the user confirms at 2026-01-27T13:28:36+01:00. Therefore, 'Niets Tuur' is the customer's complete name."
+        },
+        "company": {
+          "data_collection_id": "company",
+          "value": "Private Bedrive",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the company name the customer works for",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user states that they work for 'Private Bedrive' at 2026-01-27T13:27:11+01:00."
+        },
+        "department": {
+          "data_collection_id": "department",
+          "value": "Customer Service",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the department or team the customer works in. If not mentioned, mark as 'Not specified'",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user states that they work in the 'Customer Service' department."
+        },
+        "phone_number": {
+          "data_collection_id": "phone_number",
+          "value": null,
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the phone number where the customer wants to receive SMS confirmation. This could be the caller ID or an alternative number they provide",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user initially declines to receive an SMS confirmation at the caller ID number. When asked for an alternative number, the user provides the name 'Niets Tuur' and then skips the question about providing a phone number. Therefore, it's not possible to extract a valid phone number for SMS confirmation."
+        },
+        "problem_summary": {
+          "data_collection_id": "problem_summary",
+          "value": "The printer is not working, and the red light is blinking.",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract a clear, concise summary of the IT problem or issue the customer is experiencing",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user reports that their printer is not working, and the red light is blinking. This is the IT problem the customer is experiencing."
+        },
+        "category": {
+          "data_collection_id": "category",
+          "value": "Werkplek hardware",
+          "json_schema": {
+            "type": "string",
+            "description": "Classify the issue into one of these categories: Core applicaties, Overige applicaties, Werkplek hardware, Netwerk, Security, Servers, or Wachtwoord wijziging",
+            "enum": [
+              "Core applicaties",
+              "Overige applicaties",
+              "Werkplek hardware",
+              "Netwerk",
+              "Security",
+              "Servers",
+              "Wachtwoord wijziging"
+            ],
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "De gebruiker meldt een probleem met de printer. Dit valt onder de categorie 'Werkplek hardware'."
+        },
+        "priority": {
+          "data_collection_id": "priority",
+          "value": "P1",
+          "json_schema": {
+            "type": "string",
+            "description": "Determine priority level: P1 (critical, cannot work, multiple users), P2 (important, deadline impacted), P3 (can work with limitation), or P4 (minimal impact)",
+            "enum": [
+              "P1",
+              "P2",
+              "P3",
+              "P4"
+            ],
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user states that they cannot work due to the printer issue. This indicates a critical impact, suggesting a P1 priority."
+        },
+        "location": {
+          "data_collection_id": "location",
+          "value": "Not specified",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the building, office location, or work location of the customer if mentioned. If not mentioned, mark as 'Not specified'",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The agent asks 'Welk gebouw/locatie?' (Which building/location?) but the user does not provide an answer. Therefore, the building/office location is not specified."
+        },
+        "urgency_description": {
+          "data_collection_id": "urgency_description",
+          "value": "completely blocked",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract how the issue impacts the customer's work - can they continue working or are they completely blocked",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user states 'Niet' (No) in response to the agent asking 'Kan je nog werken of niet?' (Can you still work or not?). This indicates that the user is completely blocked from working."
+        },
+        "error_message": {
+          "data_collection_id": "error_message",
+          "value": "",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract any specific error messages or codes the customer mentions. If none mentioned, leave empty",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user mentions that there is no error message, only a blinking red light. Therefore, there are no specific error messages or codes to extract."
+        },
+        "problem_start_time": {
+          "data_collection_id": "problem_start_time",
+          "value": "Since history",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract when the problem started (e.g., 'this morning at 9am', 'since yesterday', 'just now')",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user states that the problem has been happening 'Since history'."
+        },
+        "attempted_solutions": {
+          "data_collection_id": "attempted_solutions",
+          "value": "Not asked",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract any troubleshooting steps or solutions the customer has already tried. If not mentioned or fast-track conversation, mark as 'Not asked'.",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user did not mention any troubleshooting steps or solutions they have already tried. Therefore, the value is 'Not asked'."
+        },
+        "create_ticket Description:": {
+          "data_collection_id": "create_ticket Description:",
+          "value": true,
+          "json_schema": {
+            "type": "boolean",
+            "description": "Determine if a ticket should be created. Mark as true if the conversation was completed successfully and customer confirmed all information. Mark as false if the customer cancelled or conversation ended prematurely",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The agent confirmed the information with the user and the user agreed. The agent then stated that a ticket will be created. Therefore, a ticket should be created."
+        },
+        "workflow_type": {
+          "data_collection_id": "workflow_type",
+          "value": "Normal",
+          "json_schema": {
+            "type": "string",
+            "description": "Identify which workflow was used: 'Normal' for standard conversation or 'Fast-Track' for urgent/rushed customers",
+            "enum": [
+              "Normal",
+              "Fast-Track"
+            ],
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The conversation follows a standard troubleshooting process, with the agent gathering information about the user's identity, company, department, and the printer issue. There is no indication of urgency or rushing the customer, so the workflow is 'Normal'."
+        },
+        "workability": {
+          "data_collection_id": "workability",
+          "value": "no",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the caller's ability to work based on their answer to the question \n\"Kan je nog werken of niet?\". \n\nClassify into exactly one of the following values:\n- \"yes\" if the caller says they can still work.\n- \"no\" if the caller says they cannot work at all.\n- \"partial\" if the caller says they can work but with limitations.\n\nIf the caller gives a long explanation, infer the correct value based on meaning.\nAlways return one of the three predefined values.\n",
+            "enum": [
+              "yes",
+              "no",
+              "partially"
+            ],
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "De vraag 'Kan je nog werken of niet?' wordt gesteld door de agent op 2026-01-27T13:28:04+01:00. De gebruiker antwoordt 'Niet' op 2026-01-27T13:28:07+01:00. Dit betekent dat de gebruiker niet kan werken, dus de waarde is 'no'."
+        },
+        "employee_number": {
+          "data_collection_id": "employee_number",
+          "value": 3202255,
+          "json_schema": {
+            "type": "number",
+            "description": "personal employee identifier",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user provides the employee identifier 'three two zero two two five five' which translates to 'three two zero two two five five'. This can be interpreted as the number 3202255"
+        }
+      },
+      "evaluation_criteria_results_list": [
+        {
+          "criteria_id": "ticket_information_collected",
+          "result": "success",
+          "rationale": "De agent heeft de volledige naam (Niets Tuur), personeelsnummer (three two zero two two five five), bedrijf (Private Bedrive) en een duidelijke probleemomschrijving (De printer doet niet, rode lampje blinkt) verzameld. Hoewel de gebruiker eerst een andere naam gaf, corrigeerde hij dit later."
+        },
+        {
+          "criteria_id": "customer_satisfied",
+          "result": "unknown",
+          "rationale": "De klant zegt 'nee' op de vraag of er nog iets anders is waarmee de agent kan helpen en de agent wenst de klant een fijne dag. Er is geen duidelijke indicatie van tevredenheid of ontevredenheid aan het einde van het gesprek."
+        },
+        {
+          "criteria_id": "issue_resolution",
+          "result": "success",
+          "rationale": "Het probleem is duidelijk begrepen (printer werkt niet, rode lampje knippert), de agent heeft een samenvatting gegeven en de klant heeft bevestigd dat de samenvatting correct is."
+        }
+      ],
+      "data_collection_results_list": [
+        {
+          "data_collection_id": "full_name",
+          "value": "Niets Tuur",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the customer's complete name as provided during the conversation",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The customer provides two names during the conversation. First, 'Haagen van Geest Inge van' at 2026-01-27T13:26:53+01:00 and later 'Niets Tuur' at 2026-01-27T13:27:41+01:00. The agent summarizes the information at 2026-01-27T13:28:21+01:00 and uses the name 'Niets Tuur', which the user confirms at 2026-01-27T13:28:36+01:00. Therefore, 'Niets Tuur' is the customer's complete name."
+        },
+        {
+          "data_collection_id": "company",
+          "value": "Private Bedrive",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the company name the customer works for",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user states that they work for 'Private Bedrive' at 2026-01-27T13:27:11+01:00."
+        },
+        {
+          "data_collection_id": "department",
+          "value": "Customer Service",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the department or team the customer works in. If not mentioned, mark as 'Not specified'",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user states that they work in the 'Customer Service' department."
+        },
+        {
+          "data_collection_id": "phone_number",
+          "value": null,
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the phone number where the customer wants to receive SMS confirmation. This could be the caller ID or an alternative number they provide",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user initially declines to receive an SMS confirmation at the caller ID number. When asked for an alternative number, the user provides the name 'Niets Tuur' and then skips the question about providing a phone number. Therefore, it's not possible to extract a valid phone number for SMS confirmation."
+        },
+        {
+          "data_collection_id": "problem_summary",
+          "value": "The printer is not working, and the red light is blinking.",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract a clear, concise summary of the IT problem or issue the customer is experiencing",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user reports that their printer is not working, and the red light is blinking. This is the IT problem the customer is experiencing."
+        },
+        {
+          "data_collection_id": "category",
+          "value": "Werkplek hardware",
+          "json_schema": {
+            "type": "string",
+            "description": "Classify the issue into one of these categories: Core applicaties, Overige applicaties, Werkplek hardware, Netwerk, Security, Servers, or Wachtwoord wijziging",
+            "enum": [
+              "Core applicaties",
+              "Overige applicaties",
+              "Werkplek hardware",
+              "Netwerk",
+              "Security",
+              "Servers",
+              "Wachtwoord wijziging"
+            ],
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "De gebruiker meldt een probleem met de printer. Dit valt onder de categorie 'Werkplek hardware'."
+        },
+        {
+          "data_collection_id": "priority",
+          "value": "P1",
+          "json_schema": {
+            "type": "string",
+            "description": "Determine priority level: P1 (critical, cannot work, multiple users), P2 (important, deadline impacted), P3 (can work with limitation), or P4 (minimal impact)",
+            "enum": [
+              "P1",
+              "P2",
+              "P3",
+              "P4"
+            ],
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user states that they cannot work due to the printer issue. This indicates a critical impact, suggesting a P1 priority."
+        },
+        {
+          "data_collection_id": "location",
+          "value": "Not specified",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the building, office location, or work location of the customer if mentioned. If not mentioned, mark as 'Not specified'",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The agent asks 'Welk gebouw/locatie?' (Which building/location?) but the user does not provide an answer. Therefore, the building/office location is not specified."
+        },
+        {
+          "data_collection_id": "urgency_description",
+          "value": "completely blocked",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract how the issue impacts the customer's work - can they continue working or are they completely blocked",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user states 'Niet' (No) in response to the agent asking 'Kan je nog werken of niet?' (Can you still work or not?). This indicates that the user is completely blocked from working."
+        },
+        {
+          "data_collection_id": "error_message",
+          "value": "",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract any specific error messages or codes the customer mentions. If none mentioned, leave empty",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user mentions that there is no error message, only a blinking red light. Therefore, there are no specific error messages or codes to extract."
+        },
+        {
+          "data_collection_id": "problem_start_time",
+          "value": "Since history",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract when the problem started (e.g., 'this morning at 9am', 'since yesterday', 'just now')",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user states that the problem has been happening 'Since history'."
+        },
+        {
+          "data_collection_id": "attempted_solutions",
+          "value": "Not asked",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract any troubleshooting steps or solutions the customer has already tried. If not mentioned or fast-track conversation, mark as 'Not asked'.",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user did not mention any troubleshooting steps or solutions they have already tried. Therefore, the value is 'Not asked'."
+        },
+        {
+          "data_collection_id": "create_ticket Description:",
+          "value": true,
+          "json_schema": {
+            "type": "boolean",
+            "description": "Determine if a ticket should be created. Mark as true if the conversation was completed successfully and customer confirmed all information. Mark as false if the customer cancelled or conversation ended prematurely",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The agent confirmed the information with the user and the user agreed. The agent then stated that a ticket will be created. Therefore, a ticket should be created."
+        },
+        {
+          "data_collection_id": "workflow_type",
+          "value": "Normal",
+          "json_schema": {
+            "type": "string",
+            "description": "Identify which workflow was used: 'Normal' for standard conversation or 'Fast-Track' for urgent/rushed customers",
+            "enum": [
+              "Normal",
+              "Fast-Track"
+            ],
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The conversation follows a standard troubleshooting process, with the agent gathering information about the user's identity, company, department, and the printer issue. There is no indication of urgency or rushing the customer, so the workflow is 'Normal'."
+        },
+        {
+          "data_collection_id": "workability",
+          "value": "no",
+          "json_schema": {
+            "type": "string",
+            "description": "Extract the caller's ability to work based on their answer to the question \n\"Kan je nog werken of niet?\". \n\nClassify into exactly one of the following values:\n- \"yes\" if the caller says they can still work.\n- \"no\" if the caller says they cannot work at all.\n- \"partial\" if the caller says they can work but with limitations.\n\nIf the caller gives a long explanation, infer the correct value based on meaning.\nAlways return one of the three predefined values.\n",
+            "enum": [
+              "yes",
+              "no",
+              "partially"
+            ],
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "De vraag 'Kan je nog werken of niet?' wordt gesteld door de agent op 2026-01-27T13:28:04+01:00. De gebruiker antwoordt 'Niet' op 2026-01-27T13:28:07+01:00. Dit betekent dat de gebruiker niet kan werken, dus de waarde is 'no'."
+        },
+        {
+          "data_collection_id": "employee_number",
+          "value": 3202255,
+          "json_schema": {
+            "type": "number",
+            "description": "personal employee identifier",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "The user provides the employee identifier 'three two zero two two five five' which translates to 'three two zero two two five five'. This can be interpreted as the number 3202255"
+        }
+      ],
+      "call_successful": "unknown",
+      "transcript_summary": "The user, initially identifying as Haagen van Geest Inge van, reports a printer issue. After some back and forth, the user reveals their name is Niets Tuur and skips providing a phone number. The agent summarizes the issue: printer not working with a blinking red light, preventing work. The agent confirms the details with the user and informs them that an incident is being created and they will receive an SMS with the incident number.\n",
+      "call_summary_title": "Printer issue report"
+    },
+    "conversation_initiation_client_data": {
+      "conversation_config_override": {
+        "turn": null,
+        "tts": {
+          "voice_id": null,
+          "stability": null,
+          "speed": null,
+          "similarity_boost": null
+        },
+        "conversation": {
+          "text_only": null
+        },
+        "agent": {
+          "first_message": null,
+          "language": null,
+          "prompt": null
+        }
+      },
+      "custom_llm_extra_body": {},
+      "user_id": "1ox1RVRrTwZmtqdRLQUZMeQcMmh1",
+      "source_info": {
+        "source": "react_sdk",
+        "version": "0.12.3"
+      },
+      "dynamic_variables": {
+        "system__agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+        "system__agent_turns": 18,
+        "system__current_agent_turns": 18,
+        "system__current_subagent_turns": 18,
+        "system__current_agent_id": "agent_0801kc95pjepfh19j8xb05dds4hh",
+        "system__conversation_id": "conv_5501kfzpprq4fjq8dsx81a3ha0ya",
+        "system__call_duration_secs": 173,
+        "system__time_utc": "2026-01-27T12:29:19.735754+00:00",
+        "system__time": "Tuesday, 13:29 27 January 2026",
+        "system__timezone": "Europe/Amsterdam",
+        "system__caller_id": null,
+        "system__called_number": null,
+        "system__call_sid": null
+      }
+    }
+  }
+}
