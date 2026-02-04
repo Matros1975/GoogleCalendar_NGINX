@@ -212,7 +212,7 @@ class TopDeskClient:
         
         payload: Dict[str, Any] = {
             "briefDescription": brief_description[:80] if brief_description else "Call transcript",
-            "request": f"ElevenLabs Conversation ID: {conversation_id}\n\n{request}",
+            "request": f"Conversation ID: {conversation_id}\n\n{request}",
             "caller": {
                 "id": DEFAULT_CALLER_ID
             }
