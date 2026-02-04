@@ -6,12 +6,13 @@ Implements async TopDesk API integration for the ElevenLabs webhook service.
 
 import os
 import base64
+import logging
 from typing import Dict, Any, Optional
 
 import httpx
-from src.utils.logger import setup_logger
 
-logger = setup_logger()
+
+logger = logging.getLogger(__name__)
 
 # TopDesk ticket number format constants
 TICKET_NUMBER_TOTAL_DIGITS = 7
@@ -211,7 +212,7 @@ class TopDeskClient:
         
         payload: Dict[str, Any] = {
             "briefDescription": brief_description[:80] if brief_description else "Call transcript",
-            "request": f"ElevenLabs Conversation ID: {conversation_id}\n\n{request}",
+            "request": f"Conversation ID: {conversation_id}\n\n{request}",
             "caller": {
                 "id": DEFAULT_CALLER_ID
             }
@@ -306,9 +307,15 @@ class TopDeskClient:
             logger.error("No ticket ID provided for action")
             return False
         
+        # Add line breaks before each timestamp for better readability
+        # Pattern: [HH:MM:SS] - speaker: message
+        # This makes each conversation turn start on a new line
+        import re
+        formatted_transcript = re.sub(r'(\[)', r'\n\1', transcript).strip()
+        
         # TopDesk requires PATCH to incidents endpoint with action field
         payload = {
-            "action": f"Call Transcript:\n\n{transcript}",
+            "action": f"Call Transcript:\n\n{formatted_transcript}",
             "actionInvisibleForCaller": True
         }
         

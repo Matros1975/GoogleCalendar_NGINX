@@ -12,8 +12,6 @@ os.environ.setdefault("ENABLE_AUDIO_STORAGE", "false")
 os.environ.setdefault("ENABLE_TRANSCRIPT_STORAGE", "false")
 
 # Configure logging directories for tests
-from src.utils.logger import get_logger
-logger = get_logger(__name__)
 # Use centralized logging location if not already set
 os.environ.setdefault("LOG_DIR", "/home/ubuntu/GoogleCalendar_NGINX/logs")
 os.environ.setdefault("LOG_FILENAME", "webhook.log")
