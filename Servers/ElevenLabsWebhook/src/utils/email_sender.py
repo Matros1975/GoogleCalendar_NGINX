@@ -11,8 +11,7 @@ from typing import Optional
 import aiosmtplib
 from src.utils.logger import setup_logger
 
-
-logger = logging.getLogger(__name__)
+logger = setup_logger()
 
 
 class EmailSender:
@@ -36,6 +35,10 @@ class EmailSender:
         conversation_id: str,
         transcript: str,
         error_message: str,
+        ticket_data: dict,
+        payload: dict,
+        call_number: Optional[str] = None,
+        call_time: Optional[str] = None,
         to_address: Optional[str] = None
     ) -> bool:
         """
@@ -65,7 +68,15 @@ class EmailSender:
         message["To"] = to_address
         message["Subject"] = f"[ElevenLabs] Failed to create ticket - {conversation_id}"
         
-        body = f"""A call transcript could not be processed into a TopDesk ticket.
+        topdesk_env = os.getenv("TOPDESK_URL", "UNKNOWN")
+
+        ticket_details = "\n".join(
+            [f" - {k}: {v}" for k, v in ticket_data.items() if v]
+        ) or " - Not available"
+
+        body = f"""
+        <p><strong style="font-size:14pt;">From number:</strong> {call_number}</p>
+        <p><strong style="font-size:14pt;">At time:</strong> {call_time}</p>
 
         <p><strong style="font-size:14pt;">Ticket cannot be created at TopDesk environment:</strong><br>
         {topdesk_env}</p>
