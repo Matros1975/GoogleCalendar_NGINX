@@ -21,8 +21,8 @@ from src.handlers.transcription_handler import TranscriptionHandler
 from src.handlers.audio_handler import AudioHandler
 from src.handlers.call_failure_handler import CallFailureHandler
 from src.utils.logger import setup_logger
-from src.utils.log_context_middleware import log_context_middleware
 
+# Setup logging
 logger = setup_logger()
 
 # Initialize components (will be configured on startup)
@@ -37,10 +37,8 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown."""
     global hmac_validator, transcription_handler, audio_handler, call_failure_handler
     
-    secret = (
-    os.getenv("ELEVENLABS_WEBHOOK_SECRET")
-    or os.getenv("HMAC_SECRET")
-    or "")
+    # Startup
+    secret = os.getenv("ELEVENLABS_WEBHOOK_SECRET", "")
     if not secret:
         logger.warning("ELEVENLABS_WEBHOOK_SECRET not set - HMAC validation will fail")
     
@@ -65,8 +63,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Attach request log context middleware to the final app instance
-app.middleware("http")(log_context_middleware)
 
 @app.get("/health")
 async def health_check():
@@ -123,11 +119,8 @@ async def webhook_endpoint(
             result = await call_failure_handler.handle(payload)
         else:
             logger.error(f"Unknown webhook type: {webhook_type}")
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unknown webhook type: {webhook_type}"
-            )
-
+            raise HTTPException(status_code=400, detail=f"Unknown webhook type: {webhook_type}")
+        
         logger.info(f"Successfully processed {webhook_type} webhook")
         return JSONResponse(content={"status": "received"}, status_code=200)
         
