@@ -261,7 +261,7 @@ class TopDeskClient:
             }
         }
         
-        # Add optional fields only if they match valid TopDesk values
+        # Add optional fields only if they match valid TopDesk values 
         if category and category in VALID_CATEGORIES:
             payload["category"] = {"name": category}
             logger.debug(f"Using category: {category}")
