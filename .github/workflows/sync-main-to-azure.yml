@@ -1,76 +1,77 @@
-name: Sync ElevenLabsWebhook from main to azure-main (exclude logger & storage)
+# name: Sync ElevenLabsWebhook from main to azure-main (exclude logger & storage)
 
-on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'Servers/ElevenLabsWebhook/**'
+# on:
+#   push:
+#     branches: [ main ]
+#     paths:
+#       - 'Servers/ElevenLabsWebhook/**'
 
-permissions:
-  contents: write
+# permissions:
+#   contents: write
 
-concurrency:
-  group: sync-main-to-azure-main
-  cancel-in-progress: true
+# concurrency:
+#   group: sync-main-to-azure-main
+#   cancel-in-progress: true
 
-env:
-  AZURE_BRANCH: 'azure-main'
-  SYNC_PATH: Servers/ElevenLabsWebhook
+# env:
+#   AZURE_BRANCH: 'azure-main'
+#   SYNC_PATH: Servers/ElevenLabsWebhook
 
-jobs:
-  sync:
-    runs-on: ubuntu-latest
+# jobs:
+#   sync:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository (fetch all history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+#     steps:
+#       - name: Checkout repository (fetch all history)
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
 
-      - name: Set git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+#       - name: Set git identity
+#         run: |
+#           git config user.name "github-actions[bot]"
+#           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Ensure target branch exists
-        run: |
-          if git ls-remote --exit-code origin refs/heads/${AZURE_BRANCH}; then
-            git fetch origin ${AZURE_BRANCH}:${AZURE_BRANCH}
-          else
-            git checkout -b ${AZURE_BRANCH} origin/main || git checkout -b ${AZURE_BRANCH}
-            git push origin ${AZURE_BRANCH}
-          fi
+#       - name: Ensure target branch exists
+#         run: |
+#           if git ls-remote --exit-code origin refs/heads/${AZURE_BRANCH}; then
+#             git fetch origin ${AZURE_BRANCH}:${AZURE_BRANCH}
+#           else
+#             git checkout -b ${AZURE_BRANCH} origin/main || git checkout -b ${AZURE_BRANCH}
+#             git push origin ${AZURE_BRANCH}
+#           fi
 
-      - name: Checkout target branch
-        run: git checkout ${AZURE_BRANCH}
+#       - name: Checkout target branch
+#         run: git checkout ${AZURE_BRANCH}
 
-      - name: Sync ElevenLabsWebhook (with exclusions)
-        run: |
-          # Clean working tree
-          git reset --hard
+#       - name: Sync ElevenLabsWebhook (with exclusions)
+#         run: |
+#           # Clean working tree
+#           git reset --hard
 
-          # Copy ONLY ElevenLabsWebhook from main
-          git checkout origin/main -- ${SYNC_PATH} || true
+#           # Copy ONLY ElevenLabsWebhook from main
+#           git checkout origin/main -- ${SYNC_PATH} || true
 
-          # Restore excluded Azure-specific files
-          git restore --source=HEAD -- \
-            Servers/ElevenLabsWebhook/src/utils/logger.py \
-            Servers/ElevenLabsWebhook/src/utils/storage.py || true
+#           # Restore excluded Azure-specific files
+#           git restore --source=HEAD -- \
+#             Servers/ElevenLabsWebhook/src/utils/logger.py \
+#             Servers/ElevenLabsWebhook/src/utils/storage.py || true
 
-          # Stage only ElevenLabsWebhook
-          git add ${SYNC_PATH} || true
+#           # Stage only ElevenLabsWebhook
+#           git add ${SYNC_PATH} || true
 
-      - name: Commit and push changes if any
-        id: commit
-        run: |
-          if git status --porcelain | grep -q '.'; then
-            git commit -m "chore(sync): sync ElevenLabsWebhook from main (exclude logger/storage)"
-            git push origin ${AZURE_BRANCH}
-            echo "pushed=true" >> $GITHUB_OUTPUT
-          else
-            echo "pushed=false" >> $GITHUB_OUTPUT
-          fi
+#       - name: Commit and push changes if any
+#         id: commit
+#         run: |
+#           if git status --porcelain | grep -q '.'; then
+#             git commit -m "chore(sync): sync ElevenLabsWebhook from main (exclude logger/storage)"
+#             git push origin ${AZURE_BRANCH}
+#             echo "pushed=true" >> $GITHUB_OUTPUT
+#           else
+#             echo "pushed=false" >> $GITHUB_OUTPUT
+#           fi
 
-      - name: Exit if nothing changed
-        if: steps.commit.outputs.pushed == 'false'
-        run: echo "No changes to sync."
+#       - name: Exit if nothing changed
+#         if: steps.commit.outputs.pushed == 'false'
+#         run: echo "No changes to sync."
+
