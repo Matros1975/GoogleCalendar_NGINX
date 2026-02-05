@@ -24,7 +24,6 @@ class AudioHandler:
     def __init__(self, storage: Optional[StorageManager] = None):
         """
         Initialize handler.
-        
         Args:
             storage: Optional storage manager for persisting audio files
         """
