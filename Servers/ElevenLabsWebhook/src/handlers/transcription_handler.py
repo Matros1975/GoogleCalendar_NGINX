@@ -11,7 +11,6 @@ Processes full conversation data including:
 """
 
 import json
-import logging
 import os
 from typing import Dict, Any, Optional, List
 
@@ -21,9 +20,18 @@ from src.models.webhook_models import TranscriptionPayload, ConversationData, Tr
 from src.utils.storage import StorageManager
 from src.utils.topdesk_client import TopDeskClient
 from src.utils.email_sender import EmailSender
-from src.utils.logger import conversation_context  # Import conversation context
+from src.utils.logger import setup_logger
+from datetime import datetime, timezone
 
-logger = logging.getLogger(__name__)
+def format_unix_time(ts: int | None) -> str:
+    if not ts:
+        return "Unknown"
+    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime(
+        "%Y-%m-%d %H:%M:%S UTC"
+    )
+
+
+logger = setup_logger()
 
 # Configuration constants
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
@@ -190,9 +198,6 @@ class TranscriptionHandler:
             # Parse payload into typed model
             transcription = TranscriptionPayload.from_dict(payload)
             
-            # Set conversation context for all subsequent log entries
-            conversation_context.set(transcription.conversation_id)
-            
             logger.info(
                 f"Transcription received - "
                 f"conversation_id: {transcription.conversation_id}, "
@@ -344,11 +349,13 @@ class TranscriptionHandler:
                 # Send email notification on failure
                 error_msg = str(e)
                 result["error"] = error_msg
-                logger.error(f"Ticket creation failed for {transcription.conversation_id}: {error_msg}")
-                
+                logger.error(
+                    f"Ticket creation failed for {transcription.conversation_id}: {error_msg}"
+                )
+
                 if not self.email_sender:
                     self.email_sender = EmailSender()
-                
+
                 try:
                     data_dict = payload.get("data", {}) or {}
                     metadata = data_dict.get("metadata", {}) or {}
@@ -360,13 +367,19 @@ class TranscriptionHandler:
                     call_time = format_unix_time(start_time) if start_time else "Unknown"
 
                     email_sent = await self.email_sender.send_error_notification(
-                        transcription.conversation_id,
-                        formatted_transcript,
-                        error_msg
+                        conversation_id=transcription.conversation_id,
+                        transcript=formatted_transcript,
+                        error_message=error_msg,
+                        ticket_data=ticket_data.dict() if ticket_data else {},
+                        payload=payload,
+                        call_number=call_number,
+                        call_time=call_time
                     )
+
                     result["email_sent"] = email_sent
                 except Exception as email_error:
                     logger.error(f"Failed to send error notification email: {email_error}")
+
             
             return result
             
