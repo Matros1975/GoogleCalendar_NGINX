@@ -10,6 +10,8 @@ import logging
 from typing import Dict, Any, Optional
 
 import httpx
+from src.utils.logger import setup_logger
+import urllib.parse
 
 
 logger = logging.getLogger(__name__)
@@ -17,6 +19,22 @@ logger = logging.getLogger(__name__)
 # TopDesk ticket number format constants
 TICKET_NUMBER_TOTAL_DIGITS = 7
 TICKET_NUMBER_PREFIX_DIGITS = 4
+
+# Valid TopDesk categories (from your instance)
+VALID_CATEGORIES = [
+    "Core applicaties",
+    "Werkplek hardware",
+    "Netwerk",
+    "Wachtwoord wijziging"
+]
+
+# Valid TopDesk priorities (from your instance)
+VALID_PRIORITIES = [
+    "P1 (I&A)",
+    "P2 (I&A)",
+    "P3 (I&A)",
+    "P4 (I&A)"
+]
 
 
 class TopDeskClient:
@@ -152,14 +170,53 @@ class TopDeskClient:
             digits = digits.zfill(TICKET_NUMBER_TOTAL_DIGITS)
         
         return f"I{digits[:TICKET_NUMBER_PREFIX_DIGITS]} {digits[TICKET_NUMBER_PREFIX_DIGITS:TICKET_NUMBER_TOTAL_DIGITS]}"
+
+    async def validate_employee_number(self, employee_number: str) -> dict | None:
+        """
+        Validate if employee number exists in TopDesk.
+        
+        Args:
+            employee_number: Employee number to validate
+            
+        Returns:
+            Person object if found, None otherwise
+        """
+        if not employee_number or not self.base_url or not self.auth_header:
+            return None
+        
+        try:
+            query = f"employeeNumber=={employee_number}"
+            encoded_query = urllib.parse.quote(query, safe="=")
+            
+            client = await self._get_client()
+            response = await client.get(
+                f"{self.base_url}/persons",
+                params={
+                    "query": encoded_query,
+                    "start": 0,
+                    "page_size": 50
+                }
+            )
+            
+            if response.status_code == 200:
+                persons = response.json()
+                for person in persons:
+                    # Defensive check for exact match
+                    if str(person.get("employeeNumber", "")).strip() == str(employee_number):
+                        return person
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error validating employee number {employee_number}: {e}")
+            return None
     
     async def create_incident(
         self,
         brief_description: str,
         request: str,
         conversation_id: str,
-        caller_name: Optional[str] = None,
-        caller_email: Optional[str] = None,
+        employee_number: Optional[str] = None,  
         category: Optional[str] = None,
         priority: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -171,7 +228,7 @@ class TopDeskClient:
             request: Detailed description of the customer's request
             conversation_id: ElevenLabs conversation ID for reference
             caller_name: Caller's name if mentioned
-            caller_email: Caller's email if mentioned
+            employee_number: Employee number (REQUIRED for ticket creation)
             category: Issue category (optional)
             priority: Priority level (optional)
             
@@ -190,31 +247,19 @@ class TopDeskClient:
                 "error": "TopDesk credentials not configured (TOPDESK_USERNAME, TOPDESK_PASSWORD)"
             }
         
-        # Build payload - caller is REQUIRED for TopDesk
-        # Use default caller ID if no email provided
-        DEFAULT_CALLER_ID = "d34b277f-e6a2-534c-a96b-23bf383cb4a1"  # Jacob Aalbregt
+        # Employee number is REQUIRED - should have been validated before calling this
+        if not employee_number:
+            return {
+                "success": False,
+                "error": "Employee number is required for ticket creation"
+            }
         
-        # Valid TopDesk categories (from your instance)
-        VALID_CATEGORIES = [
-            "Core applicaties",
-            "Werkplek hardware",
-            "Netwerk",
-            "Wachtwoord wijziging"
-        ]
-        
-        # Valid TopDesk priorities (from your instance)
-        VALID_PRIORITIES = [
-            "P1 (I&A)",
-            "P2 (I&A)",
-            "P3 (I&A)",
-            "P4 (I&A)"
-        ]
-        
+        # Build payload with employee number lookup
         payload: Dict[str, Any] = {
             "briefDescription": brief_description[:80] if brief_description else "Call transcript",
-            "request": f"Conversation ID: {conversation_id}\n\n{request}",
-            "caller": {
-                "id": DEFAULT_CALLER_ID
+            "request": f"ElevenLabs Conversation ID: {conversation_id}\n\n{request}",
+            "callerLookup": {
+                "employeeNumber": str(employee_number)
             }
         }
         
@@ -239,13 +284,12 @@ class TopDeskClient:
             payload["priority"] = {"name": "P3 (I&A)"}
             logger.debug("Using default priority: P3 (I&A)")
             
-        # Note: callerLookup by email can be used to override caller, but requires exact match
-        # For now, we always use the default caller ID to ensure ticket creation succeeds
-        
+        # Note: callerLookup by employeeNumber will find the correct person
+        logger.info(f"Creating TopDesk incident for conversation {conversation_id} with employee {employee_number}")
         try:
             client = await self._get_client()
             url = f"{self.base_url}/incidents"
-            logger.info(f"Creating TopDesk incident for conversation {conversation_id}")
+            logger.info(f"Creating TopDesk incident for conversation {conversation_id} with employee {employee_number}")
             logger.info(f"POST URL: {url}")
             logger.debug(f"Payload: {payload}")
             
@@ -259,7 +303,7 @@ class TopDeskClient:
                 ticket_number = result.get("number", "")
                 ticket_id = result.get("id", "")
                 
-                logger.info(f"TopDesk incident created: {ticket_number}")
+                logger.info(f"TopDesk incident created: {ticket_number} for employee {employee_number}")
                 
                 return {
                     "success": True,

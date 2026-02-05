@@ -52,9 +52,7 @@ class TicketDataPayload(BaseModel):
     brief_description: str = Field(description="Short summary of the issue (max 80 chars)")
     request: str = Field(description="Detailed description of the customer's request")
     summary: str = Field(description="Structured summary with: Issue reported, Steps already performed, Steps suggested by agent, Next steps planned")
-    caller_name: Optional[str] = Field(None, description="Caller's name if mentioned")
-    caller_email: Optional[str] = Field(None, description="Caller's email if mentioned")
-    caller_phone: Optional[str] = Field(None, description="Caller's phone number if mentioned")
+    employee_number: str = Field(description="Employee number - MUST be 'UNKNOWN' if not mentioned in conversation")
     category: Optional[str] = Field(None, description=f"Issue category. Must be one of: {', '.join(VALID_TOPDESK_CATEGORIES)}")
     priority: Optional[str] = Field(None, description=f"Priority level. Must be one of: {', '.join(VALID_TOPDESK_PRIORITIES)}")
 
@@ -238,7 +236,9 @@ class TranscriptionHandler:
             # Attempt TopDesk ticket creation
             try:
                 # Extract ticket data using OpenAI/LangChain
+                logger.info(f"Starting employee number extraction for conversation: {transcription.conversation_id}")
                 ticket_data = await self._extract_ticket_data(formatted_transcript, transcription.data)
+                logger.info(f"Ticket data extracted - Employee number: '{ticket_data.employee_number}' (Brief: '{ticket_data.brief_description}')")
                 
                 # Initialize TopDesk client if needed
                 if not self.topdesk_client:
@@ -247,18 +247,74 @@ class TranscriptionHandler:
                 # Prepend summary to request for structured ticket data
                 full_request = f"{ticket_data.summary}\n\n---\n\n{ticket_data.request}"
                 
-                # Create TopDesk incident
+                # Check if employee number exists and validate it
+                employee_person = None
+                if ticket_data.employee_number:
+                    logger.info(f"Validating employee number: '{ticket_data.employee_number}' in TopDesk")
+                    try:
+                        employee_person = await self.topdesk_client.validate_employee_number(
+                            ticket_data.employee_number
+                        )
+                        if employee_person:
+                            logger.info(f"Employee number '{ticket_data.employee_number}' validated successfully. Found person: {employee_person.get('id', 'N/A')}")
+                        else:
+                            logger.warning(f"Employee number '{ticket_data.employee_number}' not found in TopDesk")
+                    except Exception as validation_error:
+                        logger.error(f"Error validating employee number {ticket_data.employee_number}: {validation_error}")
+                        employee_person = None
+
+                if not employee_person:
+                    # Employee number not found or not provided - skip ticket creation and send fallback email
+                    error_msg = f"Employee number {ticket_data.employee_number or 'not provided'} not found in TopDesk or validation failed"
+                    result["error"] = error_msg
+                    logger.warning(f"Employee validation failed for {transcription.conversation_id}: {error_msg}")
+                    
+                    # Send fallback email to service desk
+                    if not self.email_sender:
+                        self.email_sender = EmailSender()
+                    
+                    try:
+                        data_dict = payload.get("data", {}) or {}
+                        metadata = data_dict.get("metadata", {}) or {}
+                        phone_call = metadata.get("phone_call", {}) or {}
+                        
+                        call_number = phone_call.get("external_number")
+                        
+                        start_time = metadata.get("start_time_unix_secs")
+                        call_time = format_unix_time(start_time) if start_time else "Unknown"
+
+                        email_sent = await self.email_sender.send_error_notification(
+                            conversation_id=transcription.conversation_id,
+                            transcript=formatted_transcript,
+                            error_message=f"Employee number validation failed: {error_msg}",
+                            ticket_data=ticket_data.dict() if ticket_data else {},
+                            payload=payload,
+                            call_number=call_number,
+                            call_time=call_time
+                        )
+
+                        result["email_sent"] = email_sent
+                        
+                    except Exception as email_error:
+                        logger.error(f"Failed to send fallback notification email: {email_error}")
+                        result["email_sent"] = False
+                    
+                    return result  # Skip ticket creation
+
+                # Employee number validated successfully - create ticket
                 ticket_response = await self.topdesk_client.create_incident(
                     brief_description=ticket_data.brief_description,
                     request=full_request,
                     conversation_id=transcription.conversation_id,
-                    caller_name=ticket_data.caller_name,
-                    caller_email=ticket_data.caller_email,
+                    employee_number=ticket_data.employee_number,
                     category=ticket_data.category,
                     priority=ticket_data.priority
                 )
                 
-                if ticket_response["success"]:
+                if not ticket_response or not isinstance(ticket_response, dict):
+                    raise Exception("TopDesk create_incident returned no response")
+
+                if ticket_response.get("success"):
                     result["ticket_created"] = True
                     result["ticket_number"] = ticket_response["ticket_number"]
                     result["ticket_id"] = ticket_response["ticket_id"]
@@ -294,6 +350,15 @@ class TranscriptionHandler:
                     self.email_sender = EmailSender()
                 
                 try:
+                    data_dict = payload.get("data", {}) or {}
+                    metadata = data_dict.get("metadata", {}) or {}
+                    phone_call = metadata.get("phone_call", {}) or {}
+                    
+                    call_number = phone_call.get("external_number")
+                    
+                    start_time = metadata.get("start_time_unix_secs")
+                    call_time = format_unix_time(start_time) if start_time else "Unknown"
+
                     email_sent = await self.email_sender.send_error_notification(
                         transcription.conversation_id,
                         formatted_transcript,
@@ -413,6 +478,7 @@ class TranscriptionHandler:
         - Brief description: max 80 chars, main issue summary
         - Request: detailed explanation of caller's needs
         - Caller info: name, email, phone (if mentioned in conversation)
+        - **IMPORTANT: Extract employee number if mentioned**
         - Category: Fetched from TopDesk API (e.g., "Core applicaties", "Werkplek hardware")
         - Priority: Fetched from TopDesk API (e.g., "P1 (I&A)", "P2 (I&A)")
         
@@ -427,6 +493,7 @@ class TranscriptionHandler:
                 - caller_name: Extracted name or None
                 - caller_email: Extracted email or None
                 - caller_phone: Extracted phone or None
+                - employee_number: Extracted employee number or None
                 - category: Issue category or None
                 - priority: Priority level or None
         
@@ -498,7 +565,7 @@ class TranscriptionHandler:
             priorities_list = "\n".join([f"  - {pri}" for pri in valid_priorities])
             
             prompt = ChatPromptTemplate.from_messages([
-                ("system", f"""You are an AI assistant that extracts ticket information from call transcripts.
+    ("system", f"""You are an AI assistant that extracts ticket information from call transcripts.
 Analyze the conversation and extract:
 - A brief description (max 80 characters) summarizing the main issue
 - Detailed request description explaining what the caller needs
@@ -516,7 +583,8 @@ Analyze the conversation and extract:
 **Next Steps Planned:**
 [Planned actions, follow-ups, or what should happen next]
 
-- Caller information if mentioned (name, email, phone)
+- Caller information if mentioned (name, email, phone, employee number)
+- **CRITICAL: Extract employee number if mentioned in the conversation. Convert spoken numbers to digits (e.g., "three two zero two two five five" → "3202255")**
 - Issue category - MUST be one of these exact values:
 {categories_list}
   Choose the most appropriate category based on the issue type. Use "{valid_categories[0]}" if unsure.
@@ -537,8 +605,8 @@ Analyze the conversation and extract:
   Assess the urgency and impact from the conversation context to determine the correct priority.
 
 {{format_instructions}}"""),
-                ("human", "Call transcript:\n\n{transcript}")
-            ])
+    ("human", "Call transcript:\n\n{transcript}")
+])
             
             chain = prompt | self._llm | parser
             
@@ -591,6 +659,7 @@ Analyze the conversation and extract:
                 - caller_name: None
                 - caller_email: None
                 - caller_phone: None
+                - employee_number: None
                 - category: None
                 - priority: None
         

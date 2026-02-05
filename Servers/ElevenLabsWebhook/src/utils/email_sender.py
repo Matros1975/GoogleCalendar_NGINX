@@ -5,11 +5,11 @@ Sends email notifications via Gmail SMTP when ticket creation fails.
 """
 
 import os
-import logging
+import json
 from email.message import EmailMessage
 from typing import Optional
-
 import aiosmtplib
+from src.utils.logger import setup_logger
 
 
 logger = logging.getLogger(__name__)
@@ -45,6 +45,10 @@ class EmailSender:
             conversation_id: ElevenLabs conversation ID
             transcript: Call transcript
             error_message: Error details
+            ticket_data: Extracted ticket data
+            payload: Original webhook payload
+            call_number: Caller's phone number
+            call_time: Call timestamp
             to_address: Recipient email (defaults to SERVICEDESK_EMAIL)
             
         Returns:
@@ -63,16 +67,44 @@ class EmailSender:
         
         body = f"""A call transcript could not be processed into a TopDesk ticket.
 
-Conversation ID: {conversation_id}
-Error: {error_message}
+        <p><strong style="font-size:14pt;">Ticket cannot be created at TopDesk environment:</strong><br>
+        {topdesk_env}</p>
 
-Call Transcript:
-----------------
-{transcript}
+        <p><strong style="font-size:14pt;">Due to the following error:</strong><br>
+        {error_message}</p>
 
-Please create a ticket manually.
-"""
-        message.set_content(body)
+        <p><strong style="font-size:14pt;">Ticket details:</strong></p>
+        <pre>{ticket_details}</pre>
+
+        <p><strong style="font-size:14pt;">Call Transcript:</strong></p>
+        <pre>{transcript}</pre>
+
+        <p><em>Full agent payload is attached as JSON.</em></p>
+        """
+
+        message.set_content("This is an automated notification. Please see the HTML version.")
+        message.add_alternative(body, subtype="html")
+
+        # JSON attachment instead of XML
+        try:
+            # Pretty print JSON for readability
+            json_payload = json.dumps(payload, indent=2, ensure_ascii=False)
+            message.add_attachment(
+                json_payload.encode("utf-8"),
+                maintype="application",
+                subtype="json",
+                filename="agent_payload.json"
+            )
+        except Exception as json_error:
+            logger.error(f"Failed to create JSON attachment: {json_error}")
+            # Add a simple text attachment with error message
+            error_text = f"Failed to serialize payload to JSON: {json_error}\n\nOriginal error: {error_message}"
+            message.add_attachment(
+                error_text.encode("utf-8"),
+                maintype="text",
+                subtype="plain",
+                filename="error_details.txt"
+            )
         
         try:
             await aiosmtplib.send(
