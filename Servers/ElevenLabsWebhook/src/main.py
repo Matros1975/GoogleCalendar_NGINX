@@ -21,9 +21,13 @@ from src.handlers.transcription_handler import TranscriptionHandler
 from src.handlers.audio_handler import AudioHandler
 from src.handlers.call_failure_handler import CallFailureHandler
 from src.utils.logger import setup_logger
+from src.utils.log_context_middleware import log_context_middleware
 
-# Setup logging
 logger = setup_logger()
+DISABLE_HMAC_VALIDATION = (
+    os.getenv("DISABLE_HMAC_VALIDATION", "false").lower() == "true"
+)
+
 
 # Initialize components (will be configured on startup)
 hmac_validator: HMACValidator = None
@@ -37,8 +41,10 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown."""
     global hmac_validator, transcription_handler, audio_handler, call_failure_handler
     
-    # Startup
-    secret = os.getenv("ELEVENLABS_WEBHOOK_SECRET", "")
+    secret = (
+    os.getenv("ELEVENLABS_WEBHOOK_SECRET")
+    or os.getenv("HMAC_SECRET")
+    or "")
     if not secret:
         logger.warning("ELEVENLABS_WEBHOOK_SECRET not set - HMAC validation will fail")
     
@@ -63,6 +69,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Attach request log context middleware to the final app instance
+app.middleware("http")(log_context_middleware)
 
 @app.get("/health")
 async def health_check():
@@ -94,12 +102,17 @@ async def webhook_endpoint(
         body = await request.body()
         
         # Validate HMAC signature
-        is_valid, error_message = hmac_validator.validate(elevenlabs_signature, body)
-        if not is_valid:
-            logger.warning(f"HMAC validation failed: {error_message}")
-            if "expired" in error_message.lower():
-                raise HTTPException(status_code=400, detail=error_message)
-            raise HTTPException(status_code=401, detail=error_message)
+        # Validate HMAC signature (can be disabled for local/dev)
+        if not DISABLE_HMAC_VALIDATION:
+            is_valid, error_message = hmac_validator.validate(elevenlabs_signature, body)
+            if not is_valid:
+                logger.warning(f"HMAC validation failed: {error_message}")
+                if "expired" in error_message.lower():
+                    raise HTTPException(status_code=400, detail=error_message)
+                raise HTTPException(status_code=401, detail=error_message)
+        else:
+            logger.warning("HMAC validation DISABLED (local/dev mode)")
+
         
         # Parse JSON payload
         try:
@@ -119,8 +132,11 @@ async def webhook_endpoint(
             result = await call_failure_handler.handle(payload)
         else:
             logger.error(f"Unknown webhook type: {webhook_type}")
-            raise HTTPException(status_code=400, detail=f"Unknown webhook type: {webhook_type}")
-        
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown webhook type: {webhook_type}"
+            )
+
         logger.info(f"Successfully processed {webhook_type} webhook")
         return JSONResponse(content={"status": "received"}, status_code=200)
         
