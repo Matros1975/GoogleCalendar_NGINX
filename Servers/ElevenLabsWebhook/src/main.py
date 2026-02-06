@@ -24,10 +24,6 @@ from src.utils.logger import setup_logger
 from src.utils.log_context_middleware import log_context_middleware
 
 logger = setup_logger()
-DISABLE_HMAC_VALIDATION = (
-    os.getenv("DISABLE_HMAC_VALIDATION", "false").lower() == "true"
-)
-
 
 # Initialize components (will be configured on startup)
 hmac_validator: HMACValidator = None
@@ -102,17 +98,12 @@ async def webhook_endpoint(
         body = await request.body()
         
         # Validate HMAC signature
-        # Validate HMAC signature (can be disabled for local/dev)
-        if not DISABLE_HMAC_VALIDATION:
-            is_valid, error_message = hmac_validator.validate(elevenlabs_signature, body)
-            if not is_valid:
-                logger.warning(f"HMAC validation failed: {error_message}")
-                if "expired" in error_message.lower():
-                    raise HTTPException(status_code=400, detail=error_message)
-                raise HTTPException(status_code=401, detail=error_message)
-        else:
-            logger.warning("HMAC validation DISABLED (local/dev mode)")
-
+        is_valid, error_message = hmac_validator.validate(elevenlabs_signature, body)
+        if not is_valid:
+            logger.warning(f"HMAC validation failed: {error_message}")
+            if "expired" in error_message.lower():
+                raise HTTPException(status_code=400, detail=error_message)
+            raise HTTPException(status_code=401, detail=error_message)
         
         # Parse JSON payload
         try:
