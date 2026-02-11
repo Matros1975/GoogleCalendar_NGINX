@@ -22,6 +22,8 @@ from src.utils.topdesk_client import TopDeskClient
 from src.utils.email_sender import EmailSender
 from src.utils.logger import setup_logger
 from datetime import datetime, timezone
+import re
+
 
 def format_unix_time(ts: int | None) -> str:
     if not ts:
@@ -193,6 +195,44 @@ class TranscriptionHandler:
             - Processing time: 2-5 seconds depending on transcript length
         """
         logger.info("Processing post_call_transcription webhook")
+        def topdesk_format(text: str) -> str:
+            """
+            Converts a structured markdown summary into TOPdesk-safe HTML:
+            - Headers: → <strong>Headers:</strong>
+            - * bullets → <ul><li>
+            - Newlines → <br>
+            """
+
+            # Convert markdown headers (e.g., **Header:**) to <strong>
+            text = re.sub(r"\*\*(.+?):\*\*", r"<strong>\1:</strong>", text)
+
+            lines = text.splitlines()
+            html = []
+            in_list = False
+
+            for line in lines:
+                stripped = line.strip()
+
+                # Bullet list support
+                if stripped.startswith("* "):
+                    if not in_list:
+                        html.append("<ul>")
+                        in_list = True
+                    html.append(f"<li>{stripped[2:].strip()}</li>")
+                else:
+                    if in_list:
+                        html.append("</ul>")
+                        in_list = False
+
+                    if stripped:
+                        html.append(f"{stripped}<br>")
+                    else:
+                        html.append("<br>")
+
+            if in_list:
+                html.append("</ul>")
+
+            return "".join(html)
         
         try:
             # Parse payload into typed model
@@ -250,8 +290,24 @@ class TranscriptionHandler:
                     self.topdesk_client = TopDeskClient()
                 
                 # Prepend summary to request for structured ticket data
-                full_request = f"{ticket_data.summary}\n\n---\n\n{ticket_data.request}"
-                
+                formatted_summary = topdesk_format(ticket_data.summary)
+
+                conversation_id = transcription.conversation_id or "Onbekend"
+
+                conversation_block = (
+                    f"<strong>Conversation ID:</strong> {conversation_id}<br><br>"
+                )
+
+                separator = "<br>-----------------------------------------------------------------------------<br>"
+
+                full_request = (
+                    conversation_block +
+                    formatted_summary +
+                    separator +
+                    "<strong>Aanvullende Beschrijving:</strong><br>" +
+                    ticket_data.request
+                )
+
                 # Check if employee number exists and validate it
                 employee_person = None
                 if ticket_data.employee_number:
@@ -386,7 +442,7 @@ class TranscriptionHandler:
         except Exception as e:
             logger.exception(f"Error processing transcription: {e}")
             raise
-    
+        
     def _process_conversation_data(self, data: ConversationData) -> None:
         """
         Process and log conversation metadata and statistics for observability.
@@ -578,48 +634,75 @@ class TranscriptionHandler:
             priorities_list = "\n".join([f"  - {pri}" for pri in valid_priorities])
             
             prompt = ChatPromptTemplate.from_messages([
-    ("system", f"""You are an AI assistant that extracts ticket information from call transcripts.
-Analyze the conversation and extract:
-- A brief description (max 80 characters) summarizing the main issue
-- Detailed request description explaining what the caller needs
-- A structured summary in the following format:
+    ("system", f"""Je bent een ervaren IT-servicedesk medewerker.
 
-**Issue Reported:**
-[Detailed description of the problem as reported by the caller]
+Analyseer het onderstaande telefoongesprek en genereer ticketinformatie voor TopDesk.
 
-**Steps Already Performed:**
-[List of troubleshooting steps or actions the caller has already tried]
+BELANGRIJK:
+- ALLE output moet volledig in het Nederlands zijn.
+- Gebruik GEEN Engels.
+- Gebruik professionele servicedesk-taal.
+- Maak geen aannames die niet expliciet in het gesprek genoemd worden.
+- Schrijf helder, zakelijk en gestructureerd.
 
-**Steps Suggested by Agent:**
-[List of recommendations or solutions provided by the agent during the call]
+Genereer de volgende velden:
 
-**Next Steps Planned:**
-[Planned actions, follow-ups, or what should happen next]
+1) brief_description  
+   - Maximaal 80 tekens  
+   - Korte duidelijke omschrijving van het probleem  
 
-- Caller information if mentioned (name, email, phone, employee number)
-- **CRITICAL: Extract employee number if mentioned in the conversation. Convert spoken numbers to digits (e.g., "three two zero two two five five" → "3202255")**
-- Issue category - MUST be one of these exact values:
+2) request  
+   - Gedetailleerde beschrijving van het probleem en wat de gebruiker vraagt  
+
+3) summary  
+   Gebruik exact deze structuur:
+
+**Gemeld Probleem:**  
+[Beschrijving van het gemelde probleem]
+
+**Reeds Uitgevoerde Stappen:**  
+[Welke stappen heeft de gebruiker al uitgevoerd]
+
+**Voorgestelde Acties door Servicedesk:**  
+[Welke adviezen of acties gaf de agent]
+
+**Vervolgstappen:**  
+[Vervolgacties of wat er nog moet gebeuren]
+
+4) employee_number  
+   - Extract het personeelsnummer indien genoemd  
+   - Zet gesproken cijfers om naar numerieke vorm  
+     Bijvoorbeeld: "drie twee nul twee twee vijf vijf" → "3202255"  
+   - Indien NIET genoemd: zet exact "UNKNOWN"
+
+5) category  
+   - MOET exact één van onderstaande waarden zijn:
 {categories_list}
-  Choose the most appropriate category based on the issue type. Use "{valid_categories[0]}" if unsure.
+   - Kies de best passende categorie  
+   - Gebruik "{valid_categories[0]}" indien twijfel  
 
-- Priority level - Classify the ticket's priority using the following matrix. Priority shall be detected in any case.
-  Priority Matrix:
-  • If urgency is "Kan niet werken" (cannot work):
-    • Impact on "Organisatie", "Vestiging", or "Afdeling" → Priority: "P1 (I&A)"
-    • Impact on "Persoon" → Priority: "P2 (I&A)"
-  • If urgency is "Kan deels werken" (can partly work):
-    • Impact on "Organisatie", "Vestiging", or "Afdeling" → Priority: "P2 (I&A)"
-    • Impact on "Persoon" → Priority: "P3 (I&A)"
-  • If urgency is "Kan werken" (can work):
-    • Impact on "Organisatie", "Vestiging", or "Afdeling" → Priority: "P3 (I&A)"
-    • Impact on "Persoon" → Priority: "P4 (I&A)"
-  
-  Valid priority values: {', '.join(valid_priorities)}
-  Assess the urgency and impact from the conversation context to determine the correct priority.
+6) priority  
+   Bepaal prioriteit op basis van urgentie en impact:
+
+  • Urgentie "Kan niet werken":
+    - Impact op Organisatie/Vestiging/Afdeling → "P1 (I&A)"
+    - Impact op Persoon → "P2 (I&A)"
+
+  • Urgentie "Kan deels werken":
+    - Impact op Organisatie/Vestiging/Afdeling → "P2 (I&A)"
+    - Impact op Persoon → "P3 (I&A)"
+
+  • Urgentie "Kan werken":
+    - Impact op Organisatie/Vestiging/Afdeling → "P3 (I&A)"
+    - Impact op Persoon → "P4 (I&A)"
+
+Geldige prioriteiten:
+{', '.join(valid_priorities)}
+
+Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
 
 {{format_instructions}}"""),
-    ("human", "Call transcript:\n\n{transcript}")
-])
+    ("human", "Call transcript:\n\n{transcript}")])
             
             chain = prompt | self._llm | parser
             
@@ -711,31 +794,32 @@ Analyze the conversation and extract:
             elevenlabs_summary = conversation_data.analysis.summary
             logger.info("Using ElevenLabs call summary for fallback extraction")
             # Format the ElevenLabs summary into our structured format
-            fallback_summary = f"""**Issue Reported:**
-{elevenlabs_summary}
+            fallback_summary = f"""**Gemeld Probleem:**
+            {elevenlabs_summary}
 
-**Steps Already Performed:**
-See transcript for details.
+            **Reeds Uitgevoerde Stappen:**
+            Zie transcript voor details.
 
-**Steps Suggested by Agent:**
-See transcript for details.
+            **Voorgestelde Acties door Servicedesk:**
+            Zie transcript voor details.
 
-**Next Steps Planned:**
-Review call summary and transcript for follow-up actions."""
+            **Vervolgstappen:**
+            Controleer samenvatting en transcript voor vervolgacties."""
+
         else:
             # No ElevenLabs summary available, use placeholder
             logger.info("No ElevenLabs summary available, using placeholder")
-            fallback_summary = """**Issue Reported:**
-See full transcript below for details.
+            fallback_summary = """**Gemeld Probleem:**
+            Zie volledig transcript hieronder voor details.
 
-**Steps Already Performed:**
-Unable to extract - see transcript.
+            **Reeds Uitgevoerde Stappen:**
+            Niet automatisch te bepalen - raadpleeg transcript.
 
-**Steps Suggested by Agent:**
-Unable to extract - see transcript.
+            **Voorgestelde Acties door Servicedesk:**
+            Niet automatisch te bepalen - raadpleeg transcript.
 
-**Next Steps Planned:**
-Follow up required - review full transcript."""
+            **Vervolgstappen:**
+            Vervolgactie vereist - controleer volledig transcript."""
         
         return TicketDataPayload(
             brief_description=brief_desc,

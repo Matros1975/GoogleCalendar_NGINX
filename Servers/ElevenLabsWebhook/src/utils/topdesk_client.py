@@ -255,11 +255,12 @@ class TopDeskClient:
         # Build payload with employee number lookup
         payload: Dict[str, Any] = {
             "briefDescription": brief_description[:80] if brief_description else "Call transcript",
-            "request": f"Conversation ID: {conversation_id}\n\n{request}",
+            "request": request,  # Conversation ID already included in formatted HTML
             "callerLookup": {
                 "employeeNumber": str(employee_number)
             }
         }
+
         
         # Add optional fields only if they match valid TopDesk values 
         if category and category in VALID_CATEGORIES:
