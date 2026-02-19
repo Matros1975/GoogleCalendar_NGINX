@@ -54,7 +54,7 @@ class StorageManager:
     def from_env(cls) -> "StorageManager":
         """Create StorageManager from environment variables."""
         # Try different common env vars for connection string
-        connection_string = os.getenv("AzureWebJobsStorage_elevenlabswebhook") or \
+        connection_string = os.getenv("AzureWebJobsStorage_callback") or \
                            os.getenv("AZURE_STORAGE_CONNECTION_STRING")
         
         container_name = os.getenv("BLOB_CONTAINER_NAME", "webhook-data")
@@ -63,7 +63,7 @@ class StorageManager:
         enable_transcript = os.getenv("ENABLE_TRANSCRIPT_STORAGE", "false").lower() == "true"
         
         if not connection_string:
-            logger.warning("No Azure Storage connection string found (AzureWebJobsStorage_elevenlabswebhook or AZURE_STORAGE_CONNECTION_STRING)")
+            logger.warning("No Azure Storage connection string found (AzureWebJobsStorage_callback or AZURE_STORAGE_CONNECTION_STRING)")
         
         return cls(
             connection_string=connection_string,

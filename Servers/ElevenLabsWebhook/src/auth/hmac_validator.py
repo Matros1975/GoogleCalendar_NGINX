@@ -1,8 +1,8 @@
 """
-HMAC signature validator for ElevenLabs webhooks.
+HMAC signature validator for callback.
 
-Implements signature validation following ElevenLabs specification:
-- Header format: elevenlabs-signature: t=timestamp,v0=hash
+Implements signature validation following callback specification:
+- Header format: callback-signature: t=timestamp,v0=hash
 - Hash validation: sha256(timestamp.request_body)
 - Timestamp tolerance: 30 minutes (1800 seconds)
 """
@@ -17,14 +17,14 @@ logger = setup_logger()
 
 
 class HMACValidator:
-    """Validates ElevenLabs webhook HMAC signatures."""
+    """Validates callback HMAC signatures."""
     
     def __init__(self, secret: str, tolerance_seconds: int = 1800):
         """
         Initialize HMAC validator.
         
         Args:
-            secret: HMAC secret from ElevenLabs webhook configuration
+            secret: HMAC secret from callback configuration
             tolerance_seconds: Maximum age of timestamp (default 30 minutes)
         """
         self.secret = secret
@@ -32,7 +32,7 @@ class HMACValidator:
     
     def validate(self, signature_header: str, payload: bytes) -> Tuple[bool, str]:
         """
-        Validate HMAC signature from elevenlabs-signature header.
+        Validate HMAC signature from callback-signature header.
         
         Args:
             signature_header: Header value "t=timestamp,v0=hash"

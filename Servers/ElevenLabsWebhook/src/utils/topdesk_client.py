@@ -1,7 +1,7 @@
 """
 TopDesk API client for creating incidents from call transcripts.
 
-Implements async TopDesk API integration for the ElevenLabs webhook service.
+Implements async TopDesk API integration for the callback webhook service.
 """
 
 import os
@@ -224,7 +224,7 @@ class TopDeskClient:
         Args:
             brief_description: Short summary of the issue (max 80 chars)
             request: Detailed description of the customer's request
-            conversation_id: ElevenLabs conversation ID for reference
+            conversation_id: callback conversation ID for reference
             caller_name: Caller's name if mentioned
             employee_number: Employee number (REQUIRED for ticket creation)
             category: Issue category (optional)
