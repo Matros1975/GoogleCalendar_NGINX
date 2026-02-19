@@ -66,7 +66,7 @@ class EmailSender:
         message = EmailMessage()
         message["From"] = self.from_address
         message["To"] = to_address
-        message["Subject"] = f"[ElevenLabs] Failed to create ticket - {conversation_id}"
+        message["Subject"] = f"Failed to create ticket - {conversation_id}"
         
         topdesk_env = os.getenv("TOPDESK_URL", "UNKNOWN")
 
