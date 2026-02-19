@@ -45,7 +45,7 @@ class EmailSender:
         Send email notification when ticket creation fails.
         
         Args:
-            conversation_id: ElevenLabs conversation ID
+            conversation_id: callback conversation ID
             transcript: Call transcript
             error_message: Error details
             ticket_data: Extracted ticket data

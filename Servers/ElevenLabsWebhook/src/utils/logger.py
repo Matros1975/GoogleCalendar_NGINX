@@ -53,7 +53,7 @@ def setup_logger(name: str = "fastapi-test") -> logging.Logger:
     logger.addHandler(console)
 
     # Azure handler
-    if os.getenv("AzureWebJobsStorage_elevenlabswebhook") and os.getenv("BLOB_CONTAINER_NAME"):
+    if os.getenv("AzureWebJobsStorage_callback") and os.getenv("BLOB_CONTAINER_NAME"):
         blob_handler = AzureBlobHandler()
         blob_handler.setFormatter(formatter)
         logger.addHandler(blob_handler)
@@ -75,7 +75,7 @@ def flush_logs(conversation_id: str):
     if not buffer:
         return
 
-    conn = os.getenv("AzureWebJobsStorage_elevenlabswebhook")
+    conn = os.getenv("AzureWebJobsStorage_callback")
     container_name = os.getenv("BLOB_CONTAINER_NAME")
     if not conn or not container_name:
         # Required env vars missing - nothing to do

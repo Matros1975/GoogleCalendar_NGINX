@@ -71,7 +71,7 @@ class TranscriptionHandler:
     """
     Handler for post_call_transcription webhook events with TopDesk integration.
     
-    This handler processes ElevenLabs conversation transcripts and automatically creates
+    This handler processes callback conversation transcripts and automatically creates
     support tickets in TopDesk using AI-powered data extraction. It provides:
     
     **Core Features:**
@@ -157,10 +157,10 @@ class TranscriptionHandler:
         - Email errors: Logged but does not fail the request
         
         Args:
-            payload: Raw webhook payload dictionary from ElevenLabs containing:
+            payload: Raw webhook payload dictionary from callback containing:
                 - type: "post_call_transcription"
                 - conversation_id: Unique conversation identifier
-                - agent_id: ElevenLabs agent identifier
+                - agent_id: Callback agent identifier
                 - data: Conversation data with transcript, metadata, analysis
         
         Returns:
@@ -454,7 +454,7 @@ class TranscriptionHandler:
         **Logged Information:**
         - Basic metadata: duration, message count, call status
         - Timestamps: start time, end time (if available)
-        - Audio availability: flags for audio presence (future ElevenLabs feature)
+        - Audio availability: flags for audio presence (future callback feature)
         - Transcript statistics: agent message count, user message count
         - Analysis results: call summary, evaluation criteria, collected data
         - Dynamic variables: custom metadata fields set during conversation
@@ -727,7 +727,7 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
         
         This fallback method provides basic ticket data extraction without using AI.
         It's used when OPENAI_API_KEY is not configured or when AI extraction fails.
-        If ElevenLabs provided a summary in the payload, it will be used instead of the placeholder.
+        If callback provided a summary in the payload, it will be used instead of the placeholder.
         
         **Extraction Algorithm:**
         1. Split transcript into lines
@@ -789,13 +789,13 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
                         brief_desc = message
                         break
         
-        # Use ElevenLabs summary if available, otherwise create basic summary
+        # Use callback summary if available, otherwise create basic summary
         if conversation_data and conversation_data.analysis and conversation_data.analysis.summary:
-            elevenlabs_summary = conversation_data.analysis.summary
-            logger.info("Using ElevenLabs call summary for fallback extraction")
-            # Format the ElevenLabs summary into our structured format
+            callback_summary = conversation_data.analysis.summary
+            logger.info("Using callback call summary for fallback extraction")
+            # Format the callback summary into our structured format
             fallback_summary = f"""**Gemeld Probleem:**
-            {elevenlabs_summary}
+            {callback_summary}
 
             **Reeds Uitgevoerde Stappen:**
             Zie transcript voor details.
@@ -807,8 +807,8 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
             Controleer samenvatting en transcript voor vervolgacties."""
 
         else:
-            # No ElevenLabs summary available, use placeholder
-            logger.info("No ElevenLabs summary available, using placeholder")
+            # No callback summary available, use placeholder
+            logger.info("No callback summary available, using placeholder")
             fallback_summary = """**Gemeld Probleem:**
             Zie volledig transcript hieronder voor details.
 
@@ -852,7 +852,7 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
         """
         Format a tool invocation entry for human-readable transcript display.
         
-        ElevenLabs agents can invoke tools during conversations (e.g., check calendar,
+        callback agents can invoke tools during conversations (e.g., check calendar,
         create tasks). This method formats those invocations into a readable format
         suitable for inclusion in transcripts.
         
@@ -864,7 +864,7 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
         - Non-dict arguments converted to string representation
         
         Args:
-            tool_call: Tool call dictionary from ElevenLabs webhook containing:
+            tool_call: Tool call dictionary from Labs callback containing:
                 - name: Tool name (e.g., "check_calendar", "send_email")
                 - arguments: Tool arguments as dict or JSON string
         
@@ -913,7 +913,7 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
         """
         Format a tool execution result for human-readable transcript display.
         
-        After a tool is invoked, ElevenLabs provides the result of that invocation.
+        After a tool is invoked, callback provides the result of that invocation.
         This method formats the result for inclusion in the transcript, handling
         both simple string outputs and complex structured data.
         
@@ -923,7 +923,7 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
         - Missing output field: Empty string used
         
         Args:
-            tool_result: Tool result dictionary from ElevenLabs webhook containing:
+            tool_result: Tool result dictionary from Labs callback containing:
                 - output: The result of the tool execution (any type)
         
         Returns:
@@ -960,7 +960,7 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
         """
         Generate human-readable transcript from conversation data with timestamps.
         
-        This method transforms the raw transcript data from ElevenLabs into a
+        This method transforms the raw transcript data from callback into a
         well-formatted, timestamped text document suitable for human reading
         and AI processing. It handles regular messages, tool calls, and tool results.
         
