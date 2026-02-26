@@ -66,7 +66,7 @@ class EmailSender:
         message = EmailMessage()
         message["From"] = self.from_address
         message["To"] = to_address
-        message["Subject"] = f"Failed to create ticket - {conversation_id}"
+        message["Subject"] = f"Created Topdesk ticket using default employee ID - {conversation_id}"
         
         topdesk_env = os.getenv("TOPDESK_URL", "UNKNOWN")
 
@@ -78,7 +78,7 @@ class EmailSender:
         <p><strong style="font-size:14pt;">From number:</strong> {call_number}</p>
         <p><strong style="font-size:14pt;">At time:</strong> {call_time}</p>
 
-        <p><strong style="font-size:14pt;">Ticket cannot be created at TopDesk environment:</strong><br>
+        <p><strong style="font-size:14pt;">Ticket created at TopDesk environment with default employee ID:</strong><br>
         {topdesk_env}</p>
 
         <p><strong style="font-size:14pt;">Due to the following error:</strong><br>
