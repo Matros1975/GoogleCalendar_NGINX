@@ -283,6 +283,19 @@ class TranscriptionHandler:
                 # Extract ticket data using OpenAI/LangChain
                 logger.info(f"Starting employee number extraction for conversation: {transcription.conversation_id}")
                 ticket_data = await self._extract_ticket_data(formatted_transcript, transcription.data)
+                try:
+                    data_collection = (payload.get("data", {})
+                                            .get("analysis", {})
+                                            .get("data_collection_results", {}))
+
+                    extracted_emp = data_collection.get("employee_number", {}).get("value")
+
+                    if extracted_emp:
+                        ticket_data.employee_number = str(extracted_emp)
+                        logger.info(f"Employee number overridden from payload: {ticket_data.employee_number}")
+
+                except Exception as e:
+                    logger.warning(f"Failed to extract employee_number from payload: {e}")
                 logger.info(f"Ticket data extracted - Employee number: '{ticket_data.employee_number}' (Brief: '{ticket_data.brief_description}')")
                 
                 # Initialize TopDesk client if needed
@@ -310,7 +323,7 @@ class TranscriptionHandler:
 
                 # Check if employee number exists and validate it
                 employee_person = None
-                if ticket_data.employee_number:
+                if ticket_data.employee_number and ticket_data.employee_number != "UNKNOWN":
                     logger.info(f"Validating employee number: '{ticket_data.employee_number}' in TopDesk")
                     try:
                         employee_person = await self.topdesk_client.validate_employee_number(
@@ -326,41 +339,14 @@ class TranscriptionHandler:
 
                 if not employee_person:
                     # Employee number not found or not provided - skip ticket creation and send fallback email
-                    error_msg = f"Employee number {ticket_data.employee_number or 'not provided'} not found in TopDesk or validation failed"
+                    error_msg = "Employee number not provided or invalid"
                     result["error"] = error_msg
                     logger.warning(f"Employee validation failed for {transcription.conversation_id}: {error_msg}")
                     
-                    # Send fallback email to service desk
-                    if not self.email_sender:
-                        self.email_sender = EmailSender()
-                    
-                    try:
-                        data_dict = payload.get("data", {}) or {}
-                        metadata = data_dict.get("metadata", {}) or {}
-                        phone_call = metadata.get("phone_call", {}) or {}
-                        
-                        call_number = phone_call.get("external_number")
-                        
-                        start_time = metadata.get("start_time_unix_secs")
-                        call_time = format_unix_time(start_time) if start_time else "Unknown"
-
-                        email_sent = await self.email_sender.send_error_notification(
-                            conversation_id=transcription.conversation_id,
-                            transcript=formatted_transcript,
-                            error_message=f"Employee number validation failed: {error_msg}",
-                            ticket_data=ticket_data.dict() if ticket_data else {},
-                            payload=payload,
-                            call_number=call_number,
-                            call_time=call_time
-                        )
-
-                        result["email_sent"] = email_sent
-                        
-                    except Exception as email_error:
-                        logger.error(f"Failed to send fallback notification email: {email_error}")
-                        result["email_sent"] = False
-                    
-                    return result  # Skip ticket creation
+                    ticket_data.employee_number = "9999999"
+                    fallback_used = True
+                else:
+                    fallback_used = False
 
                 # Employee number validated successfully - create ticket
                 ticket_response = await self.topdesk_client.create_incident(
@@ -397,45 +383,43 @@ class TranscriptionHandler:
                     except Exception as e:
                         logger.error(f"Error adding transcript to ticket: {e}")
                         result["transcript_added"] = False
+
+                    if fallback_used:
+                        if not self.email_sender:
+                            self.email_sender = EmailSender()
+                        
+                        try:
+                            data_dict = payload.get("data", {}) or {}
+                            metadata = data_dict.get("metadata", {}) or {}
+                            phone_call = metadata.get("phone_call", {}) or {}
+                            
+                            call_number = phone_call.get("external_number")
+                            
+                            start_time = metadata.get("start_time_unix_secs")
+                            call_time = format_unix_time(start_time) if start_time else "Unknown"
+
+                            email_sent = await self.email_sender.send_error_notification(
+                                conversation_id=transcription.conversation_id,
+                                transcript=formatted_transcript,
+                                error_message=(f"Ticket {ticket_response['ticket_number']} created with default employee ID 9999999.\n"
+                                f"Reason: No employee ID provided or user did not mention a valid employee ID."),
+                                ticket_data=ticket_data.dict() if ticket_data else {},
+                                payload=payload,
+                                call_number=call_number,
+                                call_time=call_time
+                            )
+
+                            result["email_sent"] = email_sent
+                            
+                        except Exception as email_error:
+                            logger.error(f"Failed to send fallback notification email: {email_error}")
+                            result["email_sent"] = False
                 else:
-                    # Ticket creation failed
                     raise Exception(f"TopDesk API error: {ticket_response.get('error', 'Unknown error')}")
-            
-            except Exception as e:
-                # Send email notification on failure
-                error_msg = str(e)
-                result["error"] = error_msg
-                logger.error(
-                    f"Ticket creation failed for {transcription.conversation_id}: {error_msg}"
-                )
 
-                if not self.email_sender:
-                    self.email_sender = EmailSender()
-
-                try:
-                    data_dict = payload.get("data", {}) or {}
-                    metadata = data_dict.get("metadata", {}) or {}
-                    phone_call = metadata.get("phone_call", {}) or {}
-                    
-                    call_number = phone_call.get("external_number")
-                    
-                    start_time = metadata.get("start_time_unix_secs")
-                    call_time = format_unix_time(start_time) if start_time else "Unknown"
-
-                    email_sent = await self.email_sender.send_error_notification(
-                        conversation_id=transcription.conversation_id,
-                        transcript=formatted_transcript,
-                        error_message=error_msg,
-                        ticket_data=ticket_data.dict() if ticket_data else {},
-                        payload=payload,
-                        call_number=call_number,
-                        call_time=call_time
-                    )
-
-                    result["email_sent"] = email_sent
-                except Exception as email_error:
-                    logger.error(f"Failed to send error notification email: {email_error}")
-
+            except Exception as ticket_error:
+                logger.error(f"TopDesk ticket creation failed: {ticket_error}")
+                result["error"] = str(ticket_error)
             
             return result
             
@@ -822,10 +806,11 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
             Vervolgactie vereist - controleer volledig transcript."""
         
         return TicketDataPayload(
-            brief_description=brief_desc,
-            request=transcript[:MAX_FALLBACK_REQUEST_LENGTH] if len(transcript) > MAX_FALLBACK_REQUEST_LENGTH else transcript,
-            summary=fallback_summary
-        )
+                brief_description=brief_desc,
+                request=transcript[:MAX_FALLBACK_REQUEST_LENGTH] if len(transcript) > MAX_FALLBACK_REQUEST_LENGTH else transcript,
+                summary=fallback_summary,
+                employee_number="UNKNOWN"   
+            )
     
     def _format_timestamp(self, seconds: float) -> str:
         """
