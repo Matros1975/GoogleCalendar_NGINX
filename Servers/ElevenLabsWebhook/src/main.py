@@ -77,7 +77,7 @@ async def health_check():
 @app.post("/webhooks")
 async def webhook_endpoint(
     request: Request,
-    callback_signature: str = Header(None, alias="callback-signature")
+    callback_signature: str = Header(None, alias="callback_signature")
 ):
     """
     Main webhook endpoint for callback post-call webhooks.
