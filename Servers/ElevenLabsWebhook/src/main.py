@@ -77,7 +77,7 @@ async def health_check():
 @app.post("/webhooks")
 async def webhook_endpoint(
     request: Request,
-    callback_signature: str = Header(None, alias="callback_signature")
+    callback_signature: str = Header(None, alias="elevenlabs-signature")
 ):
     """
     Main webhook endpoint for callback post-call webhooks.
@@ -97,8 +97,8 @@ async def webhook_endpoint(
         # Read request body
         body = await request.body()
 
-        # 🔍 DEBUG: Log all incoming headers
-        logger.info(f"Incoming headers: {dict(request.headers)}")
+        # DEBUG: Log all incoming headers
+        # logger.info(f"Incoming headers: {dict(request.headers)}")
 
         # Validate HMAC signature
         is_valid, error_message = hmac_validator.validate(callback_signature, body)
