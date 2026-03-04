@@ -96,7 +96,10 @@ async def webhook_endpoint(
     try:
         # Read request body
         body = await request.body()
-        
+
+        # 🔍 DEBUG: Log all incoming headers
+        logger.info(f"Incoming headers: {dict(request.headers)}")
+
         # Validate HMAC signature
         is_valid, error_message = hmac_validator.validate(callback_signature, body)
         if not is_valid:
