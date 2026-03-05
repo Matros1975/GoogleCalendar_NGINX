@@ -132,6 +132,55 @@ class TranscriptionHandler:
         self.email_sender: Optional[EmailSender] = None
         self._llm = None  # Lazy-loaded LangChain LLM
     
+    def string_rename(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Rename strings in dictionary keys recursively.
+        
+        This method traverses the entire payload dictionary and renames any KEYS
+        containing 'webhook' (case-insensitive) to use 'auto' instead. This ensures
+        that any references to webhook branding are updated to the generic 'auto'
+        naming before storing or emailing the payload.
+        
+        IMPORTANT: Only dictionary keys are renamed. String values (like transcript
+        text) are NEVER modified, so conversation content containing words like
+        "webhook" remains unchanged.
+        
+        Args:
+            payload: The original payload dictionary from the webhook
+            
+        Returns:
+            Modified payload with 'webhook' renamed to 'auto' in all keys,
+            preserving all other data structure and values
+            
+        Examples:
+            >>> payload = {"metadata": {"webhook_assistant": {"is_webhook_assistant": true}}}
+            >>> handler.string_rename(payload)
+            {"metadata": {"auto_assistant": {"is_auto_assistant": true}}}
+        """
+        if not isinstance(payload, dict):
+            return payload
+        
+        modified_payload = {}
+        
+        for key, value in payload.items():
+            # Recursively process nested dictionaries
+            if isinstance(value, dict):
+                value = self.string_rename(value)
+            # Recursively process lists
+            elif isinstance(value, list):
+                value = [self.string_rename(item) if isinstance(item, (dict, list)) else item for item in value]
+            # Strings and other types are passed through unchanged
+            
+            # Rename keys containing "webhook" (case-insensitive) to "auto"
+            if "eleven" in key.lower():
+                new_key = key.replace("eleven", "auto").replace("Eleven", "auto").replace("ELEVEN", "AUTO")
+                modified_payload[new_key] = value
+                logger.debug(f"Renamed key '{key}' to '{new_key}' in payload")
+            else:
+                modified_payload[key] = value
+        
+        return modified_payload
+    
     async def handle(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process a post_call_transcription webhook payload and create TopDesk ticket.
@@ -195,6 +244,11 @@ class TranscriptionHandler:
             - Processing time: 2-5 seconds depending on transcript length
         """
         logger.info("Processing post_call_transcription webhook")
+        
+        # MODIFICATION: Rename 'webhook' to 'auto' in the payload early
+        # This ensures all subsequent operations use the renamed version
+        modified_payload = self.string_rename(payload)
+        
         def topdesk_format(text: str) -> str:
             """
             Converts a structured markdown summary into TOPdesk-safe HTML:
@@ -235,8 +289,8 @@ class TranscriptionHandler:
             return "".join(html)
         
         try:
-            # Parse payload into typed model
-            transcription = TranscriptionPayload.from_dict(payload)
+            # Parse payload into typed model (use modified_payload)
+            transcription = TranscriptionPayload.from_dict(modified_payload)
             
             logger.info(
                 f"Transcription received - "
@@ -248,11 +302,11 @@ class TranscriptionHandler:
             if transcription.data:
                 self._process_conversation_data(transcription.data)
             
-            # Store transcript if storage is enabled
+            # Store transcript if storage is enabled - use modified data
             saved_path = self.storage.save_transcript(
                 conversation_id=transcription.conversation_id,
                 agent_id=transcription.agent_id,
-                data=payload.get("data", {})
+                data=modified_payload.get("data", {})
             )
             
             # Generate formatted transcript
@@ -284,7 +338,7 @@ class TranscriptionHandler:
                 logger.info(f"Starting employee number extraction for conversation: {transcription.conversation_id}")
                 ticket_data = await self._extract_ticket_data(formatted_transcript, transcription.data)
                 try:
-                    data_collection = (payload.get("data", {})
+                    data_collection = (modified_payload.get("data", {})
                                             .get("analysis", {})
                                             .get("data_collection_results", {}))
 
@@ -389,7 +443,7 @@ class TranscriptionHandler:
                             self.email_sender = EmailSender()
                         
                         try:
-                            data_dict = payload.get("data", {}) or {}
+                            data_dict = modified_payload.get("data", {}) or {}
                             metadata = data_dict.get("metadata", {}) or {}
                             phone_call = metadata.get("phone_call", {}) or {}
                             
@@ -398,13 +452,15 @@ class TranscriptionHandler:
                             start_time = metadata.get("start_time_unix_secs")
                             call_time = format_unix_time(start_time) if start_time else "Unknown"
 
+                            # MODIFICATION: Use the already modified payload for email
+                            # The payload has already been processed by string_rename
                             email_sent = await self.email_sender.send_error_notification(
                                 conversation_id=transcription.conversation_id,
                                 transcript=formatted_transcript,
                                 error_message=(f"Ticket {ticket_response['ticket_number']} created with default employee ID 9999999.\n"
                                 f"Reason: No employee ID provided or user did not mention a valid employee ID."),
                                 ticket_data=ticket_data.dict() if ticket_data else {},
-                                payload=payload,
+                                payload=modified_payload,  # Use modified payload
                                 call_number=call_number,
                                 call_time=call_time
                             )
