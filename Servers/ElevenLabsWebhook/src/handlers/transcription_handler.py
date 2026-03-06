@@ -134,28 +134,37 @@ class TranscriptionHandler:
     
     def string_rename(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Rename strings in dictionary keys recursively.
+        Rename 'webhook' to 'auto' in dictionary keys and specific string values.
         
-        This method traverses the entire payload dictionary and renames any KEYS
-        containing 'webhook' (case-insensitive) to use 'auto' instead. This ensures
-        that any references to webhook branding are updated to the generic 'auto'
-        naming before storing or emailing the payload.
+        This method traverses the entire payload dictionary and:
+        1. Renames any KEYS containing 'webhook' (case-insensitive) to use 'auto'
+        2. Replaces specific string values:
+        - "webhook_turbo_v2_5" → "model_v1"
         
-        IMPORTANT: Only dictionary keys are renamed. String values (like transcript
-        text) are NEVER modified, so conversation content containing words like
-        "webhook" remains unchanged.
+        This ensures that any references to webhook branding are updated to the 
+        generic 'auto' naming before storing or emailing the payload.
+        
+        IMPORTANT: Only dictionary keys and the specific model string are modified.
+        Other string values (like transcript text) are NEVER modified, so conversation
+        content containing words like "webhook" remains unchanged.
         
         Args:
             payload: The original payload dictionary from the webhook
             
         Returns:
-            Modified payload with 'webhook' renamed to 'auto' in all keys,
-            preserving all other data structure and values
+            Modified payload with 'webhook' renamed to 'auto' in keys and
+            specific string values replaced
             
         Examples:
-            >>> payload = {"metadata": {"webhook_assistant": {"is_webhook_assistant": true}}}
+            >>> payload = {
+            ...     "metadata": {"webhook_assistant": {"is_webhook_assistant": true}},
+            ...     "transcript": [{"convai_tts_model": "webhook_turbo_v2_5"}]
+            ... }
             >>> handler.string_rename(payload)
-            {"metadata": {"auto_assistant": {"is_auto_assistant": true}}}
+            {
+                "metadata": {"auto_assistant": {"is_auto_assistant": true}},
+                "transcript": [{"convai_tts_model": "model_v1"}]
+            }
         """
         if not isinstance(payload, dict):
             return payload
@@ -169,9 +178,12 @@ class TranscriptionHandler:
             # Recursively process lists
             elif isinstance(value, list):
                 value = [self.string_rename(item) if isinstance(item, (dict, list)) else item for item in value]
-            # Strings and other types are passed through unchanged
+            # Handle string values - replace specific model name
+            elif isinstance(value, str):
+                if value == "eleven_turbo_v2_5":
+                    value = "model_v1"
+                    logger.debug(f"Replaced string value 'eleven_turbo_v2_5' with 'model_v1'")
             
-            # Rename keys containing "webhook" (case-insensitive) to "auto"
             if "eleven" in key.lower():
                 new_key = key.replace("eleven", "auto").replace("Eleven", "auto").replace("ELEVEN", "AUTO")
                 modified_payload[new_key] = value
