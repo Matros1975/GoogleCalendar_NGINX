@@ -11,7 +11,6 @@ Processes full conversation data including:
 """
 
 import json
-import logging
 import os
 from typing import Dict, Any, Optional, List
 
@@ -21,9 +20,20 @@ from src.models.webhook_models import TranscriptionPayload, ConversationData, Tr
 from src.utils.storage import StorageManager
 from src.utils.topdesk_client import TopDeskClient
 from src.utils.email_sender import EmailSender
-from src.utils.logger import conversation_context  # Import conversation context
+from src.utils.logger import setup_logger
+from datetime import datetime, timezone
+import re
 
-logger = logging.getLogger(__name__)
+
+def format_unix_time(ts: int | None) -> str:
+    if not ts:
+        return "Unknown"
+    return datetime.fromtimestamp(ts, tz=timezone.utc).strftime(
+        "%Y-%m-%d %H:%M:%S UTC"
+    )
+
+
+logger = setup_logger()
 
 # Configuration constants
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
@@ -49,12 +59,13 @@ VALID_TOPDESK_PRIORITIES = [
 
 class TicketDataPayload(BaseModel):
     """Schema for TopDesk ticket creation from transcript."""
-    brief_description: str = Field(description="Short summary of the issue (max 80 chars)")
+    brief_description: str = Field(description="Short summary of the issue inc device number if applicable (max 80 chars)")
     request: str = Field(description="Detailed description of the customer's request")
     summary: str = Field(description="Structured summary with: Issue reported, Steps already performed, Steps suggested by agent, Next steps planned")
-    caller_name: Optional[str] = Field(None, description="Caller's name if mentioned")
-    caller_email: Optional[str] = Field(None, description="Caller's email if mentioned")
-    caller_phone: Optional[str] = Field(None, description="Caller's phone number if mentioned")
+    employee_number: str = Field(description="Employee number - MUST be 'UNKNOWN' if not mentioned in conversation")
+    device_number: Optional[str] = Field(None, description="Device or laptop registration number if mentioned, e.g. LAP 110945")
+    kan_doorwerken_status: Optional[str] = Field(None, description="Whether caller can work: kan_niet_werken, kan_beperkt_werken, or kan_werken")
+    location: Optional[str] = Field(None, description="Work location or address of the caller if mentioned")
     category: Optional[str] = Field(None, description=f"Issue category. Must be one of: {', '.join(VALID_TOPDESK_CATEGORIES)}")
     priority: Optional[str] = Field(None, description=f"Priority level. Must be one of: {', '.join(VALID_TOPDESK_PRIORITIES)}")
 
@@ -63,7 +74,7 @@ class TranscriptionHandler:
     """
     Handler for post_call_transcription webhook events with TopDesk integration.
     
-    This handler processes ElevenLabs conversation transcripts and automatically creates
+    This handler processes callback conversation transcripts and automatically creates
     support tickets in TopDesk using AI-powered data extraction. It provides:
     
     **Core Features:**
@@ -124,6 +135,67 @@ class TranscriptionHandler:
         self.email_sender: Optional[EmailSender] = None
         self._llm = None  # Lazy-loaded LangChain LLM
     
+    def string_rename(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Rename 'webhook' to 'auto' in dictionary keys and specific string values.
+        
+        This method traverses the entire payload dictionary and:
+        1. Renames any KEYS containing 'webhook' (case-insensitive) to use 'auto'
+        2. Replaces specific string values:
+        - "webhook_turbo_v2_5" → "model_v1"
+        
+        This ensures that any references to webhook branding are updated to the 
+        generic 'auto' naming before storing or emailing the payload.
+        
+        IMPORTANT: Only dictionary keys and the specific model string are modified.
+        Other string values (like transcript text) are NEVER modified, so conversation
+        content containing words like "webhook" remains unchanged.
+        
+        Args:
+            payload: The original payload dictionary from the webhook
+            
+        Returns:
+            Modified payload with 'webhook' renamed to 'auto' in keys and
+            specific string values replaced
+            
+        Examples:
+            >>> payload = {
+            ...     "metadata": {"webhook_assistant": {"is_webhook_assistant": true}},
+            ...     "transcript": [{"convai_tts_model": "webhook_turbo_v2_5"}]
+            ... }
+            >>> handler.string_rename(payload)
+            {
+                "metadata": {"auto_assistant": {"is_auto_assistant": true}},
+                "transcript": [{"convai_tts_model": "model_v1"}]
+            }
+        """
+        if not isinstance(payload, dict):
+            return payload
+        
+        modified_payload = {}
+        
+        for key, value in payload.items():
+            # Recursively process nested dictionaries
+            if isinstance(value, dict):
+                value = self.string_rename(value)
+            # Recursively process lists
+            elif isinstance(value, list):
+                value = [self.string_rename(item) if isinstance(item, (dict, list)) else item for item in value]
+            # Handle string values - replace specific model name
+            elif isinstance(value, str):
+                if value == "eleven_turbo_v2_5":
+                    value = "model_v1"
+                    logger.debug(f"Replaced string value 'eleven_turbo_v2_5' with 'model_v1'")
+            
+            if "eleven" in key.lower():
+                new_key = key.replace("eleven", "auto").replace("Eleven", "auto").replace("ELEVEN", "AUTO")
+                modified_payload[new_key] = value
+                logger.debug(f"Renamed key '{key}' to '{new_key}' in payload")
+            else:
+                modified_payload[key] = value
+        
+        return modified_payload
+    
     async def handle(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Process a post_call_transcription webhook payload and create TopDesk ticket.
@@ -149,10 +221,10 @@ class TranscriptionHandler:
         - Email errors: Logged but does not fail the request
         
         Args:
-            payload: Raw webhook payload dictionary from ElevenLabs containing:
+            payload: Raw webhook payload dictionary from callback containing:
                 - type: "post_call_transcription"
                 - conversation_id: Unique conversation identifier
-                - agent_id: ElevenLabs agent identifier
+                - agent_id: Callback agent identifier
                 - data: Conversation data with transcript, metadata, analysis
         
         Returns:
@@ -188,12 +260,52 @@ class TranscriptionHandler:
         """
         logger.info("Processing post_call_transcription webhook")
         
+        # MODIFICATION: Rename 'webhook' to 'auto' in the payload early
+        # This ensures all subsequent operations use the renamed version
+        modified_payload = self.string_rename(payload)
+        
+        def topdesk_format(text: str) -> str:
+            """
+            Converts a structured markdown summary into TOPdesk-safe HTML:
+            - Headers: → <strong>Headers:</strong>
+            - * bullets → <ul><li>
+            - Newlines → <br>
+            """
+
+            # Convert markdown headers (e.g., **Header:**) to <strong>
+            text = re.sub(r"\*\*(.+?):\*\*", r"<strong>\1:</strong>", text)
+
+            lines = text.splitlines()
+            html = []
+            in_list = False
+
+            for line in lines:
+                stripped = line.strip()
+
+                # Bullet list support
+                if stripped.startswith("* "):
+                    if not in_list:
+                        html.append("<ul>")
+                        in_list = True
+                    html.append(f"<li>{stripped[2:].strip()}</li>")
+                else:
+                    if in_list:
+                        html.append("</ul>")
+                        in_list = False
+
+                    if stripped:
+                        html.append(f"{stripped}<br>")
+                    else:
+                        html.append("<br>")
+
+            if in_list:
+                html.append("</ul>")
+
+            return "".join(html)
+        
         try:
-            # Parse payload into typed model
-            transcription = TranscriptionPayload.from_dict(payload)
-            
-            # Set conversation context for all subsequent log entries
-            conversation_context.set(transcription.conversation_id)
+            # Parse payload into typed model (use modified_payload)
+            transcription = TranscriptionPayload.from_dict(modified_payload)
             
             logger.info(
                 f"Transcription received - "
@@ -205,11 +317,11 @@ class TranscriptionHandler:
             if transcription.data:
                 self._process_conversation_data(transcription.data)
             
-            # Store transcript if storage is enabled
+            # Store transcript if storage is enabled - use modified data
             saved_path = self.storage.save_transcript(
                 conversation_id=transcription.conversation_id,
                 agent_id=transcription.agent_id,
-                data=payload.get("data", {})
+                data=modified_payload.get("data", {})
             )
             
             # Generate formatted transcript
@@ -238,27 +350,124 @@ class TranscriptionHandler:
             # Attempt TopDesk ticket creation
             try:
                 # Extract ticket data using OpenAI/LangChain
+                logger.info(f"Starting employee number extraction for conversation: {transcription.conversation_id}")
                 ticket_data = await self._extract_ticket_data(formatted_transcript, transcription.data)
+                try:
+                    data_collection = (modified_payload.get("data", {})
+                                            .get("analysis", {})
+                                            .get("data_collection_results", {}))
+
+                    extracted_emp = data_collection.get("employee_number", {}).get("value")
+                    if extracted_emp:
+                        ticket_data.employee_number = str(int(float(extracted_emp)))
+                        logger.info(f"Employee number overridden from payload: {ticket_data.employee_number}")
+
+                    extracted_device = data_collection.get("device_number", {}).get("value")
+                    if extracted_device:
+                        ticket_data.device_number = str(extracted_device)
+                        logger.info(f"Device number extracted from payload: {ticket_data.device_number}")
+
+                    kan_doorwerken = data_collection.get("kan_doorwerken_status", {}).get("value")
+                    if not kan_doorwerken:
+                        kan_doorwerken = data_collection.get("workability", {}).get("value")
+                    if kan_doorwerken:
+                        ticket_data.kan_doorwerken_status = str(kan_doorwerken)
+                        logger.info(f"Kan doorwerken status extracted: {ticket_data.kan_doorwerken_status}")
+
+                    extracted_location = data_collection.get("location", {}).get("value")
+                    if extracted_location:
+                        ticket_data.location = str(extracted_location)
+                        logger.info(f"Location extracted from payload: {ticket_data.location}")
+
+                except Exception as e:
+                    logger.warning(f"Failed to extract data collection fields from payload: {e}")
+                logger.info(f"Ticket data extracted - Employee number: '{ticket_data.employee_number}' (Brief: '{ticket_data.brief_description}')")
                 
                 # Initialize TopDesk client if needed
                 if not self.topdesk_client:
                     self.topdesk_client = TopDeskClient()
                 
                 # Prepend summary to request for structured ticket data
-                full_request = f"{ticket_data.summary}\n\n---\n\n{ticket_data.request}"
-                
-                # Create TopDesk incident
+                formatted_summary = topdesk_format(ticket_data.summary)
+
+                conversation_id = (
+                    modified_payload.get("data", {}).get("conversation_id") or
+                    transcription.conversation_id or
+                    "Onbekend"
+                )
+
+                conversation_block = (
+                    f"<strong>Conversation ID:</strong> {conversation_id}<br><br>"
+                )
+
+                separator = "<br>-----------------------------------------------------------------------------<br>"
+
+                # Add device number block if present
+                device_block = ""
+                if ticket_data.device_number:
+                    device_block = f"<strong>Registratienummer apparaat:</strong> {ticket_data.device_number}<br><br>"
+
+                # Add kan doorwerken block if present
+                kan_doorwerken_block = ""
+                if ticket_data.kan_doorwerken_status:
+                    kan_doorwerken_block = f"<strong>Kan doorwerken:</strong> {ticket_data.kan_doorwerken_status}<br><br>"
+
+                location_block = ""
+                if ticket_data.location:
+                    location_block = f"<strong>Locatie:</strong> {ticket_data.location}<br><br>"
+
+                full_request = (
+                    conversation_block +
+                    device_block +
+                    kan_doorwerken_block +
+                    location_block +
+                    formatted_summary +
+                    separator +
+                    "<strong>Aanvullende Beschrijving:</strong><br>" +
+                    ticket_data.request
+                )
+
+                # Check if employee number exists and validate it
+                employee_person = None
+                if ticket_data.employee_number and ticket_data.employee_number != "UNKNOWN":
+                    logger.info(f"Validating employee number: '{ticket_data.employee_number}' in TopDesk")
+                    try:
+                        employee_person = await self.topdesk_client.validate_employee_number(
+                            ticket_data.employee_number
+                        )
+                        if employee_person:
+                            logger.info(f"Employee number '{ticket_data.employee_number}' validated successfully. Found person: {employee_person.get('id', 'N/A')}")
+                        else:
+                            logger.warning(f"Employee number '{ticket_data.employee_number}' not found in TopDesk")
+                    except Exception as validation_error:
+                        logger.error(f"Error validating employee number {ticket_data.employee_number}: {validation_error}")
+                        employee_person = None
+
+                if not employee_person:
+                    # Employee number not found or not provided - skip ticket creation and send fallback email
+                    error_msg = "Employee number not provided or invalid"
+                    result["error"] = error_msg
+                    logger.warning(f"Employee validation failed for {transcription.conversation_id}: {error_msg}")
+                    
+                    ticket_data.employee_number = "9999999"
+                    fallback_used = True
+                else:
+                    fallback_used = False
+
+                # Employee number validated successfully - create ticket
                 ticket_response = await self.topdesk_client.create_incident(
                     brief_description=ticket_data.brief_description,
                     request=full_request,
                     conversation_id=transcription.conversation_id,
-                    caller_name=ticket_data.caller_name,
-                    caller_email=ticket_data.caller_email,
+                    employee_number=ticket_data.employee_number,
                     category=ticket_data.category,
                     priority=ticket_data.priority
                 )
                 
-                if ticket_response["success"]:
+                if not ticket_response or not isinstance(ticket_response, dict):
+                    raise Exception("TopDesk create_incident returned no response")
+
+                if ticket_response.get("success"):
                     result["ticket_created"] = True
                     result["ticket_number"] = ticket_response["ticket_number"]
                     result["ticket_id"] = ticket_response["ticket_id"]
@@ -280,35 +489,52 @@ class TranscriptionHandler:
                     except Exception as e:
                         logger.error(f"Error adding transcript to ticket: {e}")
                         result["transcript_added"] = False
+
+                    if fallback_used:
+                        if not self.email_sender:
+                            self.email_sender = EmailSender()
+                        
+                        try:
+                            data_dict = modified_payload.get("data", {}) or {}
+                            metadata = data_dict.get("metadata", {}) or {}
+                            phone_call = metadata.get("phone_call", {}) or {}
+                            
+                            call_number = phone_call.get("external_number")
+                            
+                            start_time = metadata.get("start_time_unix_secs")
+                            call_time = format_unix_time(start_time) if start_time else "Unknown"
+
+                            # MODIFICATION: Use the already modified payload for email
+                            # The payload has already been processed by string_rename
+                            email_sent = await self.email_sender.send_error_notification(
+                                conversation_id=transcription.conversation_id,
+                                transcript=formatted_transcript,
+                                error_message=(f"Ticket {ticket_response['ticket_number']} created with default employee ID 9999999.\n"
+                                f"Reason: No employee ID provided or user did not mention a valid employee ID."),
+                                ticket_data=ticket_data.dict() if ticket_data else {},
+                                payload=modified_payload,  # Use modified payload
+                                call_number=call_number,
+                                call_time=call_time
+                            )
+
+                            result["email_sent"] = email_sent
+                            
+                        except Exception as email_error:
+                            logger.error(f"Failed to send fallback notification email: {email_error}")
+                            result["email_sent"] = False
                 else:
-                    # Ticket creation failed
                     raise Exception(f"TopDesk API error: {ticket_response.get('error', 'Unknown error')}")
-            
-            except Exception as e:
-                # Send email notification on failure
-                error_msg = str(e)
-                result["error"] = error_msg
-                logger.error(f"Ticket creation failed for {transcription.conversation_id}: {error_msg}")
-                
-                if not self.email_sender:
-                    self.email_sender = EmailSender()
-                
-                try:
-                    email_sent = await self.email_sender.send_error_notification(
-                        transcription.conversation_id,
-                        formatted_transcript,
-                        error_msg
-                    )
-                    result["email_sent"] = email_sent
-                except Exception as email_error:
-                    logger.error(f"Failed to send error notification email: {email_error}")
+
+            except Exception as ticket_error:
+                logger.error(f"TopDesk ticket creation failed: {ticket_error}")
+                result["error"] = str(ticket_error)
             
             return result
             
         except Exception as e:
             logger.exception(f"Error processing transcription: {e}")
             raise
-    
+        
     def _process_conversation_data(self, data: ConversationData) -> None:
         """
         Process and log conversation metadata and statistics for observability.
@@ -320,7 +546,7 @@ class TranscriptionHandler:
         **Logged Information:**
         - Basic metadata: duration, message count, call status
         - Timestamps: start time, end time (if available)
-        - Audio availability: flags for audio presence (future ElevenLabs feature)
+        - Audio availability: flags for audio presence (future callback feature)
         - Transcript statistics: agent message count, user message count
         - Analysis results: call summary, evaluation criteria, collected data
         - Dynamic variables: custom metadata fields set during conversation
@@ -413,6 +639,7 @@ class TranscriptionHandler:
         - Brief description: max 80 chars, main issue summary
         - Request: detailed explanation of caller's needs
         - Caller info: name, email, phone (if mentioned in conversation)
+        - **IMPORTANT: Extract employee number if mentioned**
         - Category: Fetched from TopDesk API (e.g., "Core applicaties", "Werkplek hardware")
         - Priority: Fetched from TopDesk API (e.g., "P1 (I&A)", "P2 (I&A)")
         
@@ -427,6 +654,7 @@ class TranscriptionHandler:
                 - caller_name: Extracted name or None
                 - caller_email: Extracted email or None
                 - caller_phone: Extracted phone or None
+                - employee_number: Extracted employee number or None
                 - category: Issue category or None
                 - priority: Priority level or None
         
@@ -498,47 +726,75 @@ class TranscriptionHandler:
             priorities_list = "\n".join([f"  - {pri}" for pri in valid_priorities])
             
             prompt = ChatPromptTemplate.from_messages([
-                ("system", f"""You are an AI assistant that extracts ticket information from call transcripts.
-Analyze the conversation and extract:
-- A brief description (max 80 characters) summarizing the main issue
-- Detailed request description explaining what the caller needs
-- A structured summary in the following format:
+    ("system", f"""Je bent een ervaren IT-servicedesk medewerker.
 
-**Issue Reported:**
-[Detailed description of the problem as reported by the caller]
+Analyseer het onderstaande telefoongesprek en genereer ticketinformatie voor TopDesk.
 
-**Steps Already Performed:**
-[List of troubleshooting steps or actions the caller has already tried]
+BELANGRIJK:
+- ALLE output moet volledig in het Nederlands zijn.
+- Gebruik GEEN Engels.
+- Gebruik professionele servicedesk-taal.
+- Maak geen aannames die niet expliciet in het gesprek genoemd worden.
+- Schrijf helder, zakelijk en gestructureerd.
 
-**Steps Suggested by Agent:**
-[List of recommendations or solutions provided by the agent during the call]
+Genereer de volgende velden:
 
-**Next Steps Planned:**
-[Planned actions, follow-ups, or what should happen next]
+1) brief_description  
+   - Maximaal 80 tekens  
+   - Korte duidelijke omschrijving van het probleem  
 
-- Caller information if mentioned (name, email, phone)
-- Issue category - MUST be one of these exact values:
+2) request  
+   - Gedetailleerde beschrijving van het probleem en wat de gebruiker vraagt  
+
+3) summary  
+   Gebruik exact deze structuur:
+
+**Gemeld Probleem:**  
+[Beschrijving van het gemelde probleem]
+
+**Reeds Uitgevoerde Stappen:**  
+[Welke stappen heeft de gebruiker al uitgevoerd]
+
+**Voorgestelde Acties door Servicedesk:**  
+[Welke adviezen of acties gaf de agent]
+
+**Vervolgstappen:**  
+[Vervolgacties of wat er nog moet gebeuren]
+
+4) employee_number  
+   - Extract het personeelsnummer indien genoemd  
+   - Zet gesproken cijfers om naar numerieke vorm  
+     Bijvoorbeeld: "drie twee nul twee twee vijf vijf" → "3202255"  
+   - Indien NIET genoemd: zet exact "UNKNOWN"
+
+5) category  
+   - MOET exact één van onderstaande waarden zijn:
 {categories_list}
-  Choose the most appropriate category based on the issue type. Use "{valid_categories[0]}" if unsure.
+   - Kies de best passende categorie  
+   - Gebruik "{valid_categories[0]}" indien twijfel  
 
-- Priority level - Classify the ticket's priority using the following matrix. Priority shall be detected in any case.
-  Priority Matrix:
-  • If urgency is "Kan niet werken" (cannot work):
-    • Impact on "Organisatie", "Vestiging", or "Afdeling" → Priority: "P1 (I&A)"
-    • Impact on "Persoon" → Priority: "P2 (I&A)"
-  • If urgency is "Kan deels werken" (can partly work):
-    • Impact on "Organisatie", "Vestiging", or "Afdeling" → Priority: "P2 (I&A)"
-    • Impact on "Persoon" → Priority: "P3 (I&A)"
-  • If urgency is "Kan werken" (can work):
-    • Impact on "Organisatie", "Vestiging", or "Afdeling" → Priority: "P3 (I&A)"
-    • Impact on "Persoon" → Priority: "P4 (I&A)"
-  
-  Valid priority values: {', '.join(valid_priorities)}
-  Assess the urgency and impact from the conversation context to determine the correct priority.
+6) priority  
+   Bepaal prioriteit op basis van urgentie en impact:
+
+  • Urgentie "Kan niet werken":
+    - Impact op Organisatie/Vestiging/Afdeling → "P1 (I&A)"
+    - Impact op Persoon → "P2 (I&A)"
+
+  • Urgentie "Kan deels werken":
+    - Impact op Organisatie/Vestiging/Afdeling → "P2 (I&A)"
+    - Impact op Persoon → "P3 (I&A)"
+
+  • Urgentie "Kan werken":
+    - Impact op Organisatie/Vestiging/Afdeling → "P3 (I&A)"
+    - Impact op Persoon → "P4 (I&A)"
+
+Geldige prioriteiten:
+{', '.join(valid_priorities)}
+
+Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
 
 {{format_instructions}}"""),
-                ("human", "Call transcript:\n\n{transcript}")
-            ])
+    ("human", "Call transcript:\n\n{transcript}")])
             
             chain = prompt | self._llm | parser
             
@@ -563,7 +819,7 @@ Analyze the conversation and extract:
         
         This fallback method provides basic ticket data extraction without using AI.
         It's used when OPENAI_API_KEY is not configured or when AI extraction fails.
-        If ElevenLabs provided a summary in the payload, it will be used instead of the placeholder.
+        If callback provided a summary in the payload, it will be used instead of the placeholder.
         
         **Extraction Algorithm:**
         1. Split transcript into lines
@@ -591,6 +847,7 @@ Analyze the conversation and extract:
                 - caller_name: None
                 - caller_email: None
                 - caller_phone: None
+                - employee_number: None
                 - category: None
                 - priority: None
         
@@ -624,42 +881,44 @@ Analyze the conversation and extract:
                         brief_desc = message
                         break
         
-        # Use ElevenLabs summary if available, otherwise create basic summary
+        # Use callback summary if available, otherwise create basic summary
         if conversation_data and conversation_data.analysis and conversation_data.analysis.summary:
-            elevenlabs_summary = conversation_data.analysis.summary
-            logger.info("Using ElevenLabs call summary for fallback extraction")
-            # Format the ElevenLabs summary into our structured format
-            fallback_summary = f"""**Issue Reported:**
-{elevenlabs_summary}
+            callback_summary = conversation_data.analysis.summary
+            logger.info("Using callback call summary for fallback extraction")
+            # Format the callback summary into our structured format
+            fallback_summary = f"""**Gemeld Probleem:**
+            {callback_summary}
 
-**Steps Already Performed:**
-See transcript for details.
+            **Reeds Uitgevoerde Stappen:**
+            Zie transcript voor details.
 
-**Steps Suggested by Agent:**
-See transcript for details.
+            **Voorgestelde Acties door Servicedesk:**
+            Zie transcript voor details.
 
-**Next Steps Planned:**
-Review call summary and transcript for follow-up actions."""
+            **Vervolgstappen:**
+            Controleer samenvatting en transcript voor vervolgacties."""
+
         else:
-            # No ElevenLabs summary available, use placeholder
-            logger.info("No ElevenLabs summary available, using placeholder")
-            fallback_summary = """**Issue Reported:**
-See full transcript below for details.
+            # No callback summary available, use placeholder
+            logger.info("No callback summary available, using placeholder")
+            fallback_summary = """**Gemeld Probleem:**
+            Zie volledig transcript hieronder voor details.
 
-**Steps Already Performed:**
-Unable to extract - see transcript.
+            **Reeds Uitgevoerde Stappen:**
+            Niet automatisch te bepalen - raadpleeg transcript.
 
-**Steps Suggested by Agent:**
-Unable to extract - see transcript.
+            **Voorgestelde Acties door Servicedesk:**
+            Niet automatisch te bepalen - raadpleeg transcript.
 
-**Next Steps Planned:**
-Follow up required - review full transcript."""
+            **Vervolgstappen:**
+            Vervolgactie vereist - controleer volledig transcript."""
         
         return TicketDataPayload(
-            brief_description=brief_desc,
-            request=transcript[:MAX_FALLBACK_REQUEST_LENGTH] if len(transcript) > MAX_FALLBACK_REQUEST_LENGTH else transcript,
-            summary=fallback_summary
-        )
+                brief_description=brief_desc,
+                request=transcript[:MAX_FALLBACK_REQUEST_LENGTH] if len(transcript) > MAX_FALLBACK_REQUEST_LENGTH else transcript,
+                summary=fallback_summary,
+                employee_number="UNKNOWN"   
+            )
     
     def _format_timestamp(self, seconds: float) -> str:
         """
@@ -686,7 +945,7 @@ Follow up required - review full transcript."""
         """
         Format a tool invocation entry for human-readable transcript display.
         
-        ElevenLabs agents can invoke tools during conversations (e.g., check calendar,
+        callback agents can invoke tools during conversations (e.g., check calendar,
         create tasks). This method formats those invocations into a readable format
         suitable for inclusion in transcripts.
         
@@ -698,7 +957,7 @@ Follow up required - review full transcript."""
         - Non-dict arguments converted to string representation
         
         Args:
-            tool_call: Tool call dictionary from ElevenLabs webhook containing:
+            tool_call: Tool call dictionary from Labs callback containing:
                 - name: Tool name (e.g., "check_calendar", "send_email")
                 - arguments: Tool arguments as dict or JSON string
         
@@ -747,7 +1006,7 @@ Follow up required - review full transcript."""
         """
         Format a tool execution result for human-readable transcript display.
         
-        After a tool is invoked, ElevenLabs provides the result of that invocation.
+        After a tool is invoked, callback provides the result of that invocation.
         This method formats the result for inclusion in the transcript, handling
         both simple string outputs and complex structured data.
         
@@ -757,7 +1016,7 @@ Follow up required - review full transcript."""
         - Missing output field: Empty string used
         
         Args:
-            tool_result: Tool result dictionary from ElevenLabs webhook containing:
+            tool_result: Tool result dictionary from Labs callback containing:
                 - output: The result of the tool execution (any type)
         
         Returns:
@@ -794,7 +1053,7 @@ Follow up required - review full transcript."""
         """
         Generate human-readable transcript from conversation data with timestamps.
         
-        This method transforms the raw transcript data from ElevenLabs into a
+        This method transforms the raw transcript data from callback into a
         well-formatted, timestamped text document suitable for human reading
         and AI processing. It handles regular messages, tool calls, and tool results.
         

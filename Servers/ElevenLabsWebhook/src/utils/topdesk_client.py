@@ -84,7 +84,7 @@ class TopDeskClient:
             client = await self._get_client()
             response = await client.get(f"{self.base_url}/incidents/categories")
             
-            if response.status_code == 200:
+            if response.status_code in [200, 206]:
                 categories = response.json()
                 # Extract category names
                 self._categories_cache = [cat.get("name", "") for cat in categories if cat.get("name")]
@@ -152,14 +152,55 @@ class TopDeskClient:
             digits = digits.zfill(TICKET_NUMBER_TOTAL_DIGITS)
         
         return f"I{digits[:TICKET_NUMBER_PREFIX_DIGITS]} {digits[TICKET_NUMBER_PREFIX_DIGITS:TICKET_NUMBER_TOTAL_DIGITS]}"
-    
+
+    async def validate_employee_number(self, employee_number: str) -> dict | None:
+        """
+        Validate if employee number exists in TopDesk.
+
+        Args:
+            employee_number: Employee number to validate
+
+        Returns:
+            Person object if found, None otherwise
+        """
+        if not employee_number or not self.base_url or not self.auth_header:
+            return None
+
+        try:
+            client = await self._get_client()
+            response = await client.get(
+                f"{self.base_url}/persons",
+                params={
+                    "employeeNumber": employee_number,
+                    "start": 0,
+                    "page_size": 50
+                }
+            )
+
+            logger.info(f"Employee lookup response: HTTP {response.status_code}")
+
+            if response.status_code == 200:
+                persons = response.json()
+                logger.info(f"Employee lookup returned {len(persons)} results for '{employee_number}'")
+                for person in persons:
+                    if str(person.get("employeeNumber", "")).strip() == str(employee_number).strip():
+                        return person
+                logger.warning(f"No exact match for employee number '{employee_number}' in {len(persons)} results")
+            else:
+                logger.error(f"Employee lookup failed: HTTP {response.status_code} - {response.text}")
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error validating employee number {employee_number}: {e}")
+            return None
+
     async def create_incident(
         self,
         brief_description: str,
         request: str,
         conversation_id: str,
-        caller_name: Optional[str] = None,
-        caller_email: Optional[str] = None,
+        employee_number: Optional[str] = None,
         category: Optional[str] = None,
         priority: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -212,9 +253,9 @@ class TopDeskClient:
         
         payload: Dict[str, Any] = {
             "briefDescription": brief_description[:80] if brief_description else "Call transcript",
-            "request": f"Conversation ID: {conversation_id}\n\n{request}",
-            "caller": {
-                "id": DEFAULT_CALLER_ID
+            "request": request,
+            "callerLookup": {
+                "employeeNumber": str(employee_number)
             }
         }
         
