@@ -1,0 +1,44 @@
+{
+  "type": "post_call_transcription",
+  "event_timestamp": 1764505599,
+  "data": {
+    "agent_id": "agent_support_005",
+    "conversation_id": "conv_email_5599",
+    "status": "done",
+    "transcript": [
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_support_005"
+        },
+        "message": "Hallo, IT helpdesk.",
+        "time_in_call_secs": 0
+      },
+      {
+        "role": "user",
+        "message": "Ik ontvang geen e-mails meer.",
+        "time_in_call_secs": 8,
+        "source_medium": "audio"
+      }
+    ],
+    "metadata": {
+      "start_time_unix_secs": 1764505520,
+      "call_duration_secs": 49,
+      "cost": 365,
+      "phone_call": {
+        "direction": "inbound",
+        "agent_number": "+319700000005",
+        "external_number": "+31699990000",
+        "type": "twilio",
+        "call_sid": "CA555eee666fff"
+      },
+      "termination_reason": "Completed",
+      "main_language": "nl"
+    },
+    "analysis": {
+      "call_successful": "success",
+      "transcript_summary": "User reports email delivery issue.",
+      "call_summary_title": "Email not received"
+    }
+  }
+}

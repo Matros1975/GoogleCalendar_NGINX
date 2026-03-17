@@ -1,8 +1,8 @@
 """
-Data models for ElevenLabs webhook payloads.
+Data models for callback payloads.
 
-Based on ElevenLabs webhook documentation:
-https://elevenlabs.io/docs/agents-platform/workflows/post-call-webhooks
+Based on callback documentation:
+https://callback.io/docs/agents-platform/workflows/post-call-webhooks
 """
 
 from typing import Optional, List, Dict, Any

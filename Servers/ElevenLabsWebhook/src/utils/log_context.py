@@ -1,0 +1,7 @@
+from contextvars import ContextVar
+
+# Per-request in-memory log buffer (async-safe)
+request_log_buffer: ContextVar[list[str] | None] = ContextVar(
+    "request_log_buffer",
+    default=None
+)

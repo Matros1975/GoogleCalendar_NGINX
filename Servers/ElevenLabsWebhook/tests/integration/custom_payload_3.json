@@ -1,0 +1,44 @@
+{
+  "type": "post_call_transcription",
+  "event_timestamp": 1764503377,
+  "data": {
+    "agent_id": "agent_helpdesk_003",
+    "conversation_id": "conv_net_issue_7788",
+    "status": "done",
+    "transcript": [
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_helpdesk_003"
+        },
+        "message": "IT Support, goedemiddag.",
+        "time_in_call_secs": 0
+      },
+      {
+        "role": "user",
+        "message": "Het netwerk is erg traag sinds vanmorgen.",
+        "time_in_call_secs": 7,
+        "source_medium": "audio"
+      }
+    ],
+    "metadata": {
+      "start_time_unix_secs": 1764503300,
+      "call_duration_secs": 61,
+      "cost": 455,
+      "phone_call": {
+        "direction": "inbound",
+        "agent_number": "+319700000003",
+        "external_number": "+31655556666",
+        "type": "twilio",
+        "call_sid": "CA333ccc444ddd"
+      },
+      "termination_reason": "Call ended normally",
+      "main_language": "nl"
+    },
+    "analysis": {
+      "call_successful": "success",
+      "transcript_summary": "User reports slow network performance.",
+      "call_summary_title": "Network slowness"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "type": "post_call_transcription",
+  "event_timestamp": 1764502255,
+  "data": {
+    "agent_id": "agent_aa88bbcc9900",
+    "conversation_id": "conv_22ffdd8899",
+    "status": "done",
+    "transcript": [
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_aa88bbcc9900"
+        },
+        "message": "Hallo, IT servicedesk, met Mark.",
+        "time_in_call_secs": 0
+      },
+      {
+        "role": "user",
+        "message": "Mijn wachtwoord werkt niet meer.",
+        "time_in_call_secs": 4,
+        "source_medium": "audio"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_aa88bbcc9900"
+        },
+        "message": "Geen probleem, ik kan je wachtwoord resetten. Wat is je personeelsnummer?",
+        "time_in_call_secs": 9
+      }
+    ],
+    "metadata": {
+      "start_time_unix_secs": 1764502201,
+      "call_duration_secs": 44,
+      "cost": 310,
+      "phone_call": {
+        "direction": "inbound",
+        "agent_number": "+319700000002",
+        "external_number": "+31633334444",
+        "type": "twilio",
+        "call_sid": "CA222bbb333ccc"
+      },
+      "termination_reason": "Call completed",
+      "main_language": "nl"
+    },
+    "analysis": {
+      "call_successful": "success",
+      "transcript_summary": "User unable to log in due to password issue.",
+      "call_summary_title": "Password reset request"
+    }
+  }
+}

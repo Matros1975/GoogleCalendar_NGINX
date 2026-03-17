@@ -1,7 +1,7 @@
 """
-Main entry point for ElevenLabs Webhook Service.
+Main entry point for callback Service.
 
-This service handles post-call webhooks from ElevenLabs including:
+This service handles post-call webhooks from callback including:
 - post_call_transcription: Full conversation data with transcripts
 - post_call_audio: Base64-encoded MP3 audio
 - call_initiation_failure: Failed call metadata
@@ -21,8 +21,8 @@ from src.handlers.transcription_handler import TranscriptionHandler
 from src.handlers.audio_handler import AudioHandler
 from src.handlers.call_failure_handler import CallFailureHandler
 from src.utils.logger import setup_logger
+from src.utils.log_context_middleware import log_context_middleware
 
-# Setup logging
 logger = setup_logger()
 
 # Initialize components (will be configured on startup)
@@ -37,46 +37,50 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler for startup and shutdown."""
     global hmac_validator, transcription_handler, audio_handler, call_failure_handler
     
-    # Startup
-    secret = os.getenv("ELEVENLABS_WEBHOOK_SECRET", "")
+    secret = (
+    os.getenv("callback_SECRET")
+    or os.getenv("HMAC_SECRET")
+    or "")
     if not secret:
-        logger.warning("ELEVENLABS_WEBHOOK_SECRET not set - HMAC validation will fail")
+        logger.warning("callback_SECRET not set - HMAC validation will fail")
     
     hmac_validator = HMACValidator(secret=secret)
     transcription_handler = TranscriptionHandler()
     audio_handler = AudioHandler()
     call_failure_handler = CallFailureHandler()
     
-    logger.info("ElevenLabs Webhook Service started successfully")
+    logger.info("callback Service started successfully")
     
     yield
     
     # Shutdown
-    logger.info("ElevenLabs Webhook Service shutting down...")
+    logger.info("callback Service shutting down...")
 
 
 # Initialize FastAPI app with lifespan handler
 app = FastAPI(
-    title="ElevenLabs Webhook Service",
+    title="callback Service",
     version="1.0.0",
-    description="Webhook receiver for ElevenLabs post-call events",
+    description="Webhook receiver for callback post-call events",
     lifespan=lifespan
 )
 
+# Attach request log context middleware to the final app instance
+app.middleware("http")(log_context_middleware)
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Docker/NGINX monitoring."""
-    return {"status": "healthy", "service": "elevenlabs-webhook"}
+    return {"status": "healthy", "service": "callback-webhook"}
 
 
-@app.post("/webhook")
+@app.post("/webhooks")
 async def webhook_endpoint(
     request: Request,
-    elevenlabs_signature: str = Header(None, alias="elevenlabs-signature")
+    callback_signature: str = Header(None, alias="elevenlabs-signature")
 ):
     """
-    Main webhook endpoint for ElevenLabs post-call webhooks.
+    Main webhook endpoint for callback post-call webhooks.
     
     Handles three types:
     - post_call_transcription: Full conversation data with transcripts
@@ -92,9 +96,12 @@ async def webhook_endpoint(
     try:
         # Read request body
         body = await request.body()
-        
+
+        # DEBUG: Log all incoming headers
+        # logger.info(f"Incoming headers: {dict(request.headers)}")
+
         # Validate HMAC signature
-        is_valid, error_message = hmac_validator.validate(elevenlabs_signature, body)
+        is_valid, error_message = hmac_validator.validate(callback_signature, body)
         if not is_valid:
             logger.warning(f"HMAC validation failed: {error_message}")
             if "expired" in error_message.lower():
@@ -119,8 +126,11 @@ async def webhook_endpoint(
             result = await call_failure_handler.handle(payload)
         else:
             logger.error(f"Unknown webhook type: {webhook_type}")
-            raise HTTPException(status_code=400, detail=f"Unknown webhook type: {webhook_type}")
-        
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown webhook type: {webhook_type}"
+            )
+
         logger.info(f"Successfully processed {webhook_type} webhook")
         return JSONResponse(content={"status": "received"}, status_code=200)
         
@@ -136,11 +146,11 @@ def main():
     """Main entry point for running the service."""
     import uvicorn
     
-    host = os.getenv("ELEVENLABS_WEBHOOK_HOST", "0.0.0.0")
-    port = int(os.getenv("ELEVENLABS_WEBHOOK_PORT", "3004"))
+    host = os.getenv("callback_HOST", "0.0.0.0")
+    port = int(os.getenv("callback_PORT", "3004"))
     log_level = os.getenv("LOG_LEVEL", "INFO").lower()
     
-    logger.info(f"Starting ElevenLabs Webhook Service on {host}:{port}")
+    logger.info(f"Starting callback Service on {host}:{port}")
     
     uvicorn.run(
         "src.main:app",
