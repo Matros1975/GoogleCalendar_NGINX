@@ -1,38 +1,22 @@
 """
 TopDesk API client for creating incidents from call transcripts.
 
-Implements async TopDesk API integration for the callback webhook service.
+Implements async TopDesk API integration for the ElevenLabs webhook service.
 """
 
 import os
 import base64
+import logging
 from typing import Dict, Any, Optional
 
 import httpx
-from src.utils.logger import setup_logger
-import urllib.parse
 
-logger = setup_logger()
+
+logger = logging.getLogger(__name__)
 
 # TopDesk ticket number format constants
 TICKET_NUMBER_TOTAL_DIGITS = 7
 TICKET_NUMBER_PREFIX_DIGITS = 4
-
-# Valid TopDesk categories (from your instance)
-VALID_CATEGORIES = [
-    "Core applicaties",
-    "Werkplek hardware",
-    "Netwerk",
-    "Wachtwoord wijziging"
-]
-
-# Valid TopDesk priorities (from your instance)
-VALID_PRIORITIES = [
-    "P1 (I&A)",
-    "P2 (I&A)",
-    "P3 (I&A)",
-    "P4 (I&A)"
-]
 
 
 class TopDeskClient:
@@ -100,7 +84,7 @@ class TopDeskClient:
             client = await self._get_client()
             response = await client.get(f"{self.base_url}/incidents/categories")
             
-            if response.status_code == 200:
+            if response.status_code in [200, 206]:
                 categories = response.json()
                 # Extract category names
                 self._categories_cache = [cat.get("name", "") for cat in categories if cat.get("name")]
@@ -172,49 +156,51 @@ class TopDeskClient:
     async def validate_employee_number(self, employee_number: str) -> dict | None:
         """
         Validate if employee number exists in TopDesk.
-        
+
         Args:
             employee_number: Employee number to validate
-            
+
         Returns:
             Person object if found, None otherwise
         """
         if not employee_number or not self.base_url or not self.auth_header:
             return None
-        
+
         try:
-            query = f"employeeNumber=={employee_number}"
-            encoded_query = urllib.parse.quote(query, safe="=")
-            
             client = await self._get_client()
             response = await client.get(
                 f"{self.base_url}/persons",
                 params={
-                    "query": encoded_query,
+                    "employeeNumber": employee_number,
                     "start": 0,
                     "page_size": 50
                 }
             )
-            
+
+            logger.info(f"Employee lookup response: HTTP {response.status_code}")
+
             if response.status_code == 200:
                 persons = response.json()
+                logger.info(f"Employee lookup returned {len(persons)} results for '{employee_number}'")
                 for person in persons:
-                    # Defensive check for exact match
-                    if str(person.get("employeeNumber", "")).strip() == str(employee_number):
+                    if str(person.get("employeeNumber", "")).strip() == str(employee_number).strip():
                         return person
-            
+                logger.warning(f"No exact match for employee number '{employee_number}' in {len(persons)} results")
+            else:
+                logger.error(f"Employee lookup failed: HTTP {response.status_code} - {response.text}")
+
             return None
-            
+
         except Exception as e:
             logger.error(f"Error validating employee number {employee_number}: {e}")
             return None
-    
+
     async def create_incident(
         self,
         brief_description: str,
         request: str,
         conversation_id: str,
-        employee_number: Optional[str] = None,  
+        employee_number: Optional[str] = None,
         category: Optional[str] = None,
         priority: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -224,9 +210,9 @@ class TopDeskClient:
         Args:
             brief_description: Short summary of the issue (max 80 chars)
             request: Detailed description of the customer's request
-            conversation_id: callback conversation ID for reference
+            conversation_id: ElevenLabs conversation ID for reference
             caller_name: Caller's name if mentioned
-            employee_number: Employee number (REQUIRED for ticket creation)
+            caller_email: Caller's email if mentioned
             category: Issue category (optional)
             priority: Priority level (optional)
             
@@ -245,24 +231,35 @@ class TopDeskClient:
                 "error": "TopDesk credentials not configured (TOPDESK_USERNAME, TOPDESK_PASSWORD)"
             }
         
-        # Employee number is REQUIRED - should have been validated before calling this
-        if not employee_number:
-            return {
-                "success": False,
-                "error": "Employee number is required for ticket creation"
-            }
+        # Build payload - caller is REQUIRED for TopDesk
+        # Use default caller ID if no email provided
+        DEFAULT_CALLER_ID = "d34b277f-e6a2-534c-a96b-23bf383cb4a1"  # Jacob Aalbregt
         
-        # Build payload with employee number lookup
+        # Valid TopDesk categories (from your instance)
+        VALID_CATEGORIES = [
+            "Core applicaties",
+            "Werkplek hardware",
+            "Netwerk",
+            "Wachtwoord wijziging"
+        ]
+        
+        # Valid TopDesk priorities (from your instance)
+        VALID_PRIORITIES = [
+            "P1 (I&A)",
+            "P2 (I&A)",
+            "P3 (I&A)",
+            "P4 (I&A)"
+        ]
+        
         payload: Dict[str, Any] = {
             "briefDescription": brief_description[:80] if brief_description else "Call transcript",
-            "request": request,  # Conversation ID already included in formatted HTML
+            "request": request,
             "callerLookup": {
                 "employeeNumber": str(employee_number)
             }
         }
-
         
-        # Add optional fields only if they match valid TopDesk values 
+        # Add optional fields only if they match valid TopDesk values
         if category and category in VALID_CATEGORIES:
             payload["category"] = {"name": category}
             logger.debug(f"Using category: {category}")
@@ -283,12 +280,13 @@ class TopDeskClient:
             payload["priority"] = {"name": "P3 (I&A)"}
             logger.debug("Using default priority: P3 (I&A)")
             
-        # Note: callerLookup by employeeNumber will find the correct person
-        logger.info(f"Creating TopDesk incident for conversation {conversation_id} with employee {employee_number}")
+        # Note: callerLookup by email can be used to override caller, but requires exact match
+        # For now, we always use the default caller ID to ensure ticket creation succeeds
+        
         try:
             client = await self._get_client()
             url = f"{self.base_url}/incidents"
-            logger.info(f"Creating TopDesk incident for conversation {conversation_id} with employee {employee_number}")
+            logger.info(f"Creating TopDesk incident for conversation {conversation_id}")
             logger.info(f"POST URL: {url}")
             logger.debug(f"Payload: {payload}")
             
@@ -302,7 +300,7 @@ class TopDeskClient:
                 ticket_number = result.get("number", "")
                 ticket_id = result.get("id", "")
                 
-                logger.info(f"TopDesk incident created: {ticket_number} for employee {employee_number}")
+                logger.info(f"TopDesk incident created: {ticket_number}")
                 
                 return {
                     "success": True,
@@ -350,9 +348,15 @@ class TopDeskClient:
             logger.error("No ticket ID provided for action")
             return False
         
+        # Add line breaks before each timestamp for better readability
+        # Pattern: [HH:MM:SS] - speaker: message
+        # This makes each conversation turn start on a new line
+        import re
+        formatted_transcript = re.sub(r'(\[)', r'\n\1', transcript).strip()
+        
         # TopDesk requires PATCH to incidents endpoint with action field
         payload = {
-            "action": f"Call Transcript:\n\n{transcript}",
+            "action": f"Call Transcript:\n\n{formatted_transcript}",
             "actionInvisibleForCaller": True
         }
         

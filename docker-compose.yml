@@ -26,6 +26,13 @@ services:
     container_name: calendar-mcp
     restart: unless-stopped
     
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
     # Load centralized environment configuration
     env_file:
       - .env
@@ -99,6 +106,13 @@ services:
     build: ./Servers/GmailMCP
     container_name: gmail-mcp
     restart: unless-stopped
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     
     # Load centralized environment configuration
     env_file:
@@ -241,6 +255,13 @@ services:
     container_name: topdesk-custom-mcp
     restart: unless-stopped
     
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
     # Load centralized environment configuration
     env_file:
       - .env
@@ -301,6 +322,13 @@ services:
     build: ./Servers/ElevenLabsWebhook
     container_name: elevenlabs-webhook
     restart: unless-stopped
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     
     # Load centralized environment configuration
     env_file:
@@ -378,6 +406,13 @@ services:
       dockerfile: Dockerfile.duckdns
     container_name: duckdns-updater
     restart: unless-stopped
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
     read_only: true
     tmpfs:
       - /tmp
@@ -426,6 +461,13 @@ services:
     build: ./nginx/ssl-renewer
     container_name: ssl-renewer
     restart: unless-stopped
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=100m
@@ -481,6 +523,13 @@ services:
     image: nginx:alpine
     container_name: nginx-proxy
     restart: unless-stopped
+    
+    # Logging configuration to prevent unbounded log growth
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     
     networks:
       - mcp-internal

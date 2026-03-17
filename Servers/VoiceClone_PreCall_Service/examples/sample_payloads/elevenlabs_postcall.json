@@ -1,0 +1,12 @@
+{
+  "call_id": "elevenlabs-call-67890",
+  "agent_id": "agent-abc123",
+  "transcript": "Hello, how can I help you today?",
+  "duration_seconds": 120,
+  "status": "completed",
+  "custom_variables": {
+    "threecx_call_id": "3cx-call-12345",
+    "caller_id": "+31612345678"
+  },
+  "timestamp": "2025-12-10T12:02:00Z"
+}

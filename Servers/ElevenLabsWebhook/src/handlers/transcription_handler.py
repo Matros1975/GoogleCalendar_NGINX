@@ -59,10 +59,13 @@ VALID_TOPDESK_PRIORITIES = [
 
 class TicketDataPayload(BaseModel):
     """Schema for TopDesk ticket creation from transcript."""
-    brief_description: str = Field(description="Short summary of the issue (max 80 chars)")
+    brief_description: str = Field(description="Short summary of the issue inc device number if applicable (max 80 chars)")
     request: str = Field(description="Detailed description of the customer's request")
     summary: str = Field(description="Structured summary with: Issue reported, Steps already performed, Steps suggested by agent, Next steps planned")
     employee_number: str = Field(description="Employee number - MUST be 'UNKNOWN' if not mentioned in conversation")
+    device_number: Optional[str] = Field(None, description="Device or laptop registration number if mentioned, e.g. LAP 110945")
+    kan_doorwerken_status: Optional[str] = Field(None, description="Whether caller can work: kan_niet_werken, kan_beperkt_werken, or kan_werken")
+    location: Optional[str] = Field(None, description="Work location or address of the caller if mentioned")
     category: Optional[str] = Field(None, description=f"Issue category. Must be one of: {', '.join(VALID_TOPDESK_CATEGORIES)}")
     priority: Optional[str] = Field(None, description=f"Priority level. Must be one of: {', '.join(VALID_TOPDESK_PRIORITIES)}")
 
@@ -355,13 +358,29 @@ class TranscriptionHandler:
                                             .get("data_collection_results", {}))
 
                     extracted_emp = data_collection.get("employee_number", {}).get("value")
-
                     if extracted_emp:
-                        ticket_data.employee_number = str(extracted_emp)
+                        ticket_data.employee_number = str(int(float(extracted_emp)))
                         logger.info(f"Employee number overridden from payload: {ticket_data.employee_number}")
 
+                    extracted_device = data_collection.get("device_number", {}).get("value")
+                    if extracted_device:
+                        ticket_data.device_number = str(extracted_device)
+                        logger.info(f"Device number extracted from payload: {ticket_data.device_number}")
+
+                    kan_doorwerken = data_collection.get("kan_doorwerken_status", {}).get("value")
+                    if not kan_doorwerken:
+                        kan_doorwerken = data_collection.get("workability", {}).get("value")
+                    if kan_doorwerken:
+                        ticket_data.kan_doorwerken_status = str(kan_doorwerken)
+                        logger.info(f"Kan doorwerken status extracted: {ticket_data.kan_doorwerken_status}")
+
+                    extracted_location = data_collection.get("location", {}).get("value")
+                    if extracted_location:
+                        ticket_data.location = str(extracted_location)
+                        logger.info(f"Location extracted from payload: {ticket_data.location}")
+
                 except Exception as e:
-                    logger.warning(f"Failed to extract employee_number from payload: {e}")
+                    logger.warning(f"Failed to extract data collection fields from payload: {e}")
                 logger.info(f"Ticket data extracted - Employee number: '{ticket_data.employee_number}' (Brief: '{ticket_data.brief_description}')")
                 
                 # Initialize TopDesk client if needed
@@ -371,7 +390,11 @@ class TranscriptionHandler:
                 # Prepend summary to request for structured ticket data
                 formatted_summary = topdesk_format(ticket_data.summary)
 
-                conversation_id = transcription.conversation_id or "Onbekend"
+                conversation_id = (
+                    modified_payload.get("data", {}).get("conversation_id") or
+                    transcription.conversation_id or
+                    "Onbekend"
+                )
 
                 conversation_block = (
                     f"<strong>Conversation ID:</strong> {conversation_id}<br><br>"
@@ -379,8 +402,25 @@ class TranscriptionHandler:
 
                 separator = "<br>-----------------------------------------------------------------------------<br>"
 
+                # Add device number block if present
+                device_block = ""
+                if ticket_data.device_number:
+                    device_block = f"<strong>Registratienummer apparaat:</strong> {ticket_data.device_number}<br><br>"
+
+                # Add kan doorwerken block if present
+                kan_doorwerken_block = ""
+                if ticket_data.kan_doorwerken_status:
+                    kan_doorwerken_block = f"<strong>Kan doorwerken:</strong> {ticket_data.kan_doorwerken_status}<br><br>"
+
+                location_block = ""
+                if ticket_data.location:
+                    location_block = f"<strong>Locatie:</strong> {ticket_data.location}<br><br>"
+
                 full_request = (
                     conversation_block +
+                    device_block +
+                    kan_doorwerken_block +
+                    location_block +
                     formatted_summary +
                     separator +
                     "<strong>Aanvullende Beschrijving:</strong><br>" +
