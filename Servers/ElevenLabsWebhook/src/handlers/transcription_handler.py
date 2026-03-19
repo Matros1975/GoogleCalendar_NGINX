@@ -182,12 +182,34 @@ class TranscriptionHandler:
             elif isinstance(value, str):
                 if value == "eleven_turbo_v2_5":
                     value = "model_v1"
-                    logger.debug(f"Replaced string value 'eleven_turbo_v2_5' with 'model_v1'")
+                    logger.debug(f"Replaced string value")
+                elif "x-elevenlabs-history" in value:
+                    try:
+                        # Try to parse as JSON
+                        parsed = json.loads(value)
+                        if isinstance(parsed, (dict, list)):
+                            # Process the parsed JSON
+                            processed = self.string_rename(parsed)
+                            # Convert back to JSON string
+                            value = json.dumps(processed)
+                            logger.debug(f"Processed JSON string")
+                    except (json.JSONDecodeError, TypeError):
+                        # Not valid JSON, do simple string replacement
+                        value = value.replace("x-elevenlabs-history", "x-model-history")
+                        logger.debug(f"Simple string replacement")
+                elif "eleven" in value.lower() and not any(skip in value.lower() for skip in ["x-elevenlabs-history", "eleven_turbo_v2_5"]):
+                    # Only log potential issues, don't modify arbitrary text
+                    logger.debug(f"Found string value (not modified): {value[:50]}...")
             
+            # Handle keys - FIX: Only rename keys, not values
             if "eleven" in key.lower():
-                new_key = key.replace("eleven", "auto").replace("Eleven", "auto").replace("ELEVEN", "AUTO")
+                if key == "x-elevenlabs-history":
+                    new_key = "x-model-history"
+                    logger.debug(f"Special rename: '{key}' -> '{new_key}'")
+                else:
+                    new_key = key.replace("eleven", "auto").replace("Eleven", "auto").replace("ELEVEN", "AUTO")
+                    logger.debug(f"Renamed key '{key}' to '{new_key}' in payload")
                 modified_payload[new_key] = value
-                logger.debug(f"Renamed key '{key}' to '{new_key}' in payload")
             else:
                 modified_payload[key] = value
         
