@@ -179,7 +179,7 @@ class TopDeskClient:
 
             logger.info(f"Employee lookup response: HTTP {response.status_code}")
 
-            if response.status_code == 200:
+            if response.status_code in [200, 206]:
                 persons = response.json()
                 logger.info(f"Employee lookup returned {len(persons)} results for '{employee_number}'")
                 for person in persons:
