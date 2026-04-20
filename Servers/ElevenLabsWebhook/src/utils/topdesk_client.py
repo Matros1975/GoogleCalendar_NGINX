@@ -266,7 +266,7 @@ class TopDeskClient:
             if category:
                 logger.warning(f"Invalid category '{category}', using default")
             # Use default category
-            payload["category"] = {"name": "Applicaties"}
+            payload["category"] = {"name": "Telefonisch"}
             logger.debug("Using default category: Applicaties")
             
         if priority and priority in VALID_PRIORITIES:
