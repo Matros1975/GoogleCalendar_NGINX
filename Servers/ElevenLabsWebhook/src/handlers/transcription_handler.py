@@ -42,10 +42,20 @@ MAX_FALLBACK_REQUEST_LENGTH = 2000
 
 # Valid TopDesk categories (must match TopDesk instance configuration)
 VALID_TOPDESK_CATEGORIES = [
-    "Core applicaties",
-    "Werkplek hardware",
-    "Netwerk",
-    "Wachtwoord wijziging"
+    "Account & autorisaties",
+    "Applicaties",
+    "Bouwkundig",
+    "Communicatie, netwerk & platfo",
+    "Elek - installaties",
+    "Facilitaire diensten",
+    "IB&P",
+    "Opiaatkluizen & Medicijnkarren",
+    "Security",
+    "Toegangsbeheer",
+    "Transport",
+    "Werkplek & apparaten",
+    "WTB - installaties",
+    "Zorgtechnologie & hulpmiddelen"
 ]
 
 # Valid TopDesk priorities (must match TopDesk instance configuration)
@@ -222,68 +232,12 @@ class TranscriptionHandler:
         """
         Process a post_call_transcription webhook payload and create TopDesk ticket.
         
-        This is the main entry point for webhook processing. It orchestrates the entire
-        workflow from payload parsing to ticket creation and error handling.
-        
-        **Processing Steps:**
-        1. Parse payload into TranscriptionPayload model (validates structure)
-        2. Log conversation metadata and statistics
-        3. Save transcript to disk (if storage enabled)
-        4. Generate formatted transcript with timestamps
-        5. Extract ticket data using OpenAI/LangChain
-        6. Create TopDesk incident with extracted data
-        7. Attach transcript as invisible action to ticket
-        8. Send email notification if ticket creation fails
-        
-        **Error Handling:**
-        - Validation errors: Raised immediately (invalid payload structure)
-        - Storage errors: Logged but processing continues
-        - OpenAI errors: Falls back to basic extraction
-        - TopDesk errors: Triggers email notification, sets error in result
-        - Email errors: Logged but does not fail the request
-        
-        Args:
-            payload: Raw webhook payload dictionary from callback containing:
-                - type: "post_call_transcription"
-                - conversation_id: Unique conversation identifier
-                - agent_id: Callback agent identifier
-                - data: Conversation data with transcript, metadata, analysis
-        
-        Returns:
-            Processing result dictionary with keys:
-            - status: Always "processed"
-            - conversation_id: Conversation identifier from payload
-            - agent_id: Agent identifier from payload
-            - saved_path: File path where transcript was saved (or None)
-            - formatted_transcript: Human-readable transcript with timestamps
-            - ticket_created: True if TopDesk ticket was created successfully
-            - ticket_number: TopDesk ticket number (e.g., "I 240001") or None
-            - ticket_id: TopDesk internal ticket ID (UUID) or None
-            - transcript_added: True if transcript attached to ticket successfully
-            - email_sent: True if error notification email was sent
-            - error: Error message if ticket creation failed, None otherwise
-        
-        Raises:
-            Exception: If payload parsing fails or critical error occurs.
-                      TopDesk/email errors are caught and returned in result dict.
-        
-        Examples:
-            >>> handler = TranscriptionHandler()
-            >>> result = await handler.handle(webhook_payload)
-            >>> if result["ticket_created"]:
-            ...     print(f"Created ticket {result['ticket_number']}")
-            >>> else:
-            ...     print(f"Error: {result['error']}")
-        
-        Note:
-            - Empty transcripts skip ticket creation (returns early with ticket_created=False)
-            - Costs ~$0.01 per call when using OpenAI extraction
-            - Processing time: 2-5 seconds depending on transcript length
+        CRITICAL: Email notification is sent on ANY ticket creation failure.
+        This ensures someone is always notified when something goes wrong.
         """
         logger.info("Processing post_call_transcription webhook")
         
         # MODIFICATION: Rename 'webhook' to 'auto' in the payload early
-        # This ensures all subsequent operations use the renamed version
         modified_payload = self.string_rename(payload)
         
         def topdesk_format(text: str) -> str:
@@ -293,7 +247,6 @@ class TranscriptionHandler:
             - * bullets → <ul><li>
             - Newlines → <br>
             """
-
             # Convert markdown headers (e.g., **Header:**) to <strong>
             text = re.sub(r"\*\*(.+?):\*\*", r"<strong>\1:</strong>", text)
 
@@ -369,114 +322,118 @@ class TranscriptionHandler:
                 logger.warning(f"No transcript for {transcription.conversation_id}, skipping ticket creation")
                 return result
             
-            # Attempt TopDesk ticket creation
+            # Extract ticket data using OpenAI/LangChain
+            logger.info(f"Starting employee number extraction for conversation: {transcription.conversation_id}")
+            ticket_data = await self._extract_ticket_data(formatted_transcript, transcription.data)
+            
+            # Extract data collection fields from payload
             try:
-                # Extract ticket data using OpenAI/LangChain
-                logger.info(f"Starting employee number extraction for conversation: {transcription.conversation_id}")
-                ticket_data = await self._extract_ticket_data(formatted_transcript, transcription.data)
+                data_collection = (modified_payload.get("data", {})
+                                        .get("analysis", {})
+                                        .get("data_collection_results", {}))
+
+                extracted_emp = data_collection.get("employee_number", {}).get("value")
+                if extracted_emp:
+                    ticket_data.employee_number = str(int(float(extracted_emp)))
+                    logger.info(f"Employee number overridden from payload: {ticket_data.employee_number}")
+
+                extracted_device = data_collection.get("device_number", {}).get("value")
+                if extracted_device:
+                    ticket_data.device_number = str(extracted_device)
+                    logger.info(f"Device number extracted from payload: {ticket_data.device_number}")
+
+                kan_doorwerken = data_collection.get("kan_doorwerken_status", {}).get("value")
+                if not kan_doorwerken:
+                    kan_doorwerken = data_collection.get("workability", {}).get("value")
+                if kan_doorwerken:
+                    ticket_data.kan_doorwerken_status = str(kan_doorwerken)
+                    logger.info(f"Kan doorwerken status extracted: {ticket_data.kan_doorwerken_status}")
+
+                extracted_location = data_collection.get("location", {}).get("value")
+                if extracted_location:
+                    ticket_data.location = str(extracted_location)
+                    logger.info(f"Location extracted from payload: {ticket_data.location}")
+
+            except Exception as e:
+                logger.warning(f"Failed to extract data collection fields from payload: {e}")
+                
+            logger.info(f"Ticket data extracted - Employee number: '{ticket_data.employee_number}' (Brief: '{ticket_data.brief_description}')")
+            
+            # Initialize TopDesk client if needed
+            if not self.topdesk_client:
+                self.topdesk_client = TopDeskClient()
+            
+            # Prepare ticket request content
+            formatted_summary = topdesk_format(ticket_data.summary)
+
+            conversation_id = (
+                modified_payload.get("data", {}).get("conversation_id") or
+                transcription.conversation_id or
+                "Onbekend"
+            )
+
+            conversation_block = (
+                f"<strong>Conversation ID:</strong> {conversation_id}<br><br>"
+            )
+
+            separator = "<br>-----------------------------------------------------------------------------<br>"
+
+            # Add device number block if present
+            device_block = ""
+            if ticket_data.device_number:
+                device_block = f"<strong>Registratienummer apparaat:</strong> {ticket_data.device_number}<br><br>"
+
+            # Add kan doorwerken block if present
+            kan_doorwerken_block = ""
+            if ticket_data.kan_doorwerken_status:
+                kan_doorwerken_block = f"<strong>Kan doorwerken:</strong> {ticket_data.kan_doorwerken_status}<br><br>"
+
+            location_block = ""
+            if ticket_data.location:
+                location_block = f"<strong>Locatie:</strong> {ticket_data.location}<br><br>"
+
+            full_request = (
+                conversation_block +
+                device_block +
+                kan_doorwerken_block +
+                location_block +
+                formatted_summary +
+                separator +
+                "<strong>Aanvullende Beschrijving:</strong><br>" +
+                ticket_data.request
+            )
+
+            # Validate employee number
+            employee_person = None
+            fallback_used = False
+            
+            if ticket_data.employee_number and ticket_data.employee_number != "UNKNOWN":
+                logger.info(f"Validating employee number: '{ticket_data.employee_number}' in TopDesk")
                 try:
-                    data_collection = (modified_payload.get("data", {})
-                                            .get("analysis", {})
-                                            .get("data_collection_results", {}))
+                    employee_person = await self.topdesk_client.validate_employee_number(
+                        ticket_data.employee_number
+                    )
+                    if employee_person:
+                        logger.info(f"✓ Employee number '{ticket_data.employee_number}' validated successfully")
+                    else:
+                        logger.warning(f"✗ Employee number '{ticket_data.employee_number}' not found in TopDesk")
+                except Exception as validation_error:
+                    logger.error(f"Error validating employee number {ticket_data.employee_number}: {validation_error}")
+                    employee_person = None
 
-                    extracted_emp = data_collection.get("employee_number", {}).get("value")
-                    if extracted_emp:
-                        ticket_data.employee_number = str(int(float(extracted_emp)))
-                        logger.info(f"Employee number overridden from payload: {ticket_data.employee_number}")
+            # Use fallback if employee not found
+            if not employee_person:
+                logger.info(f"Using fallback employee number: 99999 (original: {ticket_data.employee_number})")
+                ticket_data.employee_number = "99999"
+                fallback_used = True
 
-                    extracted_device = data_collection.get("device_number", {}).get("value")
-                    if extracted_device:
-                        ticket_data.device_number = str(extracted_device)
-                        logger.info(f"Device number extracted from payload: {ticket_data.device_number}")
-
-                    kan_doorwerken = data_collection.get("kan_doorwerken_status", {}).get("value")
-                    if not kan_doorwerken:
-                        kan_doorwerken = data_collection.get("workability", {}).get("value")
-                    if kan_doorwerken:
-                        ticket_data.kan_doorwerken_status = str(kan_doorwerken)
-                        logger.info(f"Kan doorwerken status extracted: {ticket_data.kan_doorwerken_status}")
-
-                    extracted_location = data_collection.get("location", {}).get("value")
-                    if extracted_location:
-                        ticket_data.location = str(extracted_location)
-                        logger.info(f"Location extracted from payload: {ticket_data.location}")
-
-                except Exception as e:
-                    logger.warning(f"Failed to extract data collection fields from payload: {e}")
-                logger.info(f"Ticket data extracted - Employee number: '{ticket_data.employee_number}' (Brief: '{ticket_data.brief_description}')")
+            # Attempt TopDesk ticket creation
+            ticket_response = None
+            ticket_error = None
+            
+            try:
+                logger.info(f"Creating TopDesk ticket with employee_number={ticket_data.employee_number}, fallback={fallback_used}")
                 
-                # Initialize TopDesk client if needed
-                if not self.topdesk_client:
-                    self.topdesk_client = TopDeskClient()
-                
-                # Prepend summary to request for structured ticket data
-                formatted_summary = topdesk_format(ticket_data.summary)
-
-                conversation_id = (
-                    modified_payload.get("data", {}).get("conversation_id") or
-                    transcription.conversation_id or
-                    "Onbekend"
-                )
-
-                conversation_block = (
-                    f"<strong>Conversation ID:</strong> {conversation_id}<br><br>"
-                )
-
-                separator = "<br>-----------------------------------------------------------------------------<br>"
-
-                # Add device number block if present
-                device_block = ""
-                if ticket_data.device_number:
-                    device_block = f"<strong>Registratienummer apparaat:</strong> {ticket_data.device_number}<br><br>"
-
-                # Add kan doorwerken block if present
-                kan_doorwerken_block = ""
-                if ticket_data.kan_doorwerken_status:
-                    kan_doorwerken_block = f"<strong>Kan doorwerken:</strong> {ticket_data.kan_doorwerken_status}<br><br>"
-
-                location_block = ""
-                if ticket_data.location:
-                    location_block = f"<strong>Locatie:</strong> {ticket_data.location}<br><br>"
-
-                full_request = (
-                    conversation_block +
-                    device_block +
-                    kan_doorwerken_block +
-                    location_block +
-                    formatted_summary +
-                    separator +
-                    "<strong>Aanvullende Beschrijving:</strong><br>" +
-                    ticket_data.request
-                )
-
-                # Check if employee number exists and validate it
-                employee_person = None
-                if ticket_data.employee_number and ticket_data.employee_number != "UNKNOWN":
-                    logger.info(f"Validating employee number: '{ticket_data.employee_number}' in TopDesk")
-                    try:
-                        employee_person = await self.topdesk_client.validate_employee_number(
-                            ticket_data.employee_number
-                        )
-                        if employee_person:
-                            logger.info(f"Employee number '{ticket_data.employee_number}' validated successfully. Found person: {employee_person.get('id', 'N/A')}")
-                        else:
-                            logger.warning(f"Employee number '{ticket_data.employee_number}' not found in TopDesk")
-                    except Exception as validation_error:
-                        logger.error(f"Error validating employee number {ticket_data.employee_number}: {validation_error}")
-                        employee_person = None
-
-                if not employee_person:
-                    # Employee number not found or not provided - skip ticket creation and send fallback email
-                    error_msg = "Employee number not provided or invalid"
-                    result["error"] = error_msg
-                    logger.warning(f"Employee validation failed for {transcription.conversation_id}: {error_msg}")
-                    
-                    ticket_data.employee_number = "9999999"
-                    fallback_used = True
-                else:
-                    fallback_used = False
-
-                # Employee number validated successfully - create ticket
                 ticket_response = await self.topdesk_client.create_incident(
                     brief_description=ticket_data.brief_description,
                     request=full_request,
@@ -494,7 +451,7 @@ class TranscriptionHandler:
                     result["ticket_number"] = ticket_response["ticket_number"]
                     result["ticket_id"] = ticket_response["ticket_id"]
                     
-                    logger.info(f"Created ticket {ticket_response['ticket_number']} for {transcription.conversation_id}")
+                    logger.info(f"✓ Created ticket {ticket_response['ticket_number']} for {transcription.conversation_id}")
                     
                     # Add transcript as invisible action
                     try:
@@ -505,58 +462,60 @@ class TranscriptionHandler:
                         result["transcript_added"] = transcript_added
                         
                         if transcript_added:
-                            logger.info(f"Added transcript to ticket {ticket_response['ticket_number']}")
+                            logger.info(f"✓ Added transcript to ticket {ticket_response['ticket_number']}")
                         else:
-                            logger.warning(f"Failed to add transcript to ticket {ticket_response['ticket_number']}")
+                            logger.warning(f"✗ Failed to add transcript to ticket {ticket_response['ticket_number']}")
                     except Exception as e:
                         logger.error(f"Error adding transcript to ticket: {e}")
                         result["transcript_added"] = False
 
+                    # Send email notification if fallback was used
                     if fallback_used:
-                        if not self.email_sender:
-                            self.email_sender = EmailSender()
-                        
-                        try:
-                            data_dict = modified_payload.get("data", {}) or {}
-                            metadata = data_dict.get("metadata", {}) or {}
-                            phone_call = metadata.get("phone_call", {}) or {}
-                            
-                            call_number = phone_call.get("external_number")
-                            
-                            start_time = metadata.get("start_time_unix_secs")
-                            call_time = format_unix_time(start_time) if start_time else "Unknown"
-
-                            # MODIFICATION: Use the already modified payload for email
-                            # The payload has already been processed by string_rename
-                            email_sent = await self.email_sender.send_error_notification(
-                                conversation_id=transcription.conversation_id,
-                                transcript=formatted_transcript,
-                                error_message=(f"Ticket {ticket_response['ticket_number']} created with default employee ID 9999999.\n"
-                                f"Reason: No employee ID provided or user did not mention a valid employee ID."),
-                                ticket_data=ticket_data.dict() if ticket_data else {},
-                                payload=modified_payload,  # Use modified payload
-                                call_number=call_number,
-                                call_time=call_time
-                            )
-
-                            result["email_sent"] = email_sent
-                            
-                        except Exception as email_error:
-                            logger.error(f"Failed to send fallback notification email: {email_error}")
-                            result["email_sent"] = False
+                        logger.info("Sending fallback notification email (ticket created with default employee)")
+                        await self._send_fallback_email(
+                            transcription=transcription,
+                            formatted_transcript=formatted_transcript,
+                            ticket_data=ticket_data,
+                            modified_payload=modified_payload,
+                            ticket_number=ticket_response["ticket_number"],
+                            error_message=f"Ticket created with fallback employee 99999. Original employee number: {data_collection.get('employee_number', {}).get('value', 'UNKNOWN')}"
+                        )
+                        result["email_sent"] = True
                 else:
-                    raise Exception(f"TopDesk API error: {ticket_response.get('error', 'Unknown error')}")
+                    # Ticket creation failed - TopDesk returned success=False
+                    ticket_error = ticket_response.get("error", "Unknown error from TopDesk")
+                    logger.error(f"✗ TopDesk ticket creation failed: {ticket_error}")
+                    raise Exception(ticket_error)
 
-            except Exception as ticket_error:
-                logger.error(f"TopDesk ticket creation failed: {ticket_error}")
-                result["error"] = str(ticket_error)
+            except Exception as e:
+                # ANY ticket creation failure - send email
+                ticket_error = str(e)
+                logger.error(f"✗ TopDesk ticket creation FAILED: {ticket_error}")
+                result["error"] = ticket_error
+                
+                # CRITICAL: Send email on ANY failure
+                logger.info("Sending error notification email (ticket creation failed completely)")
+                try:
+                    await self._send_failure_email(
+                        transcription=transcription,
+                        formatted_transcript=formatted_transcript,
+                        ticket_data=ticket_data,
+                        modified_payload=modified_payload,
+                        error_message=ticket_error
+                    )
+                    result["email_sent"] = True
+                    logger.info("✓ Error notification email sent successfully")
+                except Exception as email_error:
+                    logger.error(f"✗ Failed to send error notification email: {email_error}")
+                    result["email_sent"] = False
             
             return result
             
         except Exception as e:
             logger.exception(f"Error processing transcription: {e}")
             raise
-        
+
+
     def _process_conversation_data(self, data: ConversationData) -> None:
         """
         Process and log conversation metadata and statistics for observability.
@@ -1157,3 +1116,89 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
                 lines.append(f"{timestamp} - {result_line}")
         
         return "\n".join(lines)
+
+    async def _send_fallback_email(
+        self,
+        transcription: TranscriptionPayload,
+        formatted_transcript: str,
+        ticket_data: TicketDataPayload,
+        modified_payload: Dict[str, Any],
+        ticket_number: str,
+        error_message: str
+    ) -> bool:
+        """
+        Send email notification when ticket was created with fallback employee.
+        
+        This alerts the team that a ticket needs manual employee assignment.
+        """
+        if not self.email_sender:
+            self.email_sender = EmailSender()
+        
+        try:
+            data_dict = modified_payload.get("data", {}) or {}
+            metadata = data_dict.get("metadata", {}) or {}
+            phone_call = metadata.get("phone_call", {}) or {}
+            
+            call_number = phone_call.get("external_number")
+            
+            start_time = metadata.get("start_time_unix_secs")
+            call_time = format_unix_time(start_time) if start_time else "Unknown"
+
+            email_sent = await self.email_sender.send_error_notification(
+                conversation_id=transcription.conversation_id,
+                transcript=formatted_transcript,
+                error_message=error_message,
+                ticket_data=ticket_data.dict() if ticket_data else {},
+                payload=modified_payload,
+                call_number=call_number,
+                call_time=call_time
+            )
+
+            return email_sent
+            
+        except Exception as e:
+            logger.error(f"Failed to send fallback notification email: {e}")
+            return False
+    
+    async def _send_failure_email(
+        self,
+        transcription: TranscriptionPayload,
+        formatted_transcript: str,
+        ticket_data: TicketDataPayload,
+        modified_payload: Dict[str, Any],
+        error_message: str
+    ) -> bool:
+        """
+        Send email notification when ticket creation completely fails.
+        
+        CRITICAL SAFETY NET: Ensures someone is always notified when things break.
+        """
+        if not self.email_sender:
+            self.email_sender = EmailSender()
+        
+        try:
+            data_dict = modified_payload.get("data", {}) or {}
+            metadata = data_dict.get("metadata", {}) or {}
+            phone_call = metadata.get("phone_call", {}) or {}
+            
+            call_number = phone_call.get("external_number")
+            
+            start_time = metadata.get("start_time_unix_secs")
+            call_time = format_unix_time(start_time) if start_time else "Unknown"
+
+            email_sent = await self.email_sender.send_error_notification(
+                conversation_id=transcription.conversation_id,
+                transcript=formatted_transcript,
+                error_message=f"TICKET CREATION FAILED: {error_message}",
+                ticket_data=ticket_data.dict() if ticket_data else {},
+                payload=modified_payload,
+                call_number=call_number,
+                call_time=call_time
+            )
+
+            return email_sent
+            
+        except Exception as e:
+            logger.error(f"Failed to send failure notification email: {e}")
+            return False
+

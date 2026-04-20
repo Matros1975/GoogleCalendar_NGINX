@@ -70,7 +70,7 @@ class TopDeskClient:
         Results are cached to avoid repeated API calls.
         
         Returns:
-            List of category names (e.g., ["Core applicaties", "Werkplek hardware"])
+            List of category names (e.g., ["Applicaties", "Werkplek hardware"])
             Empty list if API call fails or not configured.
         """
         if self._categories_cache is not None:
@@ -207,17 +207,7 @@ class TopDeskClient:
         """
         Create incident in TopDesk.
         
-        Args:
-            brief_description: Short summary of the issue (max 80 chars)
-            request: Detailed description of the customer's request
-            conversation_id: ElevenLabs conversation ID for reference
-            caller_name: Caller's name if mentioned
-            caller_email: Caller's email if mentioned
-            category: Issue category (optional)
-            priority: Priority level (optional)
-            
-        Returns:
-            dict with 'success', 'ticket_number', 'ticket_id', or 'error'
+        Employee fallback: If employee_number is "99999", use it directly as fallback.
         """
         if not self.base_url:
             return {
@@ -231,16 +221,22 @@ class TopDeskClient:
                 "error": "TopDesk credentials not configured (TOPDESK_USERNAME, TOPDESK_PASSWORD)"
             }
         
-        # Build payload - caller is REQUIRED for TopDesk
-        # Use default caller ID if no email provided
-        DEFAULT_CALLER_ID = "d34b277f-e6a2-534c-a96b-23bf383cb4a1"  # Jacob Aalbregt
-        
         # Valid TopDesk categories (from your instance)
-        VALID_CATEGORIES = [
-            "Core applicaties",
-            "Werkplek hardware",
-            "Netwerk",
-            "Wachtwoord wijziging"
+        VALID_TOPDESK_CATEGORIES = [
+            "Account & autorisaties",
+            "Applicaties",
+            "Bouwkundig",
+            "Communicatie, netwerk & platfo",
+            "Elek - installaties",
+            "Facilitaire diensten",
+            "IB&P",
+            "Opiaatkluizen & Medicijnkarren",
+            "Security",
+            "Toegangsbeheer",
+            "Transport",
+            "Werkplek & apparaten",
+            "WTB - installaties",
+            "Zorgtechnologie & hulpmiddelen"
         ]
         
         # Valid TopDesk priorities (from your instance)
@@ -251,6 +247,7 @@ class TopDeskClient:
             "P4 (I&A)"
         ]
         
+        # Build payload - use callerLookup with employee number
         payload: Dict[str, Any] = {
             "briefDescription": brief_description[:80] if brief_description else "Call transcript",
             "request": request,
@@ -259,35 +256,34 @@ class TopDeskClient:
             }
         }
         
+        logger.info(f"Creating ticket with employee_number: {employee_number}")
+        
         # Add optional fields only if they match valid TopDesk values
-        if category and category in VALID_CATEGORIES:
+        if category and category in VALID_TOPDESK_CATEGORIES:
             payload["category"] = {"name": category}
             logger.debug(f"Using category: {category}")
         else:
             if category:
-                logger.warning(f"Invalid category '{category}', omitting from payload")
+                logger.warning(f"Invalid category '{category}', using default")
             # Use default category
-            payload["category"] = {"name": "Core applicaties"}
-            logger.debug("Using default category: Core applicaties")
+            payload["category"] = {"name": "Applicaties"}
+            logger.debug("Using default category: Applicaties")
             
         if priority and priority in VALID_PRIORITIES:
             payload["priority"] = {"name": priority}
             logger.debug(f"Using priority: {priority}")
         else:
             if priority:
-                logger.warning(f"Invalid priority '{priority}', omitting from payload")
+                logger.warning(f"Invalid priority '{priority}', using default")
             # Use default priority
             payload["priority"] = {"name": "P3 (I&A)"}
             logger.debug("Using default priority: P3 (I&A)")
             
-        # Note: callerLookup by email can be used to override caller, but requires exact match
-        # For now, we always use the default caller ID to ensure ticket creation succeeds
-        
         try:
             client = await self._get_client()
             url = f"{self.base_url}/incidents"
             logger.info(f"Creating TopDesk incident for conversation {conversation_id}")
-            logger.info(f"POST URL: {url}")
+            logger.debug(f"POST {url}")
             logger.debug(f"Payload: {payload}")
             
             response = await client.post(
@@ -295,12 +291,14 @@ class TopDeskClient:
                 json=payload
             )
             
+            logger.info(f"TopDesk response: HTTP {response.status_code}")
+            
             if response.status_code in [200, 201]:
                 result = response.json()
                 ticket_number = result.get("number", "")
                 ticket_id = result.get("id", "")
                 
-                logger.info(f"TopDesk incident created: {ticket_number}")
+                logger.info(f"✓ TopDesk incident created successfully: {ticket_number}")
                 
                 return {
                     "success": True,
@@ -310,7 +308,7 @@ class TopDeskClient:
                 }
             else:
                 error_msg = f"HTTP {response.status_code}: {response.text}"
-                logger.error(f"Failed to create TopDesk incident: {error_msg}")
+                logger.error(f"✗ Failed to create TopDesk incident: {error_msg}")
                 return {
                     "success": False,
                     "error": error_msg
@@ -318,13 +316,13 @@ class TopDeskClient:
                 
         except httpx.TimeoutException:
             error_msg = "TopDesk API request timed out"
-            logger.error(error_msg)
+            logger.error(f"✗ {error_msg}")
             return {"success": False, "error": error_msg}
         except Exception as e:
             error_msg = f"TopDesk API error: {str(e)}"
-            logger.exception(error_msg)
+            logger.exception(f"✗ {error_msg}")
             return {"success": False, "error": error_msg}
-    
+
     async def add_invisible_action(
         self,
         ticket_id: str,
