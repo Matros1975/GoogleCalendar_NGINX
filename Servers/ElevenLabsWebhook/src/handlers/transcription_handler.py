@@ -42,10 +42,20 @@ MAX_FALLBACK_REQUEST_LENGTH = 2000
 
 # Valid TopDesk categories (must match TopDesk instance configuration)
 VALID_TOPDESK_CATEGORIES = [
-    "Core applicaties",
-    "Werkplek hardware",
-    "Netwerk",
-    "Wachtwoord wijziging"
+    "Account & autorisaties",
+    "Applicaties",
+    "Bouwkundig",
+    "Communicatie, netwerk & platfo",
+    "Elek - installaties",
+    "Facilitaire diensten",
+    "IB&P",
+    "Opiaatkluizen & Medicijnkarren",
+    "Security",
+    "Toegangsbeheer",
+    "Transport",
+    "Werkplek & apparaten",
+    "WTB - installaties",
+    "Zorgtechnologie & hulpmiddelen"
 ]
 
 # Valid TopDesk priorities (must match TopDesk instance configuration)
@@ -1106,7 +1116,7 @@ Zorg dat ALLE gegenereerde tekst volledig in het Nederlands is.
                 lines.append(f"{timestamp} - {result_line}")
         
         return "\n".join(lines)
-        
+
     async def _send_fallback_email(
         self,
         transcription: TranscriptionPayload,

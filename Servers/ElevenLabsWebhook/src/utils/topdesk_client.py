@@ -70,7 +70,7 @@ class TopDeskClient:
         Results are cached to avoid repeated API calls.
         
         Returns:
-            List of category names (e.g., ["Core applicaties", "Werkplek hardware"])
+            List of category names (e.g., ["Applicaties", "Werkplek hardware"])
             Empty list if API call fails or not configured.
         """
         if self._categories_cache is not None:
@@ -222,11 +222,21 @@ class TopDeskClient:
             }
         
         # Valid TopDesk categories (from your instance)
-        VALID_CATEGORIES = [
-            "Core applicaties",
-            "Werkplek hardware",
-            "Netwerk",
-            "Wachtwoord wijziging"
+        VALID_TOPDESK_CATEGORIES = [
+            "Account & autorisaties",
+            "Applicaties",
+            "Bouwkundig",
+            "Communicatie, netwerk & platfo",
+            "Elek - installaties",
+            "Facilitaire diensten",
+            "IB&P",
+            "Opiaatkluizen & Medicijnkarren",
+            "Security",
+            "Toegangsbeheer",
+            "Transport",
+            "Werkplek & apparaten",
+            "WTB - installaties",
+            "Zorgtechnologie & hulpmiddelen"
         ]
         
         # Valid TopDesk priorities (from your instance)
@@ -249,15 +259,15 @@ class TopDeskClient:
         logger.info(f"Creating ticket with employee_number: {employee_number}")
         
         # Add optional fields only if they match valid TopDesk values
-        if category and category in VALID_CATEGORIES:
+        if category and category in VALID_TOPDESK_CATEGORIES:
             payload["category"] = {"name": category}
             logger.debug(f"Using category: {category}")
         else:
             if category:
                 logger.warning(f"Invalid category '{category}', using default")
             # Use default category
-            payload["category"] = {"name": "Core applicaties"}
-            logger.debug("Using default category: Core applicaties")
+            payload["category"] = {"name": "Applicaties"}
+            logger.debug("Using default category: Applicaties")
             
         if priority and priority in VALID_PRIORITIES:
             payload["priority"] = {"name": priority}
