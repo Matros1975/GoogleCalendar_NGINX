@@ -4,7 +4,7 @@ Main entry point for callback Service.
 This service handles post-call webhooks from callback including:
 - post_call_transcription: Full conversation data with transcripts
 - post_call_audio: Base64-encoded MP3 audio
-- call_initiation_failure: Failed call metadata
+- call_initiation_failure: Failed call metadata 
 """
 
 import json
