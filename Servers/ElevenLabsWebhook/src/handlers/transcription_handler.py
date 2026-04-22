@@ -423,8 +423,8 @@ class TranscriptionHandler:
 
             # Use fallback if employee not found
             if not employee_person:
-                logger.info(f"Using fallback employee number: 99999 (original: {ticket_data.employee_number})")
-                ticket_data.employee_number = "99999"
+                logger.info(f"Using fallback employee number: 9999999 (original: {ticket_data.employee_number})")
+                ticket_data.employee_number = "9999999"
                 fallback_used = True
 
             # Attempt TopDesk ticket creation
@@ -478,7 +478,7 @@ class TranscriptionHandler:
                             ticket_data=ticket_data,
                             modified_payload=modified_payload,
                             ticket_number=ticket_response["ticket_number"],
-                            error_message=f"Ticket created with fallback employee 99999. Original employee number: {data_collection.get('employee_number', {}).get('value', 'UNKNOWN')}"
+                            error_message=f"Ticket created with fallback employee 9999999. Original employee number: {data_collection.get('employee_number', {}).get('value', 'UNKNOWN')}"
                         )
                         result["email_sent"] = True
                 else:
